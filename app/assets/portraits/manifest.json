@@ -1,0 +1,288 @@
+{
+ "note": "BoG V painted portrait library (Lock 13). Keys = portrait-art.js lookKey(look). Built by app/tools/portraits.mjs manifest.",
+ "style": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark.",
+ "portraits": {
+  "aasimar-cleric-3c87ad1f": {
+   "file": "aasimar-cleric-3c87ad1f.webp",
+   "hero": "Brother Ledgerton",
+   "look": {
+    "species": "aasimar",
+    "cls": "cleric",
+    "who": "man",
+    "skin": "#8C5E3E",
+    "hair": "#B5462E",
+    "hairStyle": "bald",
+    "beard": "long",
+    "eyes": "#F7C948",
+    "cape": "#2E4A26",
+    "glow": "#FFE9A8",
+    "small": false
+   },
+   "prompt": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark. Subject: an aasimar (a mortal touched by celestial light, faintly luminous skin, gentle radiant glow in the eyes) man who is a cleric, rich umber brown skin, glowing gold eyes, a shaved bald head, a long braided auburn red beard. Wearing white and gold priestly vestments with a sun motif embroidered on the collar under a heavy forest green cloak clasped at the throat. A faint radiant halo of golden magical light above the head. The lower fifth of the image is shoulders and cloak only."
+  },
+  "dragonborn-sorcerer-ae146aa4": {
+   "file": "dragonborn-sorcerer-ae146aa4.webp",
+   "hero": "Scorchy Emberclaw",
+   "look": {
+    "species": "dragonborn",
+    "cls": "sorcerer",
+    "who": "man",
+    "skin": "#C2513A",
+    "hair": "#C9822E",
+    "hairStyle": "bald",
+    "beard": "none",
+    "eyes": "#F7C948",
+    "cape": "#5A1420",
+    "glow": "#FFB347",
+    "small": false
+   },
+   "prompt": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark. Subject: a dragonborn (a proud dragon-headed humanoid with a scaled snout, frilled crest of horns, no hair, no ears) man who is a sorcerer, red-copper scales, glowing gold eyes. Wearing crimson silk robe with flame-like gold embroidery under a heavy dark burgundy cloak clasped at the throat. Subtle wisps of ember-orange magical light drifting in the air around the shoulders. The lower fifth of the image is shoulders and cloak only."
+  },
+  "dwarf-fighter-f0ced1f9": {
+   "file": "dwarf-fighter-f0ced1f9.webp",
+   "hero": "Thorga Ironbelch",
+   "look": {
+    "species": "dwarf",
+    "cls": "fighter",
+    "who": "woman",
+    "skin": "#E8B48E",
+    "hair": "#C9822E",
+    "hairStyle": "long",
+    "beard": "none",
+    "eyes": "#2A5BD7",
+    "cape": "#8E1B3A",
+    "glow": "#FFB347",
+    "small": false
+   },
+   "prompt": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark. Subject: a dwarf (stout and broad-shouldered, sturdy, round human-like ears, not an elf) woman (clearly a woman, female features) who is a fighter, ruddy skin, bright blue eyes, long flowing copper hair. Wearing quilted gambeson tunic with brass buttons under a heavy deep wine red cloak clasped at the throat. Subtle wisps of ember-orange magical light drifting in the air around the shoulders. The lower fifth of the image is shoulders and cloak only."
+  },
+  "elf-bard-f9e45cc6": {
+   "file": "elf-bard-f9e45cc6.webp",
+   "hero": "Aurelian Vey",
+   "look": {
+    "species": "elf",
+    "cls": "bard",
+    "who": "man",
+    "skin": "#F5D7B8",
+    "hair": "#E8C468",
+    "hairStyle": "long",
+    "beard": "none",
+    "eyes": "#3D7A3A",
+    "cape": "#1E3A4A",
+    "glow": "#FFE9A8",
+    "small": false
+   },
+   "prompt": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark. Subject: an elf (long elegant pointed ears, fine high cheekbones) man who is a bard, porcelain skin, green eyes, long flowing golden blond hair. Wearing fine slashed doublet with gold embroidery under a heavy dark teal cloak clasped at the throat. Subtle wisps of golden magical light drifting in the air around the shoulders. The lower fifth of the image is shoulders and cloak only."
+  },
+  "elf-ranger-8f3e848d": {
+   "file": "elf-ranger-8f3e848d.webp",
+   "hero": "Thessaly Wren",
+   "look": {
+    "species": "elf",
+    "cls": "ranger",
+    "who": "woman",
+    "skin": "#B98A63",
+    "hair": "#5A3A22",
+    "hairStyle": "long",
+    "beard": "none",
+    "eyes": "#3D7A3A",
+    "cape": "#2E4A26",
+    "glow": "#7FE8FF",
+    "small": false
+   },
+   "prompt": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark. Subject: an elf (long elegant pointed ears, fine high cheekbones) woman (clearly a woman, female features) who is a ranger, golden brown skin, green eyes, long flowing dark brown hair. Wearing weathered green hunting leathers with a hood resting on the shoulders under a heavy forest green cloak clasped at the throat. Subtle wisps of cyan magical light drifting in the air around the shoulders. The lower fifth of the image is shoulders and cloak only."
+  },
+  "gnome-druid-94942722": {
+   "file": "gnome-druid-94942722.webp",
+   "hero": "Bramble Fennick",
+   "look": {
+    "species": "gnome",
+    "cls": "druid",
+    "who": "woman",
+    "skin": "#D9A57A",
+    "hair": "#B5462E",
+    "hairStyle": "long",
+    "beard": "none",
+    "eyes": "#3D7A3A",
+    "cape": "#2E4A26",
+    "glow": "#9BE05A",
+    "small": true
+   },
+   "prompt": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark. Subject: a gnome (one of the small folk, clearly not an elf: a round sturdy face, a broad rounded nose, large bright eyes, small slightly pointed ears, rosy cheeks) woman (clearly a woman, female features) who is a druid, warm tan skin, green eyes, long flowing auburn red hair. Wearing layered green and brown robes with leaf and antler motifs under a heavy forest green cloak clasped at the throat. Subtle wisps of green magical light drifting in the air around the shoulders. The lower fifth of the image is shoulders and cloak only."
+  },
+  "goliath-barbarian-5511ea27": {
+   "file": "goliath-barbarian-5511ea27.webp",
+   "hero": "Korra Stonehide",
+   "look": {
+    "species": "goliath",
+    "cls": "barbarian",
+    "who": "woman",
+    "skin": "#9A9EA6",
+    "hair": "#2E2018",
+    "hairStyle": "mohawk",
+    "beard": "none",
+    "eyes": "#2A5BD7",
+    "cape": "#5A1420",
+    "glow": "#FFB347",
+    "small": false
+   },
+   "prompt": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark. Subject: a goliath (towering, stone-grey skin with darker stony markings, heavy brow) woman (clearly a woman, female features) who is a barbarian, stone grey skin, bright blue eyes, braided mohawk near-black brown hair. Wearing rugged fur-trimmed tunic of hide and wool under a heavy dark burgundy cloak clasped at the throat. Subtle wisps of ember-orange magical light drifting in the air around the shoulders. The lower fifth of the image is shoulders and cloak only."
+  },
+  "halfling-rogue-bef1817f": {
+   "file": "halfling-rogue-bef1817f.webp",
+   "hero": "Pip Underfoot",
+   "look": {
+    "species": "halfling",
+    "cls": "rogue",
+    "who": "man",
+    "skin": "#A9744F",
+    "hair": "#E8C468",
+    "hairStyle": "hood",
+    "beard": "none",
+    "eyes": "#2A5BD7",
+    "cape": "#2E4A26",
+    "glow": "#9BE05A",
+    "small": false
+   },
+   "prompt": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark. Subject: a halfling (small, youthful round face, curly hair, slightly pointed ears) man who is a rogue, bronze-brown skin, bright blue eyes, a deep hood drawn up, a few strands of golden blond hair. Wearing dark close-fitting charcoal jerkin under a heavy forest green cloak clasped at the throat. Subtle wisps of green magical light drifting in the air around the shoulders. The lower fifth of the image is shoulders and cloak only."
+  },
+  "human-monk-74cf1ee8": {
+   "file": "human-monk-74cf1ee8.webp",
+   "hero": "Sefa Ironpalm",
+   "look": {
+    "species": "human",
+    "cls": "monk",
+    "who": "woman",
+    "skin": "#7A4E33",
+    "hair": "#2E2018",
+    "hairStyle": "cropped",
+    "beard": "none",
+    "eyes": "#7A4E33",
+    "cape": "#8E1B3A",
+    "glow": "#7FE8FF",
+    "small": false
+   },
+   "prompt": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark. Subject: a human woman (clearly a woman, female features) who is a monk, deep brown skin, deep brown eyes, close-cropped near-black brown hair. Wearing simple wrapped orange-and-rust monastic robe under a heavy deep wine red cloak clasped at the throat. Subtle wisps of cyan magical light drifting in the air around the shoulders. The lower fifth of the image is shoulders and cloak only."
+  },
+  "human-paladin-6005206f": {
+   "file": "human-paladin-6005206f.webp",
+   "hero": "Dame Isolde Varr",
+   "look": {
+    "species": "human",
+    "cls": "paladin",
+    "who": "woman",
+    "skin": "#A9744F",
+    "hair": "#C0C8D8",
+    "hairStyle": "long",
+    "beard": "none",
+    "eyes": "#2A5BD7",
+    "cape": "#2F4FA8",
+    "glow": "#FFE9A8",
+    "small": false
+   },
+   "prompt": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark. Subject: a human woman (clearly a woman, female features) who is a paladin, bronze-brown skin, bright blue eyes, long flowing silver hair. Wearing white surcoat with gold trim over a quilted tunic under a heavy royal blue cloak clasped at the throat. Subtle wisps of golden magical light drifting in the air around the shoulders. The lower fifth of the image is shoulders and cloak only."
+  },
+  "orc-warlock-6641e062": {
+   "file": "orc-warlock-6641e062.webp",
+   "hero": "Grask the Oathbound",
+   "look": {
+    "species": "orc",
+    "cls": "warlock",
+    "who": "man",
+    "skin": "#6F9A55",
+    "hair": "#2E2018",
+    "hairStyle": "cropped",
+    "beard": "short",
+    "eyes": "#7D1D2E",
+    "cape": "#4B2E6B",
+    "glow": "#9BE05A",
+    "small": false
+   },
+   "prompt": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark. Subject: an orc (strong heavy brow, small lower tusks, broad face, noble bearing) man who is a warlock, olive green skin, red eyes, close-cropped near-black brown hair, a short trimmed near-black brown beard. Wearing deep violet high-collared robe with eldritch green trim under a heavy deep violet cloak clasped at the throat. Subtle wisps of green magical light drifting in the air around the shoulders. The lower fifth of the image is shoulders and cloak only."
+  },
+  "tiefling-wizard-5673d979": {
+   "file": "tiefling-wizard-5673d979.webp",
+   "hero": "Vex Quillfeather",
+   "look": {
+    "species": "tiefling",
+    "cls": "wizard",
+    "who": "androgynous person",
+    "skin": "#9C4FB0",
+    "hair": "#F1E3A6",
+    "hairStyle": "swept",
+    "beard": "none",
+    "eyes": "#2A5BD7",
+    "cape": "#4B2E6B",
+    "glow": "#C9A8FF",
+    "small": false
+   },
+   "prompt": "Epic heroic fantasy oil painting, classic fantasy book-cover style, painterly visible brushstrokes, rich glazes. Head-and-shoulders bust portrait, centered, the head in the upper middle of the frame, eyes about 38% from the top, shoulders spanning the full lower edge, three-quarter view, noble determined expression, serious and heroic, never comic. Dramatic warm golden rim light from the upper left, deep shadow. Background: dark oak-brown and deep wine-red vignette with a soft gold sunburst glow behind the head. Tavern Ledger palette: oak brown, parchment gold, wine red, candle light. No armor, no weapons, no hands, no shield, no jewelry except as described, no text, no frame, no border, no logo, no watermark. Subject: an androgynous tiefling (two curved ram horns sweeping back from the forehead, solid-colored eyes) hero who is a wizard, amethyst purple skin, solid bright blue eyes, swept-back pale flaxen blond hair. Wearing royal blue scholar robe with gold star embroidery on the collar under a heavy deep violet cloak clasped at the throat. Subtle wisps of violet magical light drifting in the air around the shoulders. The lower fifth of the image is shoulders and cloak only."
+  }
+ },
+ "gear": {
+  "armor-chain": [
+   480,
+   254
+  ],
+  "armor-leather": [
+   480,
+   298
+  ],
+  "armor-plate": [
+   480,
+   296
+  ],
+  "armor-studded": [
+   480,
+   309
+  ],
+  "shield": [
+   310,
+   480
+  ],
+  "w-axe": [
+   157,
+   480
+  ],
+  "w-bow": [
+   69,
+   480
+  ],
+  "w-dagger": [
+   109,
+   480
+  ],
+  "w-greataxe": [
+   189,
+   480
+  ],
+  "w-greatsword": [
+   130,
+   480
+  ],
+  "w-longsword": [
+   105,
+   480
+  ],
+  "w-mace": [
+   165,
+   480
+  ],
+  "w-spear": [
+   67,
+   480
+  ],
+  "w-spell": [
+   337,
+   480
+  ],
+  "w-staff": [
+   103,
+   480
+  ],
+  "w-warhammer": [
+   110,
+   480
+  ]
+ }
+}

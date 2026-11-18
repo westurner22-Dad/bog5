@@ -1,0 +1,494 @@
+{
+ "acid": {
+  "id": "acid",
+  "name": "Acid",
+  "weight": 1,
+  "cost": 2500
+ },
+ "alchemists_fire": {
+  "id": "alchemists_fire",
+  "name": "Alchemist's Fire",
+  "weight": 1,
+  "cost": 5000
+ },
+ "ammunition": {
+  "id": "ammunition",
+  "name": "Ammunition",
+  "weight": 0,
+  "cost": null
+ },
+ "antitoxin": {
+  "id": "antitoxin",
+  "name": "Antitoxin",
+  "weight": 0,
+  "cost": 5000
+ },
+ "arcane_focus": {
+  "id": "arcane_focus",
+  "name": "Arcane Focus",
+  "weight": 0,
+  "cost": null
+ },
+ "backpack": {
+  "id": "backpack",
+  "name": "Backpack",
+  "weight": 5,
+  "cost": 200
+ },
+ "ball_bearings": {
+  "id": "ball_bearings",
+  "name": "Ball Bearings",
+  "weight": 2,
+  "cost": 100
+ },
+ "barrel": {
+  "id": "barrel",
+  "name": "Barrel",
+  "weight": 70,
+  "cost": 200
+ },
+ "basket": {
+  "id": "basket",
+  "name": "Basket",
+  "weight": 2,
+  "cost": 40
+ },
+ "bedroll": {
+  "id": "bedroll",
+  "name": "Bedroll",
+  "weight": 7,
+  "cost": 100
+ },
+ "bell": {
+  "id": "bell",
+  "name": "Bell",
+  "weight": 0,
+  "cost": 100
+ },
+ "blanket": {
+  "id": "blanket",
+  "name": "Blanket",
+  "weight": 3,
+  "cost": 50
+ },
+ "block_and_tackle": {
+  "id": "block_and_tackle",
+  "name": "Block and Tackle",
+  "weight": 5,
+  "cost": 100
+ },
+ "book": {
+  "id": "book",
+  "name": "Book",
+  "weight": 5,
+  "cost": 2500
+ },
+ "bottle_glass": {
+  "id": "bottle_glass",
+  "name": "Bottle, Glass",
+  "weight": 2,
+  "cost": 200
+ },
+ "bucket": {
+  "id": "bucket",
+  "name": "Bucket",
+  "weight": 2,
+  "cost": 5
+ },
+ "burglars_pack": {
+  "id": "burglars_pack",
+  "name": "Burglar's Pack",
+  "weight": 42,
+  "cost": 1600
+ },
+ "caltrops": {
+  "id": "caltrops",
+  "name": "Caltrops",
+  "weight": 2,
+  "cost": 100
+ },
+ "candle": {
+  "id": "candle",
+  "name": "Candle",
+  "weight": 0,
+  "cost": 1
+ },
+ "case_crossbow_bolt": {
+  "id": "case_crossbow_bolt",
+  "name": "Case, Crossbow Bolt",
+  "weight": 1,
+  "cost": 100
+ },
+ "case_map_or_scroll": {
+  "id": "case_map_or_scroll",
+  "name": "Case, Map or Scroll",
+  "weight": 1,
+  "cost": 100
+ },
+ "chain": {
+  "id": "chain",
+  "name": "Chain",
+  "weight": 10,
+  "cost": 500
+ },
+ "chest": {
+  "id": "chest",
+  "name": "Chest",
+  "weight": 25,
+  "cost": 500
+ },
+ "climbers_kit": {
+  "id": "climbers_kit",
+  "name": "Climber's Kit",
+  "weight": 12,
+  "cost": 2500
+ },
+ "clothes_fine": {
+  "id": "clothes_fine",
+  "name": "Clothes, Fine",
+  "weight": 6,
+  "cost": 1500
+ },
+ "clothes_travelers": {
+  "id": "clothes_travelers",
+  "name": "Clothes, Traveler's",
+  "weight": 4,
+  "cost": 200
+ },
+ "component_pouch": {
+  "id": "component_pouch",
+  "name": "Component Pouch",
+  "weight": 2,
+  "cost": 2500
+ },
+ "costume": {
+  "id": "costume",
+  "name": "Costume",
+  "weight": 4,
+  "cost": 500
+ },
+ "crowbar": {
+  "id": "crowbar",
+  "name": "Crowbar",
+  "weight": 5,
+  "cost": 200
+ },
+ "diplomats_pack": {
+  "id": "diplomats_pack",
+  "name": "Diplomat's Pack",
+  "weight": 39,
+  "cost": 3900
+ },
+ "druidic_focus": {
+  "id": "druidic_focus",
+  "name": "Druidic Focus",
+  "weight": 0,
+  "cost": null
+ },
+ "dungeoneers_pack": {
+  "id": "dungeoneers_pack",
+  "name": "Dungeoneer's Pack",
+  "weight": 55,
+  "cost": 1200
+ },
+ "entertainers_pack": {
+  "id": "entertainers_pack",
+  "name": "Entertainer's Pack",
+  "weight": 0,
+  "cost": 4000
+ },
+ "explorers_pack": {
+  "id": "explorers_pack",
+  "name": "Explorer's Pack",
+  "weight": 55,
+  "cost": 1000
+ },
+ "flask": {
+  "id": "flask",
+  "name": "Flask",
+  "weight": 1,
+  "cost": 2
+ },
+ "grappling_hook": {
+  "id": "grappling_hook",
+  "name": "Grappling Hook",
+  "weight": 4,
+  "cost": 200
+ },
+ "healers_kit": {
+  "id": "healers_kit",
+  "name": "Healer's Kit",
+  "weight": 3,
+  "cost": 500
+ },
+ "holy_symbol": {
+  "id": "holy_symbol",
+  "name": "Holy Symbol",
+  "weight": 0,
+  "cost": null
+ },
+ "holy_water": {
+  "id": "holy_water",
+  "name": "Holy Water",
+  "weight": 1,
+  "cost": 2500
+ },
+ "hunting_trap": {
+  "id": "hunting_trap",
+  "name": "Hunting Trap",
+  "weight": 25,
+  "cost": 500
+ },
+ "ink": {
+  "id": "ink",
+  "name": "Ink",
+  "weight": 0,
+  "cost": 1000
+ },
+ "ink_pen": {
+  "id": "ink_pen",
+  "name": "Ink Pen",
+  "weight": 0,
+  "cost": 2
+ },
+ "jug": {
+  "id": "jug",
+  "name": "Jug",
+  "weight": 4,
+  "cost": 2
+ },
+ "ladder": {
+  "id": "ladder",
+  "name": "Ladder",
+  "weight": 25,
+  "cost": 10
+ },
+ "lamp": {
+  "id": "lamp",
+  "name": "Lamp",
+  "weight": 1,
+  "cost": 50
+ },
+ "lantern_bullseye": {
+  "id": "lantern_bullseye",
+  "name": "Lantern, Bullseye",
+  "weight": 2,
+  "cost": 1000
+ },
+ "lantern_hooded": {
+  "id": "lantern_hooded",
+  "name": "Lantern, Hooded",
+  "weight": 2,
+  "cost": 500
+ },
+ "lock": {
+  "id": "lock",
+  "name": "Lock",
+  "weight": 1,
+  "cost": 1000
+ },
+ "magnifying_glass": {
+  "id": "magnifying_glass",
+  "name": "Magnifying Glass",
+  "weight": 0,
+  "cost": 10000
+ },
+ "manacles": {
+  "id": "manacles",
+  "name": "Manacles",
+  "weight": 6,
+  "cost": 200
+ },
+ "map": {
+  "id": "map",
+  "name": "Map",
+  "weight": 0,
+  "cost": 100
+ },
+ "mirror": {
+  "id": "mirror",
+  "name": "Mirror",
+  "weight": 0.5,
+  "cost": 500
+ },
+ "net": {
+  "id": "net",
+  "name": "Net",
+  "weight": 3,
+  "cost": 100
+ },
+ "oil": {
+  "id": "oil",
+  "name": "Oil",
+  "weight": 1,
+  "cost": 10
+ },
+ "paper": {
+  "id": "paper",
+  "name": "Paper",
+  "weight": 0,
+  "cost": 20
+ },
+ "parchment": {
+  "id": "parchment",
+  "name": "Parchment",
+  "weight": 0,
+  "cost": 10
+ },
+ "perfume": {
+  "id": "perfume",
+  "name": "Perfume",
+  "weight": 0,
+  "cost": 500
+ },
+ "poison_basic": {
+  "id": "poison_basic",
+  "name": "Poison, Basic",
+  "weight": 0,
+  "cost": 10000
+ },
+ "pole": {
+  "id": "pole",
+  "name": "Pole",
+  "weight": 7,
+  "cost": 5
+ },
+ "pot_iron": {
+  "id": "pot_iron",
+  "name": "Pot, Iron",
+  "weight": 10,
+  "cost": 200
+ },
+ "potion_of_healing": {
+  "id": "potion_of_healing",
+  "name": "Potion of Healing",
+  "weight": 0.5,
+  "cost": 5000
+ },
+ "pouch": {
+  "id": "pouch",
+  "name": "Pouch",
+  "weight": 1,
+  "cost": 50
+ },
+ "priests_pack": {
+  "id": "priests_pack",
+  "name": "Priest's Pack",
+  "weight": 29,
+  "cost": 3300
+ },
+ "quiver": {
+  "id": "quiver",
+  "name": "Quiver",
+  "weight": 1,
+  "cost": 100
+ },
+ "ram_portable": {
+  "id": "ram_portable",
+  "name": "Ram, Portable",
+  "weight": 35,
+  "cost": 400
+ },
+ "rations": {
+  "id": "rations",
+  "name": "Rations",
+  "weight": 2,
+  "cost": 50
+ },
+ "robe": {
+  "id": "robe",
+  "name": "Robe",
+  "weight": 4,
+  "cost": 100
+ },
+ "rope": {
+  "id": "rope",
+  "name": "Rope",
+  "weight": 5,
+  "cost": 100
+ },
+ "sack": {
+  "id": "sack",
+  "name": "Sack",
+  "weight": 0.5,
+  "cost": 1
+ },
+ "scholars_pack": {
+  "id": "scholars_pack",
+  "name": "Scholar's Pack",
+  "weight": 22,
+  "cost": 4000
+ },
+ "shovel": {
+  "id": "shovel",
+  "name": "Shovel",
+  "weight": 5,
+  "cost": 200
+ },
+ "signal_whistle": {
+  "id": "signal_whistle",
+  "name": "Signal Whistle",
+  "weight": 0,
+  "cost": 5
+ },
+ "spell_scroll_cantrip": {
+  "id": "spell_scroll_cantrip",
+  "name": "Spell Scroll (Cantrip)",
+  "weight": 0,
+  "cost": 3000
+ },
+ "spell_scroll_level_1": {
+  "id": "spell_scroll_level_1",
+  "name": "Spell Scroll (Level 1)",
+  "weight": 0,
+  "cost": 5000
+ },
+ "spikes_iron": {
+  "id": "spikes_iron",
+  "name": "Spikes, Iron",
+  "weight": 5,
+  "cost": 100
+ },
+ "spyglass": {
+  "id": "spyglass",
+  "name": "Spyglass",
+  "weight": 1,
+  "cost": 100000
+ },
+ "string": {
+  "id": "string",
+  "name": "String",
+  "weight": 0,
+  "cost": 10
+ },
+ "tent": {
+  "id": "tent",
+  "name": "Tent",
+  "weight": 20,
+  "cost": 200
+ },
+ "tinderbox": {
+  "id": "tinderbox",
+  "name": "Tinderbox",
+  "weight": 1,
+  "cost": 50
+ },
+ "torch": {
+  "id": "torch",
+  "name": "Torch",
+  "weight": 1,
+  "cost": 1
+ },
+ "vial": {
+  "id": "vial",
+  "name": "Vial",
+  "weight": 0,
+  "cost": 100
+ },
+ "waterskin": {
+  "id": "waterskin",
+  "name": "Waterskin",
+  "weight": 5,
+  "cost": 20
+ }
+}

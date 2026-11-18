@@ -1,0 +1,439 @@
+/* BoG V app styles. Tavern Ledger tokens and components copied from phase0/mockups/style.css (locked look),
+   plus builder-only pieces (chips, swatches, dock, drawer). Fonts are bundled (SIL OFL 1.1, see fonts/LICENSE.md). */
+@font-face{font-family:"Alegreya";src:url(fonts/Alegreya-VariableFont_wght.ttf) format("truetype");font-weight:400 900;font-display:swap}
+@font-face{font-family:"Alegreya";src:url(fonts/Alegreya-Italic-VariableFont_wght.ttf) format("truetype");font-weight:400 900;font-style:italic;font-display:swap}
+@font-face{font-family:"Alegreya Sans";src:url(fonts/AlegreyaSans-Regular.ttf) format("truetype");font-weight:400;font-display:swap}
+@font-face{font-family:"Alegreya Sans";src:url(fonts/AlegreyaSans-Medium.ttf) format("truetype");font-weight:500 600;font-display:swap}
+@font-face{font-family:"Alegreya Sans";src:url(fonts/AlegreyaSans-Bold.ttf) format("truetype");font-weight:700 900;font-display:swap}
+@font-face{font-family:"Alegreya Sans SC";src:url(fonts/AlegreyaSansSC-Medium.ttf) format("truetype");font-weight:400 600;font-display:swap}
+@font-face{font-family:"Alegreya Sans SC";src:url(fonts/AlegreyaSansSC-Bold.ttf) format("truetype");font-weight:700 900;font-display:swap}
+@font-face{font-family:"Cinzel";src:url(fonts/Cinzel-VariableFont_wght.ttf) format("truetype");font-weight:400 900;font-display:swap}
+@font-face{font-family:"Cinzel Decorative";src:url(fonts/CinzelDecorative-Bold.ttf) format("truetype");font-weight:700;font-display:swap}
+@font-face{font-family:"Cinzel Decorative";src:url(fonts/CinzelDecorative-Black.ttf) format("truetype");font-weight:900;font-display:swap}
+:root{
+  --oak:#1d140d; --oak2:#2a1d13; --gold:#d4a73c; --gold2:#f0d58a; --wine:#7d1d2e; --wine2:#9b2a3d;
+  --ink:#2b1c12; --ink2:#5b4430; --parch:#efe2c3; --parch2:#e4d0a6; --line:#b08c54;
+  --green:#3d7a3a; --red:#a3262f; --blue:#2c6a8a; --teal:#2f7f7a; --magic:#5a3f8f;
+}
+*{box-sizing:border-box}
+html{background:#0c0805;margin:0}
+body{margin:0;width:390px;font-family:"Alegreya",Georgia,serif;color:var(--parch);font-size:15.5px;line-height:1.38;
+  background:
+   radial-gradient(120% 50% at 50% 0%, #3a2616 0%, transparent 60%),
+   repeating-linear-gradient(93deg, rgba(255,255,255,.018) 0 2px, transparent 2px 9px, rgba(0,0,0,.05) 9px 11px, transparent 11px 23px),
+   linear-gradient(#21160e,#170f09);
+  padding-bottom:0}
+.strip{background:repeating-linear-gradient(135deg,#6a1424 0 10px,#7d1d2e 10px 20px);color:#f6e7c4;font:600 10.5px/22px "Alegreya Sans SC",sans-serif;letter-spacing:.14em;text-align:center}
+header{padding:12px 14px 8px}
+.brand{display:flex;align-items:flex-end;justify-content:space-between}
+.logo{font:900 21px/1 "Cinzel Decorative",serif;letter-spacing:.01em;background:linear-gradient(180deg,#fbe9a8,#d4a73c 55%,#9a6f1e);-webkit-background-clip:text;color:transparent;text-shadow:0 1px 0 rgba(0,0,0,.001)}
+.logo small{display:block;font:600 10px/1.2 "Cinzel",serif;letter-spacing:.32em;color:#b89b62;-webkit-text-fill-color:#b89b62;margin-top:4px}
+.night{text-align:right;font:600 11px/1.3 "Alegreya Sans SC",sans-serif;letter-spacing:.06em;color:#cdb27a}
+.night b{display:block;font:700 13px "Cinzel",serif;color:var(--gold2);letter-spacing:.04em}
+.party{display:flex;gap:6px;margin-top:11px}
+.pc{flex:1;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.28);border:1px solid #4a3522;border-radius:20px;padding:3px 7px 3px 3px;min-width:0}
+.pc.me{border-color:var(--gold);box-shadow:0 0 0 1px rgba(212,167,60,.25)}
+.av{width:30px;height:30px;border-radius:50%;border:2px solid var(--gold);background:#3a2a1a center/cover;flex:none}
+.pc .nm{font:600 11px/1.1 "Alegreya Sans",sans-serif;color:#efe0bb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hp{height:4px;border-radius:2px;background:#3b0f15;margin-top:3px;overflow:hidden}
+.hp i{display:block;height:100%;background:linear-gradient(90deg,#c43b3b,#e35d4f)}
+.pc .st{font:600 9.5px "Alegreya Sans",sans-serif;color:#b89b62;margin-top:2px}
+.supplies{display:flex;gap:10px;justify-content:center;margin:9px 0 2px;font:600 11px "Alegreya Sans SC",sans-serif;letter-spacing:.05em;color:#cdb27a}
+.supplies span b{color:var(--gold2)}
+main{padding:4px 12px 14px}
+.card{position:relative;color:var(--ink);border-radius:12px;padding:14px 14px 13px;margin:10px 0;
+  background:radial-gradient(90% 60% at 15% 0%,#f8efd9 0%,transparent 70%),radial-gradient(70% 50% at 100% 100%,#dcc597 0%,transparent 70%),linear-gradient(#efe2c3,#e7d6b0);
+  border:1px solid #8f6d3d;box-shadow:0 3px 0 rgba(0,0,0,.45),0 10px 24px rgba(0,0,0,.35),inset 0 0 0 3px rgba(255,248,230,.55),inset 0 0 0 4px rgba(176,140,84,.55)}
+.card.dark{background:linear-gradient(#2b1e14,#231811);color:var(--parch);border-color:#5b4229;box-shadow:0 3px 0 rgba(0,0,0,.45),inset 0 0 0 3px rgba(0,0,0,.15),inset 0 0 0 4px rgba(212,167,60,.18)}
+h1,h2,h3{margin:0}
+h2{font:700 13.5px/1.2 "Cinzel",serif;letter-spacing:.09em;color:var(--wine);text-transform:uppercase;display:flex;align-items:center;gap:7px}
+.card.dark h2{color:var(--gold)}
+h2:after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(125,29,46,.45),transparent)}
+.card.dark h2:after{background:linear-gradient(90deg,rgba(212,167,60,.4),transparent)}
+.title{font:700 21px/1.15 "Cinzel",serif;color:var(--ink);margin:2px 0 6px}
+.eyebrow{font:700 10.5px "Alegreya Sans SC",sans-serif;letter-spacing:.16em;color:var(--wine)}
+.prose{font-size:16px;line-height:1.45;margin:8px 0 0}
+.prose:first-letter{font:700 34px/0.9 "Cinzel Decorative",serif;float:left;color:var(--wine);margin:4px 6px 0 0}
+.quote{font-style:italic;border-left:3px solid var(--wine);padding:2px 0 2px 10px;margin:9px 0 2px;color:#4b2a1b}
+.meta{font:500 12px/1.3 "Alegreya Sans",sans-serif;color:var(--ink2)}
+.sc{font-family:"Alegreya Sans SC",sans-serif;letter-spacing:.05em}
+.tag{display:inline-flex;align-items:center;gap:3px;font:700 10.5px/1 "Alegreya Sans SC",sans-serif;letter-spacing:.06em;padding:3px 6px 4px;border-radius:5px;background:#e0cc9f;color:#5b4430;border:1px solid #c4a56c;white-space:nowrap}
+.tag.w{background:#f3dad6;color:#7d1d2e;border-color:#d9a4a0}
+.tag.g{background:#dbe8cf;color:#2f5d2c;border-color:#a9c597}
+.tag.b{background:#d7e5ec;color:#21536d;border-color:#a3c2d2}
+.tag.m{background:#e4dcf1;color:#4a327a;border-color:#bfb0dc}
+.tag.k{background:#2b1c12;color:#f0d58a;border-color:#2b1c12}
+.move{display:flex;gap:10px;align-items:flex-start;background:#faf3e1;border:1px solid #c3a46d;border-radius:10px;padding:10px 11px;margin:8px 0;box-shadow:0 1px 0 rgba(0,0,0,.12)}
+.move .ic{flex:none;width:30px;height:30px;border-radius:50%;background:#2b1c12;display:grid;place-items:center}
+.move .ic svg{width:17px;height:17px;fill:var(--gold2)}
+.move .t{font:700 15.5px/1.2 "Alegreya",serif;color:var(--ink)}
+.move .d{margin-top:4px;display:flex;flex-wrap:wrap;gap:4px}
+.move.sel{border:2px solid var(--wine);background:#fff6ea;box-shadow:0 0 0 3px rgba(125,29,46,.12)}
+.move.sel .ic{background:var(--wine)}
+.check{margin-left:auto;flex:none;width:22px;height:22px;border-radius:50%;border:2px solid #c3a46d}
+.move.sel .check{background:var(--wine);border-color:var(--wine);display:grid;place-items:center}
+.move.sel .check:after{content:"";width:8px;height:4px;border:2.5px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+textarea,.input{width:100%;font:15px/1.35 "Alegreya",serif;color:var(--ink);background:#fffaf0;border:1px solid #b99a62;border-radius:9px;padding:9px 10px;resize:none}
+.ph{color:#9a8566;font-style:italic}
+.btn{display:block;text-align:center;font:700 13px/1 "Cinzel",serif;letter-spacing:.12em;color:#fbe9b0;padding:13px 12px;border-radius:10px;background:linear-gradient(#9b2a3d,#6a1424);border:1px solid #4a0e18;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 0 rgba(0,0,0,.35);text-transform:uppercase}
+.btn.ghost{background:transparent;color:var(--wine);border:1.5px solid var(--wine);box-shadow:none}
+.btn.gold{background:linear-gradient(#e6c060,#b8862a);color:#2b1c12;border-color:#8a6216}
+.btn.sm{display:inline-block;padding:8px 11px;font-size:11px}
+.row{display:flex;gap:8px;align-items:center}
+.sp{flex:1}
+.seg{display:flex;background:#e2cfa5;border-radius:9px;padding:3px;gap:3px;border:1px solid #c4a56c}
+.seg span{flex:1;text-align:center;font:700 12px/1 "Alegreya Sans SC",sans-serif;letter-spacing:.05em;padding:7px 4px;border-radius:7px;color:#6b5338}
+.seg span.on{background:#2b1c12;color:var(--gold2)}
+.lockline{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.lk{display:flex;align-items:center;gap:5px;font:600 12px "Alegreya Sans",sans-serif;color:#e8d8b4;background:rgba(0,0,0,.25);border:1px solid #4a3522;border-radius:14px;padding:3px 9px 3px 3px}
+.lk .av{width:20px;height:20px;border-width:1.5px}
+.lk.ok{border-color:#5d8a4a}.lk.ok b{color:#9fd08a}
+.lk.wait b{color:#d9b566}
+.timer{font:700 24px/1 "Cinzel",serif;color:var(--gold2);letter-spacing:.04em}
+nav{position:relative;display:flex;justify-content:space-around;background:linear-gradient(#2a1c12,#140d08);border-top:1px solid #5b4229;padding:7px 4px 16px;margin-top:6px}
+nav a{display:flex;flex-direction:column;align-items:center;gap:3px;font:700 10px "Alegreya Sans SC",sans-serif;letter-spacing:.07em;color:#a88f62;text-decoration:none;width:60px}
+nav a svg{width:22px;height:22px;fill:#a88f62}
+nav a.on{color:var(--gold2)} nav a.on svg{fill:var(--gold2)}
+nav a.on:before{content:"";position:absolute;top:-1px;width:44px;height:2px;background:var(--gold)}
+.foot{font:500 10px/1.4 "Alegreya Sans",sans-serif;color:#7f6a4a;text-align:center;padding:0 18px 14px}
+.dice{display:flex;align-items:center;gap:10px}
+.d20{width:54px;height:58px;flex:none;position:relative}
+.d20 svg{width:100%;height:100%}
+.d20 b{position:absolute;inset:0;display:grid;place-items:center;font:700 19px "Cinzel",serif;color:#fff;padding-top:3px}
+.d20.dim{opacity:.38;transform:scale(.78);margin-left:-14px}
+.mods{display:flex;flex-wrap:wrap;gap:4px}
+.mod{font:600 12px/1 "Alegreya Sans",sans-serif;background:#fffaf0;border:1px solid #c9ad78;border-radius:6px;padding:4px 6px;color:#4a3524;white-space:nowrap}
+.mod b{color:var(--ink)}
+.total{margin-left:auto;text-align:right;flex:none}
+.total .n{font:700 28px/1 "Cinzel",serif;color:var(--ink)}
+.total .vs{font:600 11px "Alegreya Sans SC",sans-serif;color:var(--ink2);letter-spacing:.05em}
+.res{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed #c4a56c;font:700 13px "Alegreya Sans SC",sans-serif;letter-spacing:.06em}
+.res.ok{color:#2f6a2c}.res.no{color:#a3262f}.res.na{color:#6b5338}
+.who{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.who .av{width:34px;height:34px}
+.who .n{font:700 15px/1.1 "Cinzel",serif;color:var(--ink)}
+.called{background:#2b1c12;color:#f0d58a;border-radius:8px;padding:7px 9px;font:600 12px/1.35 "Alegreya Sans",sans-serif;margin:6px 0 10px}
+.called b{color:#fff}
+.stat6{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.ab{background:#fffaf0;border:1px solid #c4a56c;border-radius:9px;text-align:center;padding:5px 0 6px}
+.ab .k{font:700 10px "Alegreya Sans SC",sans-serif;letter-spacing:.1em;color:var(--wine)}
+.ab .m{font:700 20px/1.05 "Cinzel",serif;color:var(--ink)}
+.ab .s{font:600 11px "Alegreya Sans",sans-serif;color:var(--ink2)}
+.ab.p{border-color:var(--wine);box-shadow:inset 0 0 0 1px var(--wine)}
+.big3{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.big3 div{background:#2b1c12;color:#f3e6c8;border-radius:9px;text-align:center;padding:6px 0 7px}
+.big3 .k{font:700 9.5px "Alegreya Sans SC",sans-serif;letter-spacing:.1em;color:#cdb27a}
+.big3 .v{font:700 20px/1.05 "Cinzel",serif;color:var(--gold2)}
+.big3 .s{font:500 10px "Alegreya Sans",sans-serif;color:#b89b62}
+.list{margin:6px 0 0;padding:0;list-style:none}
+.list li{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dotted #c4a56c;font-size:14.5px}
+.list li:last-child{border-bottom:0}
+.list .r{margin-left:auto;font:700 13px "Alegreya Sans",sans-serif;color:var(--ink);white-space:nowrap}
+.pip{display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid var(--magic);margin-right:3px;vertical-align:-2px}
+.pip.f{background:var(--magic)}
+.pip.r{border-color:var(--wine)}.pip.r.f{background:var(--wine)}
+.xpbar{height:10px;border-radius:5px;background:#d6c194;border:1px solid #b08c54;overflow:hidden;margin:5px 0 3px}
+.xpbar i{display:block;height:100%;background:linear-gradient(90deg,#b8862a,#f0d58a);box-shadow:inset 0 -2px 0 rgba(0,0,0,.15)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.note{font:500 11.5px/1.35 "Alegreya Sans",sans-serif;color:var(--ink2);margin-top:6px}
+.warn{color:#a3262f}
+.sample{position:absolute;top:-8px;right:10px;font:700 9px/1 "Alegreya Sans SC",sans-serif;letter-spacing:.14em;background:#2b1c12;color:#f0d58a;padding:4px 6px;border-radius:4px;border:1px solid var(--gold)}
+/* v2 header fixes */
+.logo small{letter-spacing:.18em;font-size:9.5px}
+.night{max-width:150px}
+.pc{flex-direction:column;align-items:stretch;gap:3px;border-radius:12px;padding:5px 6px 5px;text-align:center}
+.pc .av{width:32px;height:32px;margin:0 auto}
+.pc .nm{font-size:11.5px}
+.pc .row2{display:flex;align-items:center;gap:4px}
+.pc .row2 .hp{flex:1;margin:0}
+.pc .st{margin:0;font-size:9.5px}
+.logo{white-space:nowrap}
+.night{max-width:132px;font-size:10.5px}
+.item>div[style*="flex:1"]{min-width:0}
+.item .tags .tag{white-space:normal;line-height:1.15}
+
+/* ---------- app (Phase 2) ---------- */
+body{width:auto;max-width:440px;margin:0 auto;min-height:100vh;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.btn{width:100%;cursor:pointer}
+.btn[disabled]{opacity:.42;filter:saturate(.4);cursor:not-allowed}
+.btn.row-btn{display:flex;justify-content:center}
+header.top{padding:10px 14px 6px;position:sticky;top:0;z-index:5;background:linear-gradient(#21160e 70%,rgba(33,22,14,0))}
+.prog{display:flex;gap:4px;margin-top:9px}
+.prog button{flex:1;height:6px;border-radius:3px;background:#3e2c1c;border:1px solid #4a3522}
+.prog button.done{background:#8e6a1e;border-color:#8e6a1e}
+.prog button.on{background:var(--gold2);border-color:var(--gold2);box-shadow:0 0 6px rgba(240,213,138,.6)}
+.prog button[disabled]{cursor:default}
+.toplink{font:700 11px "Alegreya Sans SC",sans-serif;letter-spacing:.08em;color:var(--gold2);border:1px solid #6b5030;border-radius:14px;padding:4px 9px}
+main{padding:2px 12px 150px}
+.say{font-style:italic;color:#e9d9b3;font-size:15px;line-height:1.42;margin:6px 2px 4px;padding-left:10px;border-left:3px solid var(--gold)}
+.stephead .eyebrow{color:#cdb27a}
+.stephead .title{color:var(--gold2);font-size:22px;margin:2px 0 2px}
+.count{margin-left:auto;font:700 11px "Alegreya Sans SC",sans-serif;letter-spacing:.06em;color:var(--ink2);white-space:nowrap}
+.count.ok{color:#2f6a2c}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.chip{font:600 13.5px/1.1 "Alegreya Sans",sans-serif;color:#4a3524;background:#fffaf0;border:1px solid #c4a56c;border-radius:16px;padding:7px 11px;min-height:34px}
+.chip.on{background:#2b1c12;color:var(--gold2);border-color:#2b1c12}
+.chip.full{opacity:.45}
+.chip.lock{background:#e0cc9f;color:#5b4430;border-style:dashed}
+.opts .move{cursor:pointer;width:100%;text-align:left}
+.opts .move .t small{font:500 12px "Alegreya Sans",sans-serif;color:var(--ink2);display:block;margin-top:2px}
+.opts .move.full{opacity:.5}
+.move .t{flex:1;min-width:0}
+.pickcard{cursor:pointer;display:block;width:100%;text-align:left}
+.pickcard.sel{border:2px solid var(--wine);box-shadow:0 0 0 3px rgba(212,167,60,.35),0 10px 24px rgba(0,0,0,.35)}
+.pickcard .nm{font:700 17px/1.15 "Cinzel",serif;color:var(--ink)}
+.pickcard .d{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.pickgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.pickgrid .card{margin:0;padding:11px 11px 10px}
+.pickgrid .nm{font-size:15px}
+.pickgrid .meta{font-size:11.5px}
+.needs{font:600 12px/1.35 "Alegreya Sans",sans-serif;color:#f3c9b8;margin:8px 4px 0}
+.needs b{color:#ffdfa8}
+.abrow{display:grid;grid-template-columns:44px 1fr 40px 46px;align-items:center;gap:6px;padding:7px 0;border-bottom:1px dotted #c4a56c}
+.abrow:last-child{border-bottom:0}
+.abrow .k{font:700 12px "Alegreya Sans SC",sans-serif;letter-spacing:.1em;color:var(--wine)}
+.abrow .vals{display:flex;gap:4px;flex-wrap:wrap}
+.abrow .vals .chip{min-height:30px;padding:5px 8px;font-size:13px}
+.abrow .bn{font:600 12px "Alegreya Sans",sans-serif;color:#2f6a2c;text-align:center}
+.abrow .fin{text-align:right;font:700 18px/1 "Cinzel",serif;color:var(--ink)}
+.abrow .fin small{display:block;font:600 11px "Alegreya Sans",sans-serif;color:var(--ink2)}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:34px;height:34px;border-radius:50%;background:#2b1c12;color:var(--gold2);font:700 18px/1 "Cinzel",serif}
+.stepper button[disabled]{opacity:.3}
+.stepper b{font:700 18px "Cinzel",serif;color:var(--ink);min-width:24px;text-align:center}
+.stepper .c{font:500 11px "Alegreya Sans",sans-serif;color:var(--ink2)}
+.budget{font:700 15px "Cinzel",serif;color:var(--wine)}
+.dock{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:440px;z-index:8;background:linear-gradient(rgba(20,13,8,0),#140d08 18px);padding:14px 10px 10px}
+.pv{display:flex;align-items:center;gap:8px;background:#2b1e14;border:1px solid #5b4229;border-radius:11px;padding:6px 8px;margin-bottom:8px;width:100%;text-align:left}
+.pv .av{width:36px;height:36px}
+.pv .nums{display:flex;gap:9px;flex:1;min-width:0}
+.pv .nums div{text-align:center}
+.pv .nums .k{font:700 9px "Alegreya Sans SC",sans-serif;letter-spacing:.08em;color:#b89b62}
+.pv .nums .v{font:700 15px/1.05 "Cinzel",serif;color:var(--gold2)}
+.pv .open{font:700 10.5px "Alegreya Sans SC",sans-serif;letter-spacing:.06em;color:var(--gold2);border-left:1px solid #5b4229;padding-left:8px;white-space:nowrap}
+.dock .row .btn{padding:13px 8px}
+.drawer{position:fixed;inset:0;z-index:20;background:rgba(8,5,3,.72);display:flex;justify-content:center;overflow-y:auto}
+.drawer .in{width:100%;max-width:440px;padding:10px 12px 30px;background:linear-gradient(#21160e,#170f09);min-height:100%}
+.drawer .bar{display:flex;align-items:center;gap:8px;position:sticky;top:0;background:#21160e;padding:6px 0 6px;z-index:2}
+.drawer .bar .t{font:700 15px "Cinzel",serif;color:var(--gold2);flex:1}
+.prov{font:600 11px/1.3 "Alegreya Sans",sans-serif;color:#f0d58a;background:rgba(125,29,46,.55);border:1px solid #9b2a3d;border-radius:8px;padding:5px 8px;margin:4px 0}
+.portrait{width:100%;aspect-ratio:1;border-radius:12px;border:2px solid var(--gold);display:block;background:#2b1c12;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+.sheet-top{display:flex;gap:12px;align-items:flex-start}
+.sheet-top .av{width:86px;height:86px;border-radius:12px}
+.swatches{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.sw{width:34px;height:34px;border-radius:50%;border:2px solid #c4a56c;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+.sw.on{border-color:var(--wine);box-shadow:0 0 0 3px rgba(125,29,46,.35),inset 0 0 0 2px #fff}
+.lbl{font:700 11px "Alegreya Sans SC",sans-serif;letter-spacing:.1em;color:var(--wine);margin-top:12px}
+.shop li{gap:6px}
+.shop .stepper button{width:28px;height:28px;font-size:15px}
+.gaps{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px}
+.gap{border-radius:9px;padding:7px 9px;background:#fffaf0;border:1px solid #c4a56c}
+.gap .k{font:700 11px "Alegreya Sans SC",sans-serif;letter-spacing:.08em;color:#2f6a2c}
+.gap.miss{background:#f3dad6;border-color:#d9a4a0}
+.gap.miss .k{color:var(--wine)}
+.gap .w{font:500 12px "Alegreya Sans",sans-serif;color:var(--ink2);margin-top:2px}
+.intro p{margin:9px 0 0}
+.intro b.k{font:700 15px "Cinzel",serif;color:var(--wine);display:block;margin-top:12px}
+.intro p:first-of-type b.k{margin-top:0}
+.rosterhero{display:flex;gap:11px;align-items:center;cursor:pointer;width:100%;text-align:left}
+.rosterhero .av{width:62px;height:62px;border-radius:10px}
+.sheetfeat .sp{font:500 12px "Alegreya Sans",sans-serif;color:var(--ink2)}
+.wake{background:linear-gradient(#3a2616,#21160e);border:1px solid var(--gold);color:#f3e6c8}
+.wake .prose:first-letter{color:var(--gold)}
+.foot a{color:#a88f62}
+.tiny{font:500 11px/1.3 "Alegreya Sans",sans-serif;color:var(--ink2)}
+.card.dark .tiny{color:#b89b62}
+.prog button.can{background:#5a4128;border-color:#6b5030}
+/* layout fixes from the 390px run */
+html,body{overflow-x:hidden}
+.pickgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pickgrid .tag{white-space:normal;line-height:1.15}
+.pickcard .d .tag{max-width:100%}
+header.top{background:#1d140d;box-shadow:0 6px 10px rgba(0,0,0,.45)}
+.opts.compact{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}
+.opts.compact .move{margin:0;padding:7px 8px;gap:6px;border-radius:8px}
+.opts.compact .move .t{font-size:13.5px;line-height:1.15}
+.opts.compact .move .t small{font-size:10.5px;line-height:1.2}
+.opts.compact .check{width:18px;height:18px}
+.opts.compact .move.sel .check:after{width:7px;height:3px;border-width:2px}
+.shopsec{border-top:1px dotted #c4a56c;padding:2px 0}
+.shopsec summary{display:flex;justify-content:space-between;align-items:center;padding:9px 0;cursor:pointer;font:700 12px "Alegreya Sans SC",sans-serif;letter-spacing:.08em;color:var(--wine);list-style:none}
+.shopsec summary::-webkit-details-marker{display:none}
+.shopsec summary:before{content:"\25b8";margin-right:6px;color:var(--wine)}
+.shopsec[open] summary:before{content:"\25be"}
+.shopsec summary span:first-child{flex:1}
+main{padding-bottom:14px}
+.foot{padding-bottom:180px}
+.card.dark .list .r{color:#f0d58a}
+.card.dark .list li{color:#efe0bb}
+
+/* ===== Phase 3 · the table ===== */
+header.tbl{position:relative;background:linear-gradient(#24170f,#1a110b);border-bottom:1px solid #4a3522;padding-bottom:6px}
+header.tbl .pc{cursor:pointer;color:inherit;font:inherit;text-align:left}
+header.tbl .pc .nm{font:700 11.5px "Alegreya Sans SC",sans-serif;color:#efe0bb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header.tbl .pc .st{font:600 9.5px "Alegreya Sans",sans-serif;color:#cdb27a}
+header.tbl .pc .row2{display:flex;gap:4px;align-items:center}
+main.tmain{padding:8px 12px 18px;display:flex;flex-direction:column;gap:11px}
+main.tmain .card{margin:0}
+.tfoot{padding-bottom:96px!important}
+nav.tnav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:440px;z-index:12;margin:0;padding:7px 4px 14px;display:flex;justify-content:space-around;background:linear-gradient(#2a1c12,#140d08);border-top:1px solid #5b4229}
+nav.tnav button{display:flex;flex-direction:column;align-items:center;gap:3px;font:700 10px "Alegreya Sans SC",sans-serif;letter-spacing:.07em;color:#a88f62;background:none;border:0;width:72px;padding:2px 0}
+nav.tnav button svg{width:22px;height:22px}
+nav.tnav button.on{color:var(--gold2)}
+.band{margin:-11px -11px 11px;height:150px;border-radius:11px 11px 0 0;position:relative;background-size:cover;background-position:center;border-bottom:2px solid #8f6d3d}
+.band:after{content:"";position:absolute;inset:0;border-radius:11px 11px 0 0;background:linear-gradient(180deg,rgba(20,13,8,0) 30%,rgba(20,13,8,.85) 100%)}
+.band .lbl{position:absolute;z-index:1;left:12px;right:12px;bottom:9px;color:#f6e7c1;font:700 11px "Alegreya Sans SC",sans-serif;letter-spacing:.12em;text-shadow:0 1px 2px #000}
+.band .lbl b{display:block;font:700 20px/1.15 "Cinzel",serif;letter-spacing:0;color:#f0d58a;margin-top:2px}
+.quote .qwho{font:600 12px "Alegreya Sans SC",sans-serif;font-style:normal;color:#7d1d2e;letter-spacing:.05em}
+.move .ic{color:var(--gold2)} .move .ic svg{fill:none}
+.move[disabled]{opacity:.6;cursor:default}
+.lockn{font:700 22px "Cinzel",serif;color:#f0d58a;align-self:flex-start}
+.hash{font:600 11px/1.4 "Alegreya Sans",sans-serif;color:#b89b62;margin-top:8px}
+.hash b{font-family:ui-monospace,monospace;color:#f0d58a}
+.ribbon{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;font:600 13.5px "Alegreya Sans",sans-serif;color:var(--ink);cursor:pointer}
+.ribbon span:last-child{color:var(--wine);font-weight:700;white-space:nowrap}
+.outcome{margin:7px 0 6px;font:500 14.5px/1.4 "Alegreya",serif;color:var(--ink)}
+.d20.faded{opacity:.35}
+.card.locked{background:#efe3c6;border-style:dashed}
+.notice{margin-top:7px;font:600 12px/1.35 "Alegreya Sans",sans-serif;color:#d9b566;background:rgba(0,0,0,.25);border:1px solid #5b4229;border-radius:7px;padding:5px 8px}
+ol.pbp{margin:8px 0 6px;padding:0 0 0 18px;font:500 12px/1.4 "Alegreya Sans",sans-serif;color:#e8d8b4}
+ol.pbp li{margin:2px 0}
+ol.pbp li.hi{color:#f0d58a;font-weight:700}
+ol.pbp li.ord{color:#b89b62;font-style:italic}
+/* battle map (from mockup 06) */
+.map{position:relative;display:grid;border-radius:8px;overflow:hidden;border:2px solid #0f0a06;margin:8px auto 0}
+.cell{position:relative;border-right:1px solid rgba(0,0,0,.22);border-bottom:1px solid rgba(0,0,0,.22)}
+.cell i{position:absolute;left:3px;top:1px;font:600 8px "Alegreya Sans",sans-serif;color:rgba(255,255,255,.45);font-style:normal}
+.cell.floor{background:repeating-linear-gradient(0deg,#8a6438 0 9px,#7d5a31 9px 11px)}
+.cell.floor2{background:repeating-linear-gradient(0deg,#86603a 0 9px,#795631 9px 11px)}
+.cell.tbl{background:repeating-linear-gradient(45deg,#5b3d1f 0 5px,#3a2612 5px 10px)}
+.cell.bar{background:linear-gradient(#3a2612,#2b1c12);box-shadow:inset 0 -4px 0 #8a6438}
+.cell.water{background:linear-gradient(160deg,#3f86b8,#24577e);box-shadow:inset 0 2px 0 rgba(255,255,255,.18)}
+.cell[data-t]{cursor:pointer} .cell[data-t]:hover{outline:2px solid #f0d58a;outline-offset:-2px}
+.tok{position:absolute;border-radius:50%;display:grid;place-items:center;box-shadow:0 3px 5px rgba(0,0,0,.55);pointer-events:none}
+.tok .av{width:100%;height:100%;border-width:2.5px}
+.tok.me .av{border-color:#fff;box-shadow:0 0 0 3px #7d1d2e}
+.tok.down{filter:grayscale(1) brightness(.7)}
+.foe{background:radial-gradient(circle at 35% 30%,#c4473f,#7a1a1f);border:2.5px solid #2b0d0f;color:#fff}
+.foe b{font:700 12px "Cinzel",serif}
+.foe.big{background:radial-gradient(circle at 35% 30%,#f2f2ea,#b9b6a6);color:#7a1a1f;border-color:#7a1a1f}
+.foe.big b{font-size:16px}
+.foe.bl{box-shadow:0 0 0 2px #e35d4f,0 3px 5px rgba(0,0,0,.55)}
+.foe.gone{background:#2b1c12;border:1.5px solid #5b4229;color:#a88f62;box-shadow:none}
+.foe.gone b{font-size:10px}
+.dest{position:absolute;width:38px;height:38px;border:2.5px dashed #f0d58a;border-radius:50%;pointer-events:none}
+.paused{position:absolute;inset:0;display:grid;place-items:center;background:rgba(20,13,8,.45)}
+.paused span{font:700 15px "Cinzel",serif;color:#f0d58a;background:#2b1c12;border:2px solid #c9971f;border-radius:9px;padding:7px 12px}
+.init{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.ini{flex:none;display:flex;align-items:center;gap:4px;padding:3px 7px 3px 3px;border-radius:14px;background:rgba(0,0,0,.3);border:1px solid #4a3522;font:600 11px "Alegreya Sans",sans-serif;color:#e8d8b4}
+.ini .av{width:20px;height:20px;border-width:1.5px}
+.ini.now{border-color:#f0d58a;background:rgba(240,213,138,.15)}
+.ini .fd{width:20px;height:20px;border-radius:50%;background:#7a1a1f;display:grid;place-items:center;font:700 8px Cinzel,serif;color:#fff}
+.legend{display:flex;flex-wrap:wrap;gap:8px;font:600 10.5px "Alegreya Sans",sans-serif;color:#cdb27a;margin-top:7px}
+.legend span:before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px;background:var(--c)}
+.chip small{opacity:.7;font-size:11px}
+.list li .av{width:26px;height:26px;margin-right:6px}
+main.tmain .move{width:100%;text-align:left}
+main.tmain .move .t small{font:500 12.5px/1.3 "Alegreya Sans",sans-serif;color:var(--ink2);display:block;margin-top:2px}
+main.tmain .move .meta{text-align:left}
+body.fullshot nav.tnav{position:relative;left:auto;transform:none}
+body.fullshot header.tbl{position:relative}
+/* drop cap only on the first paragraph of a card (as in the mockups) */
+main.tmain .prose + .prose:first-letter{font:inherit;float:none;color:inherit;margin:0}
+main.tmain .prose + .prose{margin-top:9px}
+/* ---------- Phase 3/4: sign-in ---------- */
+.signin .gbtn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#2b1c12;border:1px solid #c9b48a;box-shadow:0 2px 0 rgba(0,0,0,.2);text-transform:none;letter-spacing:.02em;font:700 15px/1 "Alegreya Sans",sans-serif}
+.signin .gbtn .g{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:conic-gradient(#ea4335 0 25%,#fbbc05 0 50%,#34a853 0 75%,#4285f4 0);color:#fff;font:800 13px/1 sans-serif}
+.signin input{width:100%;box-sizing:border-box;padding:11px 12px;border-radius:9px;border:1px solid #c9b48a;background:#fffaf0;font:500 15px "Alegreya Sans",sans-serif}
+.signin .code{font:600 13px/1.3 ui-monospace,monospace;background:#f3e6c8;border:1px dashed #b8862a;border-radius:8px;padding:9px 10px;word-break:break-all}
+.err{color:#9b2a3d;font:600 13px/1.3 "Alegreya Sans",sans-serif}
+/* ---------- Phase 4: gear, shop, loot, quests, issues ---------- */
+nav.tnav.six button{width:auto;flex:1;min-width:0;font-size:9.5px;letter-spacing:.04em;position:relative}
+nav.tnav.six button svg{width:21px;height:21px}
+nav.tnav button .dot{position:absolute;top:0;left:calc(50% + 7px);width:8px;height:8px;border-radius:50%;background:#c2453a;border:1.5px solid #140d08}
+nav.tnav button .dot.g{background:#d4a73c}
+.supplies .lowsup b{color:#ff9d8a}
+.doll{display:grid;grid-template-columns:1fr 104px 1fr;gap:6px;margin-top:9px}
+.doll .col{display:flex;flex-direction:column;gap:6px;min-width:0}
+.slot{display:block;text-align:left;background:#fffaf0;border:1px solid #c4a56c;border-radius:9px;padding:5px 7px 6px;min-height:50px;min-width:0;font:inherit;color:inherit;cursor:pointer}
+.slot[disabled]{cursor:default}
+.slot.empty{background:transparent;border:1.5px dashed #b99a62;cursor:default}
+.slot .sl{font:700 9.5px "Alegreya Sans SC",sans-serif;letter-spacing:.1em;color:#7d1d2e}
+.slot .si{font:700 12.5px/1.15 "Alegreya",serif;color:#2b1c12;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.slot.empty .si{color:#a08a68;font-weight:400;font-style:italic}
+.slot .ss{font:600 10.5px "Alegreya Sans",sans-serif;color:#5b4430}
+.fig{border-radius:12px;background:radial-gradient(circle at 50% 35%,#5b3a22,#2b1c12);border:2px solid #8f6d3d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 0}
+.fig .av{width:84px;height:84px;border-width:3px}
+.fig .acn{font:700 26px/1 "Cinzel",serif;color:#f0d58a}
+.fig .ack{font:700 9px "Alegreya Sans SC",sans-serif;letter-spacing:.14em;color:#cdb27a}
+.doll+.bot,.bot{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:6px}
+.item{display:flex;gap:9px;align-items:center;padding:9px 0;border-bottom:1px dotted #c4a56c}
+.item:last-of-type{border-bottom:0}
+.item .nm{font:700 14.5px/1.2 "Alegreya",serif}
+.item .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.item .btn.sm{width:auto}
+.price{font:700 14px "Cinzel",serif;color:#2b1c12;white-space:nowrap}
+.thumb{width:36px;height:36px;border-radius:8px;background:#2b1c12;display:grid;place-items:center;flex:none;color:#f0d58a;align-self:flex-start;margin-top:2px}
+.thumb svg{width:20px;height:20px}
+.shopseg{gap:2px}
+.shopseg span{flex:1 1 auto;min-width:0;padding:7px 2px;font-size:10.5px;letter-spacing:.01em;cursor:pointer;white-space:nowrap}
+.seg span[data-t]{cursor:pointer}
+.seg span.off{opacity:.38;text-decoration:line-through}
+.lootseg{max-width:240px}
+.lootseg span.on[data-v="need"]{background:#2f5d2c;color:#fff}
+.lootseg span.on[data-v="pass"]{background:#6b5338;color:#fff}
+.dseg{background:#3a2a1a;border-color:#5b4229}
+.dseg span{color:#cdb27a}
+.opt{border:1px solid #c4a56c;border-radius:9px;padding:8px 10px;margin-top:7px;background:#fffaf0}
+.opt.rec{border:2px solid #3d7a3a;background:#f2f6e8}
+.opt.picked{box-shadow:0 0 0 3px rgba(125,29,46,.35)}
+.opt b{font:700 13px "Cinzel",serif;color:#2b1c12}
+.opt .meta{margin-top:2px}
+.flow{display:flex;gap:3px;margin-top:9px}
+.flow span{flex:1;text-align:center;font:700 9.5px/1.2 "Alegreya Sans SC",sans-serif;letter-spacing:.04em;padding:5px 2px;border-radius:5px;background:#e0cc9f;color:#6b5338}
+.flow span.on{background:#7d1d2e;color:#fbe9b0}
+.flow span.done{background:#3d7a3a;color:#fff}
+.reportlink{display:block;margin:4px auto 10px;background:none;border:0;font:600 12.5px "Alegreya Sans",sans-serif;color:#b89b62;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.item .ibtns{display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex:none}
+.item .ibtns .btn.sm{padding:6px 9px;font-size:10px;min-width:62px}
+
+/* ---------- Phase 5: spells tab, level-up, rest, ask the GM ---------- */
+.thumb.lv{background:#3b2a5e;color:#f0d58a;font:700 14px/1 "Cinzel",serif}
+.thumb.lv.c{background:#2b1c12;color:#cdb27a;font-size:13px}
+.spellrow .btn.sm{min-width:54px}
+.btn.wine{letter-spacing:.08em}
+.btn:disabled{opacity:.45;cursor:default}
+.ribbon.lvl{background:linear-gradient(#f6e3a8,#e8c468);border-color:#b8862a}
+.ribbon.lvl span:first-child{color:#2b1c12}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:600 12.5px/1.2 "Alegreya Sans",sans-serif;color:var(--ink);background:#fffaf0;border:1.5px solid #c4a56c;border-radius:9px;padding:6px 9px;text-align:left;cursor:pointer;max-width:100%}
+.chip small{display:block;font:500 10.5px/1.2 "Alegreya Sans",sans-serif;color:#7a6146;margin-top:2px}
+.chip.on{background:#2b1c12;color:#f0d58a;border-color:#2b1c12}
+.chip.on small{color:#cdb27a}
+.chip:disabled{opacity:.5;cursor:default;border-style:dashed}
+.abls{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:9px}
+.abl{background:#2b1c12;border-radius:9px;text-align:center;padding:5px 0 6px;color:#f3e6c8}
+.abl.up{box-shadow:0 0 0 2px #e8c468 inset}
+.abl .k{font:700 9.5px "Alegreya Sans SC",sans-serif;letter-spacing:.1em;color:#cdb27a}
+.abl .v{font:700 19px/1.1 "Cinzel",serif;color:var(--gold2)}
+.abl .pm{display:flex;justify-content:center;gap:3px;margin-top:3px}
+.abl .pm button,.stepper button{width:24px;height:24px;border-radius:7px;border:1px solid #8f6d3d;background:#4a3322;color:#f0d58a;font:700 15px/1 "Cinzel",serif;cursor:pointer;padding:0}
+.abl .pm button:disabled,.stepper button:disabled{opacity:.35;cursor:default}
+.stepper{display:flex;align-items:center;gap:8px;flex:none}
+.stepper b{font:700 18px "Cinzel",serif;min-width:16px;text-align:center}
+.stepper button{background:#2b1c12}
+/* painted portraits: spans carry CSS background layers (gear sprites, painting, SVG fallback) */
+span.av,span.portrait{display:inline-block;background-color:#3a2a1a}
+span.portrait{display:block}
+.heroart{padding:8px;position:relative;background:#2b1c12}
+.heroart .portrait{border-radius:10px}
+.heroart .cap{position:absolute;left:8px;right:8px;bottom:8px;padding:28px 12px 10px;border-radius:0 0 10px 10px;background:linear-gradient(rgba(20,14,8,0),rgba(20,14,8,.88))}
+.heroart .nm{font:700 20px/1.1 "Cinzel",serif;color:#f6e3a8;text-shadow:0 2px 6px #000}
+.heroart .meta{color:#e8d6ae;text-shadow:0 1px 3px #000}
+/* phase 5: long adventure titles wrap under the logo instead of running into the night label */
+.brand{gap:8px}.logo small{white-space:normal;line-height:1.35}
+span.av{display:inline-block;background-color:#3a2a1a}
+div.portrait{background-color:#2b1c12}
+
+.btn.moved{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:30;width:calc(100% - 24px);max-width:416px;box-shadow:0 6px 18px rgba(0,0,0,.45)}

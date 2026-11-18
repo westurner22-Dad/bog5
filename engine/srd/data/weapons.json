@@ -1,0 +1,763 @@
+{
+ "club": {
+  "id": "club",
+  "name": "Club",
+  "category": "Simple Melee Weapons",
+  "simple": true,
+  "melee": true,
+  "dice": "1d4",
+  "type": "bludgeoning",
+  "properties": [
+   "light"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "slow",
+  "weight": 2,
+  "cost": 10
+ },
+ "dagger": {
+  "id": "dagger",
+  "name": "Dagger",
+  "category": "Simple Melee Weapons",
+  "simple": true,
+  "melee": true,
+  "dice": "1d4",
+  "type": "piercing",
+  "properties": [
+   "finesse",
+   "light",
+   "thrown"
+  ],
+  "versatile": null,
+  "range": [
+   20,
+   60
+  ],
+  "ammo": null,
+  "mastery": "nick",
+  "weight": 1,
+  "cost": 200
+ },
+ "greatclub": {
+  "id": "greatclub",
+  "name": "Greatclub",
+  "category": "Simple Melee Weapons",
+  "simple": true,
+  "melee": true,
+  "dice": "1d8",
+  "type": "bludgeoning",
+  "properties": [
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "push",
+  "weight": 10,
+  "cost": 20
+ },
+ "handaxe": {
+  "id": "handaxe",
+  "name": "Handaxe",
+  "category": "Simple Melee Weapons",
+  "simple": true,
+  "melee": true,
+  "dice": "1d6",
+  "type": "slashing",
+  "properties": [
+   "light",
+   "thrown"
+  ],
+  "versatile": null,
+  "range": [
+   20,
+   60
+  ],
+  "ammo": null,
+  "mastery": "vex",
+  "weight": 2,
+  "cost": 500
+ },
+ "javelin": {
+  "id": "javelin",
+  "name": "Javelin",
+  "category": "Simple Melee Weapons",
+  "simple": true,
+  "melee": true,
+  "dice": "1d6",
+  "type": "piercing",
+  "properties": [
+   "thrown"
+  ],
+  "versatile": null,
+  "range": [
+   30,
+   120
+  ],
+  "ammo": null,
+  "mastery": "slow",
+  "weight": 2,
+  "cost": 50
+ },
+ "light_hammer": {
+  "id": "light_hammer",
+  "name": "Light Hammer",
+  "category": "Simple Melee Weapons",
+  "simple": true,
+  "melee": true,
+  "dice": "1d4",
+  "type": "bludgeoning",
+  "properties": [
+   "light",
+   "thrown"
+  ],
+  "versatile": null,
+  "range": [
+   20,
+   60
+  ],
+  "ammo": null,
+  "mastery": "nick",
+  "weight": 2,
+  "cost": 200
+ },
+ "mace": {
+  "id": "mace",
+  "name": "Mace",
+  "category": "Simple Melee Weapons",
+  "simple": true,
+  "melee": true,
+  "dice": "1d6",
+  "type": "bludgeoning",
+  "properties": [],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "sap",
+  "weight": 4,
+  "cost": 500
+ },
+ "quarterstaff": {
+  "id": "quarterstaff",
+  "name": "Quarterstaff",
+  "category": "Simple Melee Weapons",
+  "simple": true,
+  "melee": true,
+  "dice": "1d6",
+  "type": "bludgeoning",
+  "properties": [
+   "versatile"
+  ],
+  "versatile": "1d8",
+  "range": null,
+  "ammo": null,
+  "mastery": "topple",
+  "weight": 4,
+  "cost": 20
+ },
+ "sickle": {
+  "id": "sickle",
+  "name": "Sickle",
+  "category": "Simple Melee Weapons",
+  "simple": true,
+  "melee": true,
+  "dice": "1d4",
+  "type": "slashing",
+  "properties": [
+   "light"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "nick",
+  "weight": 2,
+  "cost": 100
+ },
+ "spear": {
+  "id": "spear",
+  "name": "Spear",
+  "category": "Simple Melee Weapons",
+  "simple": true,
+  "melee": true,
+  "dice": "1d6",
+  "type": "piercing",
+  "properties": [
+   "thrown",
+   "versatile"
+  ],
+  "versatile": "1d8",
+  "range": [
+   20,
+   60
+  ],
+  "ammo": null,
+  "mastery": "sap",
+  "weight": 3,
+  "cost": 100
+ },
+ "dart": {
+  "id": "dart",
+  "name": "Dart",
+  "category": "Simple Ranged Weapons",
+  "simple": true,
+  "melee": false,
+  "dice": "1d4",
+  "type": "piercing",
+  "properties": [
+   "finesse",
+   "thrown"
+  ],
+  "versatile": null,
+  "range": [
+   20,
+   60
+  ],
+  "ammo": null,
+  "mastery": "vex",
+  "weight": 0.25,
+  "cost": 5
+ },
+ "light_crossbow": {
+  "id": "light_crossbow",
+  "name": "Light Crossbow",
+  "category": "Simple Ranged Weapons",
+  "simple": true,
+  "melee": false,
+  "dice": "1d8",
+  "type": "piercing",
+  "properties": [
+   "ammunition",
+   "loading",
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": [
+   80,
+   320
+  ],
+  "ammo": "bolt",
+  "mastery": "slow",
+  "weight": 5,
+  "cost": 2500
+ },
+ "shortbow": {
+  "id": "shortbow",
+  "name": "Shortbow",
+  "category": "Simple Ranged Weapons",
+  "simple": true,
+  "melee": false,
+  "dice": "1d6",
+  "type": "piercing",
+  "properties": [
+   "ammunition",
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": [
+   80,
+   320
+  ],
+  "ammo": "arrow",
+  "mastery": "vex",
+  "weight": 2,
+  "cost": 2500
+ },
+ "sling": {
+  "id": "sling",
+  "name": "Sling",
+  "category": "Simple Ranged Weapons",
+  "simple": true,
+  "melee": false,
+  "dice": "1d4",
+  "type": "bludgeoning",
+  "properties": [
+   "ammunition"
+  ],
+  "versatile": null,
+  "range": [
+   30,
+   120
+  ],
+  "ammo": "bullet",
+  "mastery": "slow",
+  "weight": 0,
+  "cost": 10
+ },
+ "battleaxe": {
+  "id": "battleaxe",
+  "name": "Battleaxe",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d8",
+  "type": "slashing",
+  "properties": [
+   "versatile"
+  ],
+  "versatile": "1d10",
+  "range": null,
+  "ammo": null,
+  "mastery": "topple",
+  "weight": 4,
+  "cost": 1000
+ },
+ "flail": {
+  "id": "flail",
+  "name": "Flail",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d8",
+  "type": "bludgeoning",
+  "properties": [],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "sap",
+  "weight": 2,
+  "cost": 1000
+ },
+ "glaive": {
+  "id": "glaive",
+  "name": "Glaive",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d10",
+  "type": "slashing",
+  "properties": [
+   "heavy",
+   "reach",
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "graze",
+  "weight": 6,
+  "cost": 2000
+ },
+ "greataxe": {
+  "id": "greataxe",
+  "name": "Greataxe",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d12",
+  "type": "slashing",
+  "properties": [
+   "heavy",
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "cleave",
+  "weight": 7,
+  "cost": 3000
+ },
+ "greatsword": {
+  "id": "greatsword",
+  "name": "Greatsword",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "2d6",
+  "type": "slashing",
+  "properties": [
+   "heavy",
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "graze",
+  "weight": 6,
+  "cost": 5000
+ },
+ "halberd": {
+  "id": "halberd",
+  "name": "Halberd",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d10",
+  "type": "slashing",
+  "properties": [
+   "heavy",
+   "reach",
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "cleave",
+  "weight": 6,
+  "cost": 2000
+ },
+ "lance": {
+  "id": "lance",
+  "name": "Lance",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d10",
+  "type": "piercing",
+  "properties": [
+   "heavy",
+   "reach",
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "topple",
+  "weight": 6,
+  "cost": 1000
+ },
+ "longsword": {
+  "id": "longsword",
+  "name": "Longsword",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d8",
+  "type": "slashing",
+  "properties": [
+   "versatile"
+  ],
+  "versatile": "1d10",
+  "range": null,
+  "ammo": null,
+  "mastery": "sap",
+  "weight": 3,
+  "cost": 1500
+ },
+ "maul": {
+  "id": "maul",
+  "name": "Maul",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "2d6",
+  "type": "bludgeoning",
+  "properties": [
+   "heavy",
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "topple",
+  "weight": 10,
+  "cost": 1000
+ },
+ "morningstar": {
+  "id": "morningstar",
+  "name": "Morningstar",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d8",
+  "type": "piercing",
+  "properties": [],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "sap",
+  "weight": 4,
+  "cost": 1500
+ },
+ "pike": {
+  "id": "pike",
+  "name": "Pike",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d10",
+  "type": "piercing",
+  "properties": [
+   "heavy",
+   "reach",
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "push",
+  "weight": 18,
+  "cost": 500
+ },
+ "rapier": {
+  "id": "rapier",
+  "name": "Rapier",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d8",
+  "type": "piercing",
+  "properties": [
+   "finesse"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "vex",
+  "weight": 2,
+  "cost": 2500
+ },
+ "scimitar": {
+  "id": "scimitar",
+  "name": "Scimitar",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d6",
+  "type": "slashing",
+  "properties": [
+   "finesse",
+   "light"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "nick",
+  "weight": 3,
+  "cost": 2500
+ },
+ "shortsword": {
+  "id": "shortsword",
+  "name": "Shortsword",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d6",
+  "type": "piercing",
+  "properties": [
+   "finesse",
+   "light"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "vex",
+  "weight": 2,
+  "cost": 1000
+ },
+ "trident": {
+  "id": "trident",
+  "name": "Trident",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d8",
+  "type": "piercing",
+  "properties": [
+   "thrown",
+   "versatile"
+  ],
+  "versatile": "1d10",
+  "range": [
+   20,
+   60
+  ],
+  "ammo": null,
+  "mastery": "topple",
+  "weight": 4,
+  "cost": 500
+ },
+ "warhammer": {
+  "id": "warhammer",
+  "name": "Warhammer",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d8",
+  "type": "bludgeoning",
+  "properties": [
+   "versatile"
+  ],
+  "versatile": "1d10",
+  "range": null,
+  "ammo": null,
+  "mastery": "push",
+  "weight": 5,
+  "cost": 1500
+ },
+ "war_pick": {
+  "id": "war_pick",
+  "name": "War Pick",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d8",
+  "type": "piercing",
+  "properties": [
+   "versatile"
+  ],
+  "versatile": "1d10",
+  "range": null,
+  "ammo": null,
+  "mastery": "sap",
+  "weight": 2,
+  "cost": 500
+ },
+ "whip": {
+  "id": "whip",
+  "name": "Whip",
+  "category": "Martial Melee Weapons",
+  "simple": false,
+  "melee": true,
+  "dice": "1d4",
+  "type": "slashing",
+  "properties": [
+   "finesse",
+   "reach"
+  ],
+  "versatile": null,
+  "range": null,
+  "ammo": null,
+  "mastery": "slow",
+  "weight": 3,
+  "cost": 200
+ },
+ "blowgun": {
+  "id": "blowgun",
+  "name": "Blowgun",
+  "category": "Martial Ranged Weapons",
+  "simple": false,
+  "melee": false,
+  "dice": "1",
+  "type": "piercing",
+  "properties": [
+   "ammunition",
+   "loading"
+  ],
+  "versatile": null,
+  "range": [
+   25,
+   100
+  ],
+  "ammo": "needle",
+  "mastery": "vex",
+  "weight": 1,
+  "cost": 1000
+ },
+ "hand_crossbow": {
+  "id": "hand_crossbow",
+  "name": "Hand Crossbow",
+  "category": "Martial Ranged Weapons",
+  "simple": false,
+  "melee": false,
+  "dice": "1d6",
+  "type": "piercing",
+  "properties": [
+   "ammunition",
+   "light",
+   "loading"
+  ],
+  "versatile": null,
+  "range": [
+   30,
+   120
+  ],
+  "ammo": "bolt",
+  "mastery": "vex",
+  "weight": 3,
+  "cost": 7500
+ },
+ "heavy_crossbow": {
+  "id": "heavy_crossbow",
+  "name": "Heavy Crossbow",
+  "category": "Martial Ranged Weapons",
+  "simple": false,
+  "melee": false,
+  "dice": "1d10",
+  "type": "piercing",
+  "properties": [
+   "ammunition",
+   "heavy",
+   "loading",
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": [
+   100,
+   400
+  ],
+  "ammo": "bolt",
+  "mastery": "push",
+  "weight": 18,
+  "cost": 5000
+ },
+ "longbow": {
+  "id": "longbow",
+  "name": "Longbow",
+  "category": "Martial Ranged Weapons",
+  "simple": false,
+  "melee": false,
+  "dice": "1d8",
+  "type": "piercing",
+  "properties": [
+   "ammunition",
+   "heavy",
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": [
+   150,
+   600
+  ],
+  "ammo": "arrow",
+  "mastery": "slow",
+  "weight": 2,
+  "cost": 5000
+ },
+ "musket": {
+  "id": "musket",
+  "name": "Musket",
+  "category": "Martial Ranged Weapons",
+  "simple": false,
+  "melee": false,
+  "dice": "1d12",
+  "type": "piercing",
+  "properties": [
+   "ammunition",
+   "loading",
+   "two_handed"
+  ],
+  "versatile": null,
+  "range": [
+   40,
+   120
+  ],
+  "ammo": "bullet",
+  "mastery": "slow",
+  "weight": 10,
+  "cost": 50000
+ },
+ "pistol": {
+  "id": "pistol",
+  "name": "Pistol",
+  "category": "Martial Ranged Weapons",
+  "simple": false,
+  "melee": false,
+  "dice": "1d10",
+  "type": "piercing",
+  "properties": [
+   "ammunition",
+   "loading"
+  ],
+  "versatile": null,
+  "range": [
+   30,
+   90
+  ],
+  "ammo": "bullet",
+  "mastery": "vex",
+  "weight": 3,
+  "cost": 25000
+ }
+}
