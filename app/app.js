@@ -5,7 +5,7 @@ import * as F from '../engine/src/forge.js';
 import { itemDef } from '../engine/src/rules/items.js';
 import { SKILLS, ABILITIES } from '../engine/src/rules/origins.js';
 import SRD from '../engine/srd/data/srd.js';
-import { createStore, LockedError, RtdbRest } from './storage.js';
+import { createStore, LockedError, RtdbRest, LIVE_OK } from './storage.js';
 import { GoogleAuth, EMULATOR, LIVE_CONFIG } from './auth.js';
 import * as P from './portrait.js';
 import * as PA from './portrait-art.js';
@@ -248,7 +248,7 @@ document.addEventListener('click', e => {
 document.addEventListener('toggle', e => { const sec = e.target.dataset?.sec; if (sec) (S.open = S.open || {})[sec] = e.target.open; }, true);
 document.addEventListener('input', e => { const f = e.target.dataset?.f; if (!f) return; const d = structuredClone(S.draft); d[f] = e.target.value; setDraft(d); refreshDock(); });
 // P3-4: Google sign-in. Signed out → this card; signed in but not linked → Almost in (uid for the GM).
-// ?store=emulator uses the Auth emulator; ?store=live uses the hosted Google provider. Live RTDB stays off.
+// ?store=emulator uses the Auth emulator; ?store=live uses the hosted Google provider and, after the live switch, live RTDB for a linked seat.
 function signInCard(msg = '', uid = null) {
   document.getElementById('app').innerHTML = `<div class="signin"><div class="card dark" style="margin:28px 14px 12px">
     <div style="font:700 26px/1.1 Cinzel,serif;color:#f0d58a">Balls or Gapes V</div><div class="meta" style="color:#cdb27a;margin-top:4px">Reforged \u00b7 a private table for four</div></div>
@@ -271,9 +271,11 @@ async function signedInStore() {
     AUTH = new GoogleAuth({ live: LIVE_CONFIG, emulator: null });
     try { await AUTH.ready(); } catch (e) { signInCard(e.message || String(e)); return false; }
     if (!AUTH.signedIn) { signInCard(); return false; }
-    // Do not look up members/ or open a store: that would be a live RTDB call, and allowLive is unset.
-    signInCard('', AUTH.user.uid);
-    return false;
+    const rest = new RtdbRest({ base: LIVE_CONFIG.databaseURL, auth: AUTH.restAuth(), allowLive: LIVE_OK });
+    let pid = null;
+    try { pid = await AUTH.seat(rest); } catch (e) { signInCard(e.message || String(e), AUTH.user.uid); return false; }
+    if (!pid) { signInCard('', AUTH.user.uid); return false; }
+    OWNER = pid; store = createStore(location.search, { owner: OWNER, now, restAuth: AUTH.restAuth() }); return true;
   }
   AUTH = new GoogleAuth({ emulator: EMULATOR }); if (!AUTH.signedIn) { signInCard(); return false; }
   const pid = await AUTH.seat(new RtdbRest({ base: EMULATOR.rtdb, ns: EMULATOR.ns, auth: AUTH.restAuth() })); if (!pid) { signInCard('', AUTH.user.uid); return false; }
@@ -281,7 +283,6 @@ async function signedInStore() {
 }
 (async function boot() {
   if ((EMU || LIVE) && !(await signedInStore())) return;
-  if (LIVE) { if (AUTH?.signedIn) signInCard('', AUTH.user.uid); else signInCard(); return; } // safety net: never reach data while the live switch is off
   // Reforge rule (locked Nov 10, 9:21 PM PT): free rebuilds until the first adventure starts, then sheets lock
   const camp = await store.campaign().catch(() => ({})); S.locked = !!camp.adventureStarted;
   if (S.locked || QS.get('view')) { if (camp.adventureStarted) { const T = await import('./table.js'); return T.boot({ store, renderSheet, OWNER, now }); } }

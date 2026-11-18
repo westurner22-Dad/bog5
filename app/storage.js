@@ -60,7 +60,8 @@ export class LocalPaths extends MemoryPaths {
 // ---------- Firebase RTDB REST ----------
 // auth: async () => ({ query: {auth: idToken} } | { query: {access_token} } | { headers: {Authorization} } | null)
 // Live guard: any host that is not localhost/127.0.0.1 needs BOTH allowLive: 'wes-signed-off' and (in node)
-// BOG5_ALLOW_LIVE=1. Nothing in this repo sets either. The prefix is fixed to bog5; bog4 is unreachable by construction.
+// BOG5_ALLOW_LIVE=1. The live target in the GM CLI and the hosted ?store=live path pass allowLive after Wes's sign-off.
+// BOG5_ALLOW_LIVE is set only in the GM CLI environment on the box, never in the hosted app or the repo. The prefix is fixed to bog5; bog4 is unreachable by construction.
 export const LIVE_OK = 'wes-signed-off';
 // A plain-http private-LAN IPv4 (10.x, 192.168.x, 172.16-31.x) also counts as local: it is the playtest dev server
 // opened from a phone on the same Wi-Fi (`playtest.mjs --lan`). Firebase is never plain http on a private address.
@@ -136,5 +137,7 @@ export function createStore(search = globalThis.location?.search || '', { owner 
   // ?store=emulator → the Firebase RTDB emulator (demo-c-thug), signed in through the Auth emulator (Google provider)
   if (q.get('store') === 'emulator') { if (!restAuth) throw new Error('sign in first'); return new Bog5Store(new RtdbRest({ base: emulatorBase, ns: 'c-thug-default-rtdb', auth: restAuth }), { owner, now }); }
   if (q.get('store') === 'dev') return new Bog5Store(new RtdbRest({ base: globalThis.location.origin + '/rtdb', auth: async () => ({ query: { auth: 'dev:' + owner } }) }), { owner, now });
+  // ?store=live → live c-thug RTDB. Browser: allowLive is enough (no Node env). Node/GM still also needs BOG5_ALLOW_LIVE=1.
+  if (q.get('store') === 'live') { if (!restAuth) throw new Error('sign in first'); return new Bog5Store(new RtdbRest({ base: 'https://c-thug-default-rtdb.firebaseio.com', auth: restAuth, allowLive: LIVE_OK }), { owner, now }); }
   try { const t = PREFIX + '/__probe'; localStorage.setItem(t, '1'); localStorage.removeItem(t); return new Bog5Store(new LocalPaths(), { owner, now }); } catch { return new Bog5Store(new MemoryPaths(), { owner, now }); }
 }

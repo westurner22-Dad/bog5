@@ -6,8 +6,8 @@
 //   • emulator (`?store=emulator`) — Auth emulator, fake Google account (no live config used)
 //   • live (`?store=live`) — Firebase JS SDK from the official gstatic CDN (ES modules, no bundler):
 //     signInWithPopup(GoogleAuthProvider), redirect fallback if the popup is blocked
-// The live RTDB switch stays off: this module never reads or writes c-thug's database. Seat lookup and
-// table data wait for a later sign-off (`allowLive` / BOG5_ALLOW_LIVE are not set here).
+// Seat lookup and table data go through RtdbRest in the app, which needs allowLive after Wes's sign-off.
+// This module only handles Google sign-in and ID tokens; it never opens a database connection itself.
 const SS = globalThis.sessionStorage; const KEY = 'bog5/auth';
 export const EMULATOR = { auth: 'http://127.0.0.1:9099', rtdb: 'http://127.0.0.1:9000', ns: 'c-thug-default-rtdb', apiKey: 'demo-key-emulator-only' };
 // Public web-app config (Firebase project c-thug, app "bog5"). No measurementId is included; Analytics is not loaded.
