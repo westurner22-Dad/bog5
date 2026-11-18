@@ -6,7 +6,7 @@ import { itemDef } from '../engine/src/rules/items.js';
 import { SKILLS, ABILITIES } from '../engine/src/rules/origins.js';
 import SRD from '../engine/srd/data/srd.js';
 import { createStore, LockedError, RtdbRest } from './storage.js';
-import { GoogleAuth, EMULATOR } from './auth.js';
+import { GoogleAuth, EMULATOR, LIVE_CONFIG } from './auth.js';
 import * as P from './portrait.js';
 import * as PA from './portrait-art.js';
 import * as SI from './spell-info.js';
@@ -21,8 +21,8 @@ const QS = new URLSearchParams(location.search); let OWNER = QS.get('player') ||
 // ?now=<ms|ISO> pins the clock for simulations (it keeps ticking from there); default is the real clock
 const NOW0 = QS.get('now') ? (/^\d+$/.test(QS.get('now')) ? +QS.get('now') : Date.parse(QS.get('now'))) : null; const T0 = Date.now();
 const now = () => NOW0 == null ? Date.now() : NOW0 + (Date.now() - T0);
-const EMU = QS.get('store') === 'emulator'; let AUTH = null;
-let store = EMU ? null : createStore(location.search, { owner: OWNER, now });
+const EMU = QS.get('store') === 'emulator'; const LIVE = QS.get('store') === 'live'; let AUTH = null;
+let store = (EMU || LIVE) ? null : createStore(location.search, { owner: OWNER, now });
 const S = { view: 'forge', step: 0, draft: F.newDraft(), heroes: [], drawer: null, hero: null, justForged: null };
 const $ = sel => document.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -247,26 +247,41 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('toggle', e => { const sec = e.target.dataset?.sec; if (sec) (S.open = S.open || {})[sec] = e.target.open; }, true);
 document.addEventListener('input', e => { const f = e.target.dataset?.f; if (!f) return; const d = structuredClone(S.draft); d[f] = e.target.value; setDraft(d); refreshDock(); });
-// P3-4: Google sign-in (emulator only in this pass). Signed out → this card; signed in but not linked → ask the GM.
+// P3-4: Google sign-in. Signed out → this card; signed in but not linked → Almost in (uid for the GM).
+// ?store=emulator uses the Auth emulator; ?store=live uses the hosted Google provider. Live RTDB stays off.
 function signInCard(msg = '', uid = null) {
   document.getElementById('app').innerHTML = `<div class="signin"><div class="card dark" style="margin:28px 14px 12px">
     <div style="font:700 26px/1.1 Cinzel,serif;color:#f0d58a">Balls or Gapes V</div><div class="meta" style="color:#cdb27a;margin-top:4px">Reforged \u00b7 a private table for four</div></div>
    <div class="card" style="margin:0 14px">${uid ? `<h2>Almost in</h2><p class="meta" style="margin:6px 0 10px">You\u2019re signed in as <b>${esc(AUTH.user.email)}</b>, but this Google account isn\u2019t linked to a seat yet. Send the GM this code:</p><div class="code">${esc(uid)}</div>
+     ${LIVE ? `<p class="meta" style="margin:10px 0 0">The table opens soon.</p>` : ''}
      <button class="btn ghost" data-a="signout" style="margin-top:12px">Use a different account</button>`
    : `<h2>Sign in</h2><p class="meta" style="margin:6px 0 12px">Use the Google account the GM invited. Your seat, hero and orders follow the account, not the phone.</p>
      ${EMU ? `<div class="note" style="margin:0 0 8px"><b>Test mode (Firebase emulator).</b> No real Google account is used: type any email to stand in for one.</div><input id="emuEmail" type="email" placeholder="you@example.com" style="margin-bottom:10px" autocomplete="off">` : ''}
      <button class="btn gbtn" data-a="google"><span class="g">G</span> Sign in with Google</button>
      ${msg ? `<div class="err" style="margin-top:10px">${esc(msg)}</div>` : ''}`}</div></div>`;
-  document.querySelector('[data-a="google"]')?.addEventListener('click', async () => { try { await AUTH.signInWithGoogle({ email: document.getElementById('emuEmail')?.value.trim() }); location.reload(); } catch (e) { signInCard(e.message); } });
-  document.querySelector('[data-a="signout"]')?.addEventListener('click', () => { AUTH.signOut(); location.reload(); });
+  document.querySelector('[data-a="google"]')?.addEventListener('click', async ev => {
+    const btn = ev.currentTarget; btn.disabled = true;
+    try { const u = await AUTH.signInWithGoogle({ email: document.getElementById('emuEmail')?.value.trim() }); if (u || AUTH.signedIn) location.reload(); }
+    catch (e) { signInCard(e.message); } finally { btn.disabled = false; }
+  });
+  document.querySelector('[data-a="signout"]')?.addEventListener('click', async () => { await AUTH.signOut(); location.reload(); });
 }
 async function signedInStore() {
+  if (LIVE) {
+    AUTH = new GoogleAuth({ live: LIVE_CONFIG, emulator: null });
+    try { await AUTH.ready(); } catch (e) { signInCard(e.message || String(e)); return false; }
+    if (!AUTH.signedIn) { signInCard(); return false; }
+    // Do not look up members/ or open a store: that would be a live RTDB call, and allowLive is unset.
+    signInCard('', AUTH.user.uid);
+    return false;
+  }
   AUTH = new GoogleAuth({ emulator: EMULATOR }); if (!AUTH.signedIn) { signInCard(); return false; }
   const pid = await AUTH.seat(new RtdbRest({ base: EMULATOR.rtdb, ns: EMULATOR.ns, auth: AUTH.restAuth() })); if (!pid) { signInCard('', AUTH.user.uid); return false; }
   OWNER = pid; store = createStore(location.search, { owner: OWNER, now, restAuth: AUTH.restAuth(), emulatorBase: EMULATOR.rtdb }); return true;
 }
 (async function boot() {
-  if (EMU && !(await signedInStore())) return;
+  if ((EMU || LIVE) && !(await signedInStore())) return;
+  if (LIVE) { if (AUTH?.signedIn) signInCard('', AUTH.user.uid); else signInCard(); return; } // safety net: never reach data while the live switch is off
   // Reforge rule (locked Nov 10, 9:21 PM PT): free rebuilds until the first adventure starts, then sheets lock
   const camp = await store.campaign().catch(() => ({})); S.locked = !!camp.adventureStarted;
   if (S.locked || QS.get('view')) { if (camp.adventureStarted) { const T = await import('./table.js'); return T.boot({ store, renderSheet, OWNER, now }); } }
