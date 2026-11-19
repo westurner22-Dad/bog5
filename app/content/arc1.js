@@ -111,7 +111,7 @@ export const NIGHTS = [
         failure: { text: 'The ledger is in Committee shorthand. You learn that someone, somewhere, requisitioned a goose. Possibly the goose.', effects: [] } },
     ],
     freeDc: 15, absentText: 'Sits on an unconscious clerk, drinks whatever survived the brawl, and lets the others handle it. No roll.',
-    after: { effects: [] },
-    next: 'Then: the road to the Border March, where the first real battle waits.' },
+    after: { rest: { kind: 'long', food: 'inn', water: 'inn' }, effects: [] },
+    next: 'In the morning, a side quest: the Agent at Court, if you will have it, or the road to the Border March.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);

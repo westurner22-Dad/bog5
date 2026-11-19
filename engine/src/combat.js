@@ -136,7 +136,7 @@ export function applyDamage(g, T, tgt, amount, type, opt = {}) {
   } else {
     const before = cur; const nhp = Math.max(0, cur - rest); g.set([...base(tgt), 'hp'], { cur: nhp, temp });
     if (tgt.boss && before > max / 2 && nhp <= max / 2 && nhp > 0) { trig(g, 'boss_phase', `${tgt.name} is bloodied`); g.set([...base(tgt), 'phase'], 2); }
-    if (nhp === 0) { say(g, `${tgt.name} falls.`); endConcentration(g, tgt, 'died');
+    if (nhp === 0) { say(g, tgt.defeatText || `${tgt.name} falls.`); endConcentration(g, tgt, 'died');
       const by = opt.by && opt.by.kind === 'pc' ? ch(g, opt.by) : null; if (by && by.cls === 'warlock' && by.subclass === 'fiend') { const tmp = Math.max(1, deriveSheet(by).mods.cha + by.level); if (tmp > by.hp.temp) { g.set(['chars', by.id, 'hp', 'temp'], tmp); say(g, `${by.name}: Dark One's Blessing, ${tmp} temp HP.`); } } }
   }
   // concentration
@@ -362,7 +362,7 @@ export function startEncounter(g, { name, map = { w: 16, h: 12, terrain: {} }, p
   return g.event('battle_start', { name }, () => {
     const cmb = {};
     for (const p of party) { const c0 = g.state.chars[p.cid]; cmb[p.cid] = { uid: p.cid, cid: p.cid, kind: 'pc', side: 'party', name: c0.name, pos: p.pos, size: 1, reaction: true }; }
-    foes.forEach((f, i) => { const uid = f.uid || `f${i + 1}`; cmb[uid] = { uid, side: 'foe', ...monsterTemplate(f.monster, { name: f.name || null }), name: f.name || `${monsterTemplate(f.monster).name} ${i + 1}`, pos: f.pos, boss: !!f.boss, tactics: f.tactics || {}, reaction: true }; });
+    foes.forEach((f, i) => { const uid = f.uid || `f${i + 1}`; cmb[uid] = { uid, side: 'foe', ...monsterTemplate(f.monster, { name: f.name || null }), name: f.name || `${monsterTemplate(f.monster).name} ${i + 1}`, pos: f.pos, boss: !!f.boss, tactics: f.tactics || {}, reaction: true, ...(f.defeatText ? { defeatText: f.defeatText } : {}) }; });
     g.set(['encounter'], { name, location, map, round: 1, turn: 0, order: [], combatants: cmb, status: 'active', stop: null, batch: null, script, ammoSpent: {}, startedNight: g.state.meta.night, pause: null, xpAwarded: false });
     // initiative
     const rolls = [];
