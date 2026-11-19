@@ -11,6 +11,7 @@ import * as G from './gear.js';
 import * as F5 from './phase5.js';
 import * as PA from './portrait-art.js';
 import { partySupplies, suppliesOf } from '../engine/src/shop.js';
+import { normalizeDraft, draftAction } from './draft.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
@@ -46,7 +47,7 @@ async function load() {
   T.me = T.players.find(p => p.pid === OWNER) || null; T.stances = (await store.p.get('stances')) || {};
   if (T.n) { T.scene = await store.scene(T.n); T.locks = await store.locks(T.n); T.mine = T.me ? await store.myAction(T.n) : null; T.scenes[T.n] = T.scene; T.results[T.n] = await store.result(T.n); }
   T.party = T.n && T.me && T.scene?.status === 'open' ? await store.partyActions(T.n, T.players.map(p => p.pid)).catch(() => ({})) : {};
-  if (T.draft == null) T.draft = T.mine ? { ...T.mine } : { kind: null, moveId: null, text: '', say: '', sayMode: 'say' };
+  if (T.draft == null) T.draft = normalizeDraft(T.mine);
   if (T.cart == null) { T.cart = T.mine?.cart || []; T.lootPick = T.mine?.loot || {}; T.restPick = T.mine?.rest || {}; F5.loadExtras(T.mine); }
   T.asks = await store.listAsks().catch(() => []);
   T.issues = await store.listIssues().catch(() => []);
@@ -108,7 +109,7 @@ function movesCard(sc, st) {
   if (locked && !T.editing) { const what = T.mine.kind === 'move' ? sc.moves.find(m => m.id === T.mine.moveId)?.label : `\u201c${T.mine.text}\u201d`;
     return `<div class="card"><h2>Your move, ${esc(first(me.name))}</h2><div class="move sel" style="cursor:default"><div class="ic">${svgI('risky')}</div><div style="flex:1"><div class="t">${esc(what)}</div>${T.mine.say ? `<div class="meta" style="margin-top:4px"><b style="color:var(--wine)">${T.mine.sayMode === 'whisper' ? 'Whisper' : 'I say'}:</b> \u201c${esc(T.mine.say)}\u201d</div>` : ''}</div><div class="check"></div></div>
      <div class="note">\u2713 Locked at ${timeLA(T.mine.at)}. ${canEdit ? 'You can change it until the table locks.' : 'The table has locked.'}</div>${canEdit ? '<div class="row" style="margin-top:9px"><button class="btn ghost" data-t="unlock" style="flex:1;color:var(--wine);border-color:var(--wine)">Change my move</button></div>' : ''}</div>`; }
-  const ok = d.kind === 'move' ? !!d.moveId : d.kind === 'free' ? d.text.trim().length >= 3 : false;
+  const ok = d.kind === 'move' ? !!d.moveId : d.kind === 'free' ? (d.text || '').trim().length >= 3 : false;
   return `<div class="card"><h2>Your move, ${esc(first(me.name))}</h2><div class="meta" style="margin-top:6px">Pick one, or do something else. You can change it until the table locks.</div>${sc.moves.map(mv).join('')}
    <div style="margin-top:12px" class="sc meta"><b style="color:var(--wine)">Or: I do something else</b></div><textarea rows="2" data-f="text" placeholder="Describe what you try. The GM calls the check\u2026" ${canEdit ? '' : 'disabled'}>${esc(d.text)}</textarea>
    <div class="row" style="margin-top:9px"><div class="seg" style="flex:1"><span class="${d.sayMode !== 'whisper' ? 'on' : ''}" data-t="saymode" data-v="say">I say\u2026</span><span class="${d.sayMode === 'whisper' ? 'on' : ''}" data-t="saymode" data-v="whisper">Whisper to party</span></div></div>
@@ -310,11 +311,11 @@ function render() {
 }
 const extras = () => ({ ...(T.cart?.length ? { cart: T.cart } : {}), ...(Object.keys(T.lootPick || {}).length ? { loot: T.lootPick } : {}), ...(Object.keys(T.restPick || {}).length ? { rest: T.restPick } : {}), ...F5.extras() });
 async function saveExtras() { const base = T.mine ? { ...T.mine } : { kind: null, locked: false }; delete base.at; delete base.cart; delete base.loot; delete base.rest; for (const x of ['levelUp', 'casts', 'copy', 'prepare']) delete base[x]; await store.putAction(T.n, { ...base, ...extras() }); T.mine = await store.myAction(T.n); T.locks = await store.locks(T.n); }
-async function saveDraft(locked) { const d = T.draft; const a = { kind: d.kind, moveId: d.kind === 'move' ? d.moveId : null, text: d.kind === 'free' ? d.text.trim() : '', say: d.say.trim(), sayMode: d.sayMode, locked, ...extras() };
+async function saveDraft(locked) { const d = T.draft = normalizeDraft(T.draft); const a = { ...draftAction(d, locked), ...extras() };
   await store.putAction(T.n, a); T.mine = await store.myAction(T.n); T.locks = await store.locks(T.n); }
 async function saveOrders(locked) { const o = T.orders; const pre = presets(ch(T.me.cid), sheetOf(T.me.cid)).find(p => p.id === o.preset);
   const orders = { thisRound: { ...o.thisRound, move: o.thisRound.move ?? undefined }, standing: pre?.rule || [], preset: o.preset, actionSurge: !!o.actionSurge };
-  await store.putAction(T.n, { kind: 'orders', orders, say: T.draft.say.trim(), locked, ...extras() }); T.mine = await store.myAction(T.n); T.locks = await store.locks(T.n); }
+  const d = T.draft = normalizeDraft(T.draft); await store.putAction(T.n, { kind: 'orders', orders, say: (d.say || '').trim(), locked, ...extras() }); T.mine = await store.myAction(T.n); T.locks = await store.locks(T.n); }
 async function onClick(e) {
   const b = e.target.closest('[data-t]'); if (!b || b.disabled) return; const t = b.dataset.t, v = b.dataset.v, k = b.dataset.k;
   try {
@@ -326,10 +327,10 @@ async function onClick(e) {
       case 'night': T.view = 'night'; T.k = +v; await resultOf(T.k); await resultOf(T.k + 1).catch(() => {}); await verify(T.k); T._top = true; break;
       case 'recap': T.view = 'recap'; T.k = +v; await resultOf(T.k); if (T.k + 1 <= T.n) T.scenes[T.k + 1] = T.scenes[T.k + 1] || await store.scene(T.k + 1); T._top = true; break;
       case 'sheet': T.view = 'sheet'; T.k = v; T._top = true; break;
-      case 'move': T.draft = { ...T.draft, kind: 'move', moveId: v }; await saveDraft(false); break;
-      case 'saymode': T.draft = { ...T.draft, sayMode: v }; break;
+      case 'move': T.draft = normalizeDraft({ ...T.draft, kind: 'move', moveId: v }); await saveDraft(false); break;
+      case 'saymode': T.draft = normalizeDraft({ ...T.draft, sayMode: v }); break;
       case 'lock': await saveDraft(true); T.editing = false; break;
-      case 'unlock': T.editing = true; if (T.scene.battle) { T.orders = structuredClone(T.mine.orders); } else T.draft = { ...T.draft, ...T.mine }; await (T.scene.battle ? saveOrders(false) : saveDraft(false)); break;
+      case 'unlock': T.editing = true; if (T.scene.battle) { T.orders = structuredClone(T.mine.orders); } else T.draft = normalizeDraft({ ...T.draft, ...T.mine }); await (T.scene.battle ? saveOrders(false) : saveDraft(false)); break;
       case 'ord': { const r = T.orders.thisRound; T.pickCell = false;
         if (k === 'move') { if (v === 'cell') { T.pickCell = true; } else r.move = v === 'hold' ? 'hold' : null; }
         if (k === 'act') { const [d, spell] = v.split(':'); const ally = d === 'cast' && ['heal', 'buff'].includes(spellKind(spell)) || ['help', 'healing_hands'].includes(d); r.action = { do: d, ...(spell ? { spell } : {}), target: ally ? 'ally_lowest' : 'nearest' }; }
@@ -345,8 +346,8 @@ async function onClick(e) {
   render();
 }
 let inputTimer = null;
-function onInput(e) { const f = e.target.dataset?.f; if (!f) return; if (f === 'report') { T.reportText = e.target.value; return; } if (f === 'ask') { T.askText = e.target.value; T.askDone = null; return; } if (f === 'attach') { T.reportAttach = e.target.checked; return; } if (f === 'text') { T.draft.text = e.target.value; T.draft.kind = e.target.value.trim() ? 'free' : (T.draft.moveId ? 'move' : null); if (T.draft.kind === 'free') T.draft.moveId = null; } else T.draft[f] = e.target.value;
-  const btn = document.querySelector('[data-t="lock"]'); if (btn) btn.disabled = !(T.draft.kind === 'move' ? T.draft.moveId : T.draft.kind === 'free' && T.draft.text.trim().length >= 3);
+function onInput(e) { const f = e.target.dataset?.f; if (!f) return; if (f === 'report') { T.reportText = e.target.value; return; } if (f === 'ask') { T.askText = e.target.value; T.askDone = null; return; } if (f === 'attach') { T.reportAttach = e.target.checked; return; } T.draft = normalizeDraft(T.draft); if (f === 'text') { T.draft.text = e.target.value; T.draft.kind = e.target.value.trim() ? 'free' : (T.draft.moveId ? 'move' : null); if (T.draft.kind === 'free') T.draft.moveId = null; } else T.draft[f] = e.target.value;
+  const btn = document.querySelector('[data-t="lock"]'); if (btn) btn.disabled = !(T.draft.kind === 'move' ? T.draft.moveId : T.draft.kind === 'free' && (T.draft.text || '').trim().length >= 3);
   document.querySelectorAll('[data-t="move"]').forEach(m => m.classList.toggle('sel', T.draft.kind === 'move' && m.dataset.v === T.draft.moveId)); }
 export async function boot(o) {
   ({ store, renderSheet, OWNER } = o); ctx = { now: o.now };
