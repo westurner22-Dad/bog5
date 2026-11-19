@@ -54,22 +54,46 @@ export function mapFreeText(text) {
 const ABN = { str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' };
 export const checkLabel = skill => ABN[skill] || (SKILLS[skill] ? skill.split('_').map(w => w === 'of' ? w : w[0].toUpperCase() + w.slice(1)).join(' ') : skill);
 
-// ---------- free-text DCs (Wes, Nov 11 8:13 AM PT, P3-1): fixed scale Easy 10 / Medium 15 / Hard 20, and the GM
-// logs every pick with a one-line reason. Anything else is refused before the dice roll.
-export const FREE_DC = { Easy: 10, Medium: 15, Hard: 20 };
-const FREE_WORD = { 10: 'Easy', 15: 'Medium', 20: 'Hard' };
-export function setDcCall(entry, word, why, skill) {
-  if (!FREE_DC[word]) throw new Error(`free-text DC must be Easy, Medium or Hard (got "${word}")`);
+// ---------- free-text DCs (P3-1): a fixed Easy / Medium / Hard scale, and the GM logs every pick with a
+// one-line reason. Anything else is refused before the dice roll.
+// v1 (nights 1–7, Wes Nov 11): Easy 10 / Medium 15 / Hard 20.
+// v2 (Night 8+, Wes Nov 19 10:00 AM PT): each tier minus 1 — Easy 9 / Medium 14 / Hard 19.
+// A night already opened or resolved without a dcScale field is v1, so verify stays true and Night 7
+// (whose move-DC hash was published on the v1 scale) is not rewritten.
+export const DC_SCALE = {
+  1: { Easy: 10, Medium: 15, Hard: 20 },
+  2: { Easy: 9, Medium: 14, Hard: 19 },
+};
+export const DC_SCALE_CURRENT = 2;
+export const FREE_DC = DC_SCALE[DC_SCALE_CURRENT];
+export function dcScale(ver = DC_SCALE_CURRENT) { return DC_SCALE[ver] || DC_SCALE[DC_SCALE_CURRENT]; }
+export function scaleLabel(ver) { const t = dcScale(ver); return `Easy ${t.Easy} / Medium ${t.Medium} / Hard ${t.Hard}`; }
+export function scaleOf(scene) {
+  if (scene && Number(scene.dcScale)) return Number(scene.dcScale);
+  if (scene && (scene.status || scene.commit || scene.dcCommit || scene.dcs)) return 1;
+  return DC_SCALE_CURRENT;
+}
+// Remap authored move DCs (and freeDc) onto a night's scale, using difficulty words so a Medium written as
+// 14 still becomes 15 when resolving a v1 night (e.g. already-open Night 7).
+export function applyDcScale(scene, ver = scaleOf(scene)) {
+  const table = dcScale(ver);
+  const remap = dc => { if (dc == null) return dc; const w = A.difficultyWord(dc); return table[w] ?? dc; };
+  const moves = (scene.moves || []).map(m => m.check?.dc != null ? { ...m, check: { ...m.check, dc: remap(m.check.dc) } } : m);
+  return { ...scene, moves, freeDc: remap(scene.freeDc), dcScale: ver };
+}
+export function setDcCall(entry, word, why, skill, ver = DC_SCALE_CURRENT) {
+  const table = dcScale(ver);
+  if (!table[word]) throw new Error(`free-text DC must be Easy, Medium or Hard (got "${word}")`);
   if (!why || String(why).trim().length < 4) throw new Error('give a one-line reason for the DC call');
   const sk = skill || entry.check?.skill; if (!sk) throw new Error('name the skill for this check');
-  entry.check = { ...(entry.check || {}), skill: sk, dc: FREE_DC[word] }; entry.dcCall = { word, dc: FREE_DC[word], why: String(why).trim(), by: 'gm' }; return entry;
+  entry.check = { ...(entry.check || {}), skill: sk, dc: table[word] }; entry.dcCall = { word, dc: table[word], why: String(why).trim(), by: 'gm' }; return entry;
 }
-export function checkDcCalls(entries) {
-  const errs = [];
+export function checkDcCalls(entries, ver = DC_SCALE_CURRENT) {
+  const table = dcScale(ver); const label = scaleLabel(ver); const errs = [];
   for (const e of entries.filter(x => x.kind === 'free' && x.check)) {
     const c = e.dcCall; const nm = e.name || e.pid;
     if (!c) { errs.push(`${nm}: free-text check has no logged DC call`); continue; }
-    if (FREE_DC[c.word] !== c.dc || (e.check.dc != null && e.check.dc !== c.dc)) errs.push(`${nm}: DC ${e.check.dc} is off the fixed scale (Easy 10 / Medium 15 / Hard 20)`);
+    if (table[c.word] !== c.dc || (e.check.dc != null && e.check.dc !== c.dc)) errs.push(`${nm}: DC ${e.check.dc} is off the fixed scale (${label})`);
     if (!c.why || c.why.trim().length < 4) errs.push(`${nm}: the DC call needs a reason`);
   }
   return errs;
@@ -78,12 +102,13 @@ export function checkDcCalls(entries) {
 // ---------- plan: what the GM tool will run tonight (GM may edit DC/skill/outcomes before resolving)
 // scene: content night; actions: {pid: {kind:'move'|'free', moveId, text, say, orders}} ; stances: {pid: stance}
 export function planNight(scene, actions, players, stances = {}) {
+  const sc = applyDcScale(scene, scaleOf(scene));
   const entries = players.map(p => {
     const a = actions?.[p.pid]; const stance = stances[p.pid] || DEFAULT_STANCE;
     const extra = { ...(a?.cart?.length ? { cart: a.cart } : {}), ...(a?.loot ? { loot: a.loot } : {}), ...(a?.rest ? { rest: a.rest } : {}), ...(a?.levelUp ? { levelUp: a.levelUp } : {}), ...(a?.casts?.length ? { casts: a.casts } : {}), ...(a?.copy?.length ? { copy: a.copy } : {}), ...(a?.prepare ? { prepare: a.prepare } : {}) }; // saved before cutoff counts, locked or not
-    const e = planOne(scene, a, p, stance); return { ...e, ...extra };
+    const e = planOne(sc, a, p, stance); return { ...e, ...extra };
   });
-  return { night: scene.n, sceneId: scene.id, entries };
+  return { night: sc.n, sceneId: sc.id, entries, dcScale: sc.dcScale };
 }
 function planOne(scene, a, p, stance) {
   {
@@ -91,9 +116,9 @@ function planOne(scene, a, p, stance) {
     if (scene.battle || a.orders) return { pid: p.pid, cid: p.cid, kind: 'orders', orders: a.orders || {}, say: a.say || '', stance };
     if (a.kind === 'move') { const mv = scene.moves.find(m => m.id === a.moveId); if (!mv) throw new Error(`${p.pid}: unknown move ${a.moveId}`);
       return { pid: p.pid, cid: p.cid, kind: 'move', moveId: mv.id, label: mv.label, say: a.say || '', check: mv.check ? { ...mv.check } : null, assist: mv.assist || null, success: mv.success, failure: mv.failure, stance }; }
-    const m = mapFreeText(a.text); const word = FREE_WORD[scene.freeDc] || 'Medium';
-    return { pid: p.pid, cid: p.cid, kind: 'free', label: 'Something else', text: a.text, say: a.say || '', check: m.skill ? { skill: m.skill, dc: FREE_DC[word] } : null, mapped: m,
-      dcCall: m.skill ? { word, dc: FREE_DC[word], why: `default ${word}: ${m.why}` } : null, success: { text: 'It works out, more or less the way it was meant to, and that is a nice feeling.', effects: [] }, failure: { text: 'It doesn\u2019t come off this time, though it was a fine idea and everyone says so.', effects: [] }, stance };
+    const m = mapFreeText(a.text); const table = dcScale(scaleOf(scene)); const word = scene.freeDc != null ? (A.difficultyWord(scene.freeDc) || 'Medium') : 'Medium';
+    return { pid: p.pid, cid: p.cid, kind: 'free', label: 'Something else', text: a.text, say: a.say || '', check: m.skill ? { skill: m.skill, dc: table[word] } : null, mapped: m,
+      dcCall: m.skill ? { word, dc: table[word], why: `default ${word}: ${m.why}` } : null, success: { text: 'It works out, more or less the way it was meant to, and that is a nice feeling.', effects: [] }, failure: { text: 'It doesn\u2019t come off this time, though it was a fine idea and everyone says so.', effects: [] }, stance };
   }
 }
 
@@ -119,7 +144,7 @@ export const fmtCoin = cp => { const gp = Math.floor(cp / 100), sp = Math.floor(
 // ---------- resolve the night on the engine (GM tool). game must have had openNight(n, seed) at publish time.
 export function resolveNight(g, scene, plan, { seed, now = Date.now(), early = false } = {}) {
   const N = String(scene.n); const pub = g.state.nights[N]; if (!pub) throw new Error(`night ${N} was never opened`);
-  const dcErr = checkDcCalls(plan.entries); if (dcErr.length) throw new Error('DC calls refused: ' + dcErr.join('; '));
+  const dcErr = checkDcCalls(plan.entries, scaleOf(scene)); if (dcErr.length) throw new Error('DC calls refused: ' + dcErr.join('; '));
   if (!verifyCommit(seed, pub.commit)) throw new Error('seed does not match the published hash');
   const before = Object.fromEntries(Object.entries(g.state.chars).map(([k, c]) => [k, snap(c)])); const logStart = g.log.length;
   const entries = []; const changes = [];
@@ -185,7 +210,7 @@ export function resolveNight(g, scene, plan, { seed, now = Date.now(), early = f
   const pendingLoot = (g.state.loot?.pending || []).map(x => ({ lid: x.lid, name: itemDef(x.inst).name, unid: !!x.inst.unid, need: Object.fromEntries(g.state.party.order.map(cid => [cid, L.canNeed(g.state.chars[cid], x.inst)])) }));
   return { n: scene.n, sceneId: scene.id, title: scene.title, place: scene.place, bg: scene.bg, commit: pub.commit, seed, resolvedAt: now, early, entries, battle, sheetChanges: changes, after: afterFx.map(({ loot: _l, ...x }) => x),
     loot: loot.map(l => ({ why: l.why, coin: l.coin, each: l.each, rem: l.rem, mode: l.mode, gm: !!l.gm, items: (l.items || []).map(x => ({ lid: x.lid, name: itemDef(x.inst).name })), cash: (l.cash || []).map(x => ({ lid: x.lid, name: itemDef(x.inst).name })) })), lootDivide, pendingLoot, cashed, rest, stash: (g.state.party.stash || []).map(x => ({ lid: x.lid, name: itemDef(x.inst).name, cash: !!x.cash })),
-    best: best ? { name: best.name, label: best.label || best.text, ...best.check } : null, logRange: [logStart, g.log.length], nextTeaser: scene.next || null };
+    best: best ? { name: best.name, label: best.label || best.text, ...best.check } : null, logRange: [logStart, g.log.length], nextTeaser: scene.next || null, dcScale: scaleOf(scene) };
 }
 const snap = c => ({ hp: c.hp.cur, temp: c.hp.temp, xp: c.xp, coin: c.coin, insp: c.inspiration, conds: c.conditions.map(x => x.id).sort().join(','), items: c.inventory.reduce((o, i) => { const d = itemDef(i); const k = `${i.id}${i.plus ? '+' + i.plus : ''}${i.scroll ? ':' + i.scroll : ''}${i.unid ? '?' : ''}${i.name ? ':' + i.name : ''}`; o[k] = { n: (o[k]?.n || 0) + (i.qty || 1), name: d.name }; return o; }, {}), res: { ...c.resSpent }, slots: [...(c.slotsSpent || [])], dead: c.death.dead });
 function diff(a, b, name, cid) {
@@ -245,7 +270,7 @@ export const partyFacts = g => Object.values(g.state.chars).map(c => ({ cid: c.i
 // ---------- GM-side helpers: open a night (commit), restore/serialize the private game
 export function openNight(g, scene, { seed, dateISO }) {
   g.openNight(scene.n, seed); const cut = cutoffMs(dateISO);
-  return { n: scene.n, id: scene.id, adventure: scene.adventure, title: scene.title, place: scene.place, bg: scene.bg, time: scene.time, prose: scene.prose, quote: scene.quote || null, gmNote: scene.playerNote || null,
+  return { n: scene.n, id: scene.id, adventure: scene.adventure, title: scene.title, place: scene.place, bg: scene.bg, time: scene.time, prose: scene.prose, quote: scene.quote || null, gmNote: scene.playerNote || null, dcScale: scene.dcScale || DC_SCALE_CURRENT,
     moves: (scene.moves || []).map(m => ({ id: m.id, label: m.label, tags: m.tags || [], word: m.check ? A.difficultyWord(m.check.dc) : null, skill: m.check ? checkLabel(m.check.skill) : null, skillKey: m.check?.skill || null, hint: m.hint || null })),
     battle: !!scene.battle, shop: scene.shop || null, quest: scene.quest || null, rest: restInfo(scene), commit: commit(seed), cutoffMs: cut, date: dateISO, status: 'open' };
 }
