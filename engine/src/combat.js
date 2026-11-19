@@ -283,6 +283,17 @@ function mastery(g, a, t, atk, P) {
 function pickSlot(g, c, min) { const s = sheet(g, c).spellcasting; if (!s) return null; if (s.pact) return s.pactLeft > 0 && s.pact.level >= min ? s.pact.level : null; for (let L = min; L <= s.slots.length; L++) if (s.slotsLeft[L - 1] > 0) return L; return null; }
 function spendSlot(g, c, L) { const c0 = ch(g, c); const s = sheet(g, c).spellcasting; if (s.pact) g.set(['chars', c.cid, 'pactSpent'], c0.pactSpent + 1); else { const a = [...c0.slotsSpent]; while (a.length < L) a.push(0); a[L - 1] = (a[L - 1] || 0) + 1; g.set(['chars', c.cid, 'slotsSpent'], a); } }
 export function knowsSpell(c0, id) { const s = deriveSheet(c0).spellcasting; const mi = c0.choices.magicInitiate; if (s?.species?.cantrips.includes(id)) return true; return c0.cantrips.includes(id) || c0.prepared.includes(id) || (s?.always || []).includes(id) || (mi && (mi.cantrips.includes(id) || mi.spell === id)); }
+function cannotCastWhy(g, c, id, L, T, opt = {}) {
+  const c0 = ch(g, c); const s = sheet(g, c).spellcasting;
+  if (flag(conds(g, c), 'noActions')) return 'cannot act';
+  if (!s) return 'no spellcasting';
+  if (!s.canCast) return s.note || 'cannot cast (no spellcasting)';
+  if (!knowsSpell(c0, id)) return 'not prepared';
+  if (L > 0 && T?.slotSpell && !opt.reaction) return 'only one spell with a spell slot per turn (2024 rule)';
+  if (L > 0 && s.pact) return 'no pact slot left';
+  if (L > 0) return `no level ${L}+ slot left`;
+  return 'cannot cast';
+}
 function canCastNow(g, c, id, L, reaction) { const c0 = ch(g, c); const s = sheet(g, c).spellcasting; if (!s || !s.canCast || !knowsSpell(c0, id)) return false; if (flag(conds(g, c), 'noActions')) return false; if (L > 0) { if (!reaction && g._T?.slotSpell) return false; if (s.pact) return s.pactLeft > 0 && s.pact.level >= L; return s.slotsLeft[L - 1] > 0; } return true; }
 function affinity(g, c, type, T) { const c0 = ch(g, c); if (c0.cls === 'sorcerer' && c0.level >= 6 && c0.choices.dragon?.endsWith(':' + type) && !T?.affinity) { if (T) T.affinity = true; return deriveSheet(c0).mods.cha; } return 0; }
 const spellMod = (g, c, id) => { const c0 = ch(g, c); const s = sheet(g, c); const mi = c0.choices.magicInitiate; if (mi && (mi.cantrips.includes(id) || mi.spell === id) && !(s.spellcasting && classList(c0.cls).includes(id))) return { dc: s.spellcasting.miDc ?? 8 + s.mods[mi.ability] + s.pb, atk: s.spellcasting.miAttack ?? s.mods[mi.ability] + s.pb, mod: s.mods[mi.ability] }; const inn = c0.cls === 'sorcerer' && (obj(g, c).effects || []).some(e => e.id === 'innate_sorcery') ? 1 : 0; return { dc: s.spellcasting.dc + inn, atk: s.spellcasting.attack, mod: s.mods[s.spellcasting.ability] }; };
@@ -293,7 +304,7 @@ export function castSpell(g, T, c, id, L, targets, opt = {}) {
   const c0 = ch(g, c); L = sp.level === 0 ? 0 : Math.max(L || sp.level, sp.level);
   const miFree = sp.level === 1 && c0.choices.magicInitiate?.spell === id && deriveSheet(c0).resources.magic_initiate?.left > 0 && opt.free;
   if (opt.freeCast) { /* feature-granted cast without a slot (e.g. Favored Enemy) */ } else
-  if (!miFree && !canCastNow(g, c, id, L, opt.reaction)) return { ok: false, why: L > 0 && T?.slotSpell && !opt.reaction ? 'only one spell with a spell slot per turn (2024 rule)' : !knowsSpell(c0, id) ? 'not prepared' : `no level ${L}+ slot left` };
+  if (!miFree && !canCastNow(g, c, id, L, opt.reaction)) return { ok: false, why: cannotCastWhy(g, c, id, L, T, opt) };
   // costly material components (SRD: a focus or pouch can't replace a component with a cost)
   const comp = c.cid && !opt.freeCast ? componentFor(id) : null;
   if (comp) { const inv0 = g.state.chars[c.cid].inventory; const ix = inv0.findIndex(i => i.id === comp.id && i.qty > 0); if (ix < 0) return { ok: false, why: `${sp.name} needs ${comp.name}` };
@@ -377,7 +388,7 @@ export function resolveBattle(g, orders = {}, { maxRounds = 3, cutoffAfterTurns 
   if (e.status === 'paused' || e.status === 'awaiting_orders') g.event('battle_resume', {}, () => { g.set(['encounter', 'status'], 'active'); g.set(['encounter', 'pause'], null); });
   e = enc(g); if (e.status !== 'active') return { stop: e.stop };
   g.event('orders_locked', { orders }, () => g.set(['encounter', 'batch'], { startRound: e.round, startTurn: e.turn, used: {}, orders }));
-  let turns = 0;
+  let turns = 0, deferredStops = [];
   for (;;) {
     e = enc(g);
     if (e.round >= e.batch.startRound + maxRounds && e.turn >= e.batch.startTurn) return stopBattle(g, 'round_limit');
@@ -386,8 +397,18 @@ export function resolveBattle(g, orders = {}, { maxRounds = 3, cutoffAfterTurns 
     e = enc(g); const end = checkEnd(g); if (end) return end;
     const note = g.triggers.filter(t => notices.includes(t.id)), stops = g.triggers.filter(t => !notices.includes(t.id));
     if (note.length) g.event('battle_notice', { notices: note }, () => { const e2 = enc(g); g.set(['encounter', 'notices'], [...(e2.notices || []), ...note.map(t => ({ ...t, text: STOP[t.id], round: e2.round }))]); for (const t of note) say(g, `Notice: ${STOP[t.id]}${t.detail ? ' — ' + t.detail : ''}. Orders keep running.`); });
-    if (stops.length) return { ...stopBattle(g, stops[0].id, stops), notices: note };
+    // Mid-round resume + reinforcements: do not skip unused thisRound orders. new_enemy
+    // still stops the batch once every conscious present hero with a thisRound order has acted.
+    const owed = heroesOwedThisRound(g, orders);
+    if (stops.some(t => t.id !== 'new_enemy')) return { ...stopBattle(g, stops[0].id, [...deferredStops, ...stops]), notices: note };
+    if (stops.length && owed.length) { deferredStops = deferredStops.concat(stops); continue; }
+    const pending = [...deferredStops, ...stops];
+    if (pending.length && !owed.length) { deferredStops = []; return { ...stopBattle(g, pending[0].id, pending), notices: note }; }
   }
+}
+function heroesOwedThisRound(g, orders) {
+  const b = enc(g).batch || {}; const o = b.orders || orders || {};
+  return side(g, 'party').filter(p => p.kind === 'pc' && up(g, p) && o[p.cid]?.thisRound && !o[p.cid]?.absent && !b.used?.[p.cid]);
 }
 function stopBattle(g, reason, triggers = []) {
   g.event('battle_stop', { reason }, () => { g.set(['encounter', 'status'], 'awaiting_orders'); g.set(['encounter', 'stop'], { reason, text: STOP[reason], triggers }); say(g, `Battle stops: ${STOP[reason]}${triggers[0]?.detail ? ' — ' + triggers[0].detail : ''}. New orders needed.`); });
@@ -435,7 +456,7 @@ export function tendFallen(g) {
 export function endEncounter(g) { return g.event('battle_clear', {}, () => g.set(['encounter'], null)); }
 
 // ---------- a single turn
-function takeTurn(g, uid, orders) {
+export function takeTurn(g, uid, orders) {
   const e = enc(g); let c = C(g, uid);
   g.begin('turn', { round: e.round, who: uid });
   const T = { orders, absent: c.kind === 'pc' && (!orders[c.cid] || orders[c.cid].absent), bonusUsed: false, slotSpell: false, disengaged: false }; g._T = T;

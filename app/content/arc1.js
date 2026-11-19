@@ -78,5 +78,16 @@ export const NIGHTS = [
   { n: 4, id: 'a1n4', adventure: 'a1', title: 'The Taps Are Shared Property (cont.)', place: 'The Leaking Tankard II \u00b7 the capital', bg: 'tavern', time: 'Night', battle: true,
     prose: ['The brawl picks up exactly where it stopped: same blood, same spilled ale, same paperwork.'],
     moves: [], freeDc: 15, absentText: 'Fights on their preset stance.', after: { effects: [] }, next: 'Then: what the squad was really after, and the road to the Border March, where the first real battle waits.' },
+
+  // Nights 5+ are GM-authored as needed; canned Arc 1 content ended at Night 4.
+  { n: 5, id: 'a1n5', adventure: 'a1', title: 'The Taps Are Shared Property (cont.)', place: 'The Leaking Tankard II \u00b7 the capital', bg: 'tavern', time: 'Night', battle: true,
+    prose: [
+      'The brawl is still the same spilled-ale, Form 27-B affair. Before anyone takes a new order, the table pays out the hero turns Night 4 had already locked — the ones the engine skipped when the late clerks arrived.',
+      'Yäest\u2019s Hideous Laughter ended: Stamp Clerk 3 had already made one of the Wisdom saves, so the spell dropped. The clerk stays prone until they stand, but the laughter is gone. Yäest then put Heat Metal on that nearest clerk. The 2d8 came up 6 and 5, but the clerk\u2019s Constitution save was 14 + 1 = 15 versus DC 12, and they took no fire. Gorlock\u2019s scimitar found Stamp Clerk 1: a Champion critical on a 19 (19 + 5 = 24 versus AC 12), Savage Attacker kept 11, 14 slashing, and the clerk dropped. Biggus walked the length of the bar to reach Gorlock; Clerk 3 took a disadvantaged opportunity swing on the way (3 / 18, 3 + 3 = 6 versus AC 19, a miss). Healing Hands put 7 hit points back on Gorlock (2d4: 3 and 4; 15 to 22). Boobington, leather off, attacked the nearest clerk with Poison Spray and missed (9 / 2 with disadvantage, 2 + 4 = 6 versus AC 12).',
+      'The late clerks are still in the doorway. The Requisition Sergeant is up next. Set brawl orders: where you move, what you do, and a standing order for when things go wrong.',
+    ],
+    quote: { who: 'Requisition Sergeant', text: '\u201cYou can fill out the incident report after I confiscate the taps.\u201d' },
+    moves: [], freeDc: 15, absentText: 'Fights on their preset stance.', after: { effects: [] },
+    next: 'The brawl continues. The GM will author the next night when these orders resolve.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);

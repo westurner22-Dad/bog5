@@ -3,7 +3,7 @@ export { Game, rebuild, emptyState, applyEvent } from './game.js';
 export { Dice, commit, verifyCommit, parseDice, avgDice } from './dice.js';
 export { createCharacter, deriveSheet, makeItem, RuleError } from './character.js';
 export * as actions from './actions.js';
-export { startEncounter, resolveBattle, pauseAtCutoff, endEncounter, STOP, STANCES } from './combat.js';
+export { startEncounter, resolveBattle, pauseAtCutoff, endEncounter, takeTurn, STOP, STANCES } from './combat.js';
 export { monsterTemplate, MONSTERS } from './monsters.js';
 export { ITEMS, RESKINS, itemDef } from './rules/items.js';
 export { CLASSES, XP_TABLE, levelForXp, XP_BY_CR, FEATURE_SUPPORT } from './rules/classes.js';
