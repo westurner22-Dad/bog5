@@ -1,5 +1,5 @@
-// Combat: initiative, turns, attacks, damage, spells, concentration, death saves, battle orders (≤3 rounds per
-// batch) with stop triggers, absentee stances, and pause/resume at the 9 PM PT cutoff. Each turn is one event.
+// Combat: initiative, turns, attacks, damage, spells, concentration, death saves, battle orders (1 round per
+// night; a mid-round resume finishes that round and stops at the boundary) with stop triggers, absentee stances, and pause/resume at the 9 PM PT cutoff. Each turn is one event.
 import { deriveSheet, mod } from './character.js';
 import { itemDef, componentFor } from './rules/items.js';
 import { spellModel, cantripDice } from './rules/spellEffects.js';
@@ -8,7 +8,7 @@ import { monsterTemplate } from './monsters.js';
 import { SPECIES } from './rules/origins.js';
 import SRD from '../srd/data/srd.js';
 
-export const STOP = { ally_down: 'An ally dropped to 0 HP', new_enemy: 'New enemies arrived', boss_phase: 'The boss changed phase', concentration_broken: 'Concentration broke', order_impossible: 'An order could not be carried out', round_limit: 'Three rounds resolved', victory: 'Victory', defeat: 'The party fell', fled: 'The party fled' };
+export const STOP = { ally_down: 'An ally dropped to 0 HP', new_enemy: 'New enemies arrived', boss_phase: 'The boss changed phase', concentration_broken: 'Concentration broke', order_impossible: 'An order could not be carried out', round_limit: 'One round resolved', victory: 'Victory', defeat: 'The party fell', fled: 'The party fled' };
 export const STANCES = { cautious: 'Dodge when threatened, hold ground, spend nothing', support: 'Help / heal-cantrip / stabilize allies, free attacks otherwise', aggressive: 'Attack the nearest enemy with the best free attack' };
 
 // ---------- accessors
@@ -380,10 +380,11 @@ export function pauseAtCutoff(g, why = '9:00 PM PT cutoff') {
   const e = enc(g); if (!e || !['active', 'awaiting_orders'].includes(e.status)) return null;
   return g.event('battle_paused', { why }, () => { g.set(['encounter', 'status'], 'paused'); g.set(['encounter', 'pause'], { round: e.round, turn: e.turn, night: g.state.meta.night, why, next: e.order[e.turn] }); say(g, `Battle paused at round ${e.round} (${C(g, e.order[e.turn]).name} is up next). It resumes tomorrow with new orders.`); });
 }
-// run up to maxRounds of turns. orders: {cid: {thisRound, standing, smite, reactions, stance, absent}}
+// run up to maxRounds combat rounds (default 1). A mid-round start counts the current (partial) round
+// as one of them and stops at the next round boundary. orders: {cid: {thisRound, standing, smite, reactions, stance, absent}}
 // Locked (Wes, Nov 10): these triggers are NOTICES — logged and shown in the recap, the batch keeps going.
 export const NOTICE_ONLY = ['boss_phase', 'concentration_broken'];
-export function resolveBattle(g, orders = {}, { maxRounds = 3, cutoffAfterTurns = Infinity, notices = NOTICE_ONLY } = {}) {
+export function resolveBattle(g, orders = {}, { maxRounds = 1, cutoffAfterTurns = Infinity, notices = NOTICE_ONLY } = {}) {
   let e = enc(g); if (!e) throw new Error('no battle');
   if (e.status === 'paused' || e.status === 'awaiting_orders') g.event('battle_resume', {}, () => { g.set(['encounter', 'status'], 'active'); g.set(['encounter', 'pause'], null); });
   e = enc(g); if (e.status !== 'active') return { stop: e.stop };
@@ -391,7 +392,7 @@ export function resolveBattle(g, orders = {}, { maxRounds = 3, cutoffAfterTurns 
   let turns = 0, deferredStops = [];
   for (;;) {
     e = enc(g);
-    if (e.round >= e.batch.startRound + maxRounds && e.turn >= e.batch.startTurn) return stopBattle(g, 'round_limit');
+    if (e.round >= e.batch.startRound + maxRounds) return stopBattle(g, 'round_limit');
     if (turns >= cutoffAfterTurns) { pauseAtCutoff(g); return { stop: { reason: 'cutoff' }, paused: true }; }
     const uid = e.order[e.turn]; g.triggers = []; takeTurn(g, uid, orders); turns++;
     e = enc(g); const end = checkEnd(g); if (end) return end;

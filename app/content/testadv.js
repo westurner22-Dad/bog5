@@ -36,7 +36,7 @@ export const NIGHTS = [
   { n: 2, id: 't1n2', adventure: 't1', title: 'The Toll of the Great Ledger', place: 'Grudge Bridge \u00b7 the Border March', bg: 'forest', time: 'Night', battle: true,
     prose: [
       'The **Toll Sergeant** planted himself in the middle of the bridge with a stamp in one fist and a club in the other, and the look of a man who had never once been told no in writing. Two **Toll Clerks** flanked him, holding their clipboards up like shields. Below, the river hurried past far too fast to swim, and the bridge, for all its centuries, was only two squares wide.',
-      'This was going to be a real fight, because under all that paperwork the clerks had crossbows. Set your orders for up to three rounds; the fight stops early if an ally goes down. If you win, there is time for a **short rest** on the warm stones of the bridge before night falls, so decide now how many Hit Point Dice you would spend.',
+      'This was going to be a real fight, because under all that paperwork the clerks had crossbows. Set your orders for this round; the fight stops after one round, or earlier if an ally goes down. If you win, there is time for a **short rest** on the warm stones of the bridge before night falls, so decide now how many Hit Point Dice you would spend.',
     ],
     quote: { who: 'Toll Sergeant', text: '\u201cHalt! Everything you own is now everyone\u2019s, and as it happens, I am everyone.\u201d' },
     moves: [], freeDc: 15, absentText: 'Fights on their preset stance, steady and unhurried, the way they would have wanted.',

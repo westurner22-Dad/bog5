@@ -68,7 +68,7 @@ export const NIGHTS = [
   { n: 3, id: 'a1n3', adventure: 'a1', title: 'The Taps Are Shared Property', place: 'The Leaking Tankard II \u00b7 the capital', bg: 'tavern', time: 'Night', battle: true,
     prose: [
       'A **Requisition Sergeant** the size of a wardrobe fills the doorway, with three Stamp Clerks behind him holding clipboards like shields. Knuckles cracks his neck. Mags picks up a bottle by the neck.',
-      'It\u2019s a **bar brawl**, not a war: chairs, bottles, and a lot of paperwork. Set your brawl orders: where you move, what you do, and a standing order for when things go wrong. Up to three rounds play tonight. The brawl stops early if an ally goes down or new enemies arrive.',
+      'It\u2019s a **bar brawl**, not a war: chairs, bottles, and a lot of paperwork. Set your brawl orders: where you move, what you do, and a standing order for when things go wrong. One round plays tonight, then the table stops for new orders. The brawl stops early if an ally goes down or new enemies arrive.',
     ],
     quote: { who: 'Requisition Sergeant', text: '\u201cNobody move! This is a peaceful, voluntary confiscation.\u201d' },
     moves: [], freeDc: 15, absentText: 'Fights on their preset stance.',
@@ -89,5 +89,29 @@ export const NIGHTS = [
     quote: { who: 'Requisition Sergeant', text: '\u201cYou can fill out the incident report after I confiscate the taps.\u201d' },
     moves: [], freeDc: 15, absentText: 'Fights on their preset stance.', after: { effects: [] },
     next: 'The brawl continues. The GM will author the next night when these orders resolve.' },
+  { n: 6, id: 'a1n6', adventure: 'a1', title: 'Form 27-B, Page Two', place: 'The Leaking Tankard II \u00b7 the capital', bg: 'tavern', time: 'Night', shop: 'tankard',
+    prose: [
+      'The Requisition Sergeant is face-down in the spilled ale, and five clerks are piled around him like a dropped filing cabinet. Boobington\u2019s last Fire Bolt is still smoking on the sergeant\u2019s backside. Gorlock is standing on 1 HP and pure spite, and nobody has the heart to tell him to sit down.',
+      '**Mags** steps over a clerk, retrieves her bottle, and surveys the damage: four tables, eleven chairs, one window, and the dignity of the Committee. Knuckles is stacking the unconscious clerks by height. Splurt is already charging them for the floor space.',
+      'Something is off, though. That was a lot of muscle for a few kegs. The sergeant\u2019s satchel is bulging with paperwork, and Stamp Clerk 2 is groaning under a table, very much awake and very much hoping nobody notices.',
+    ],
+    quote: { who: 'Mags', text: '\u201cRight. Somebody explain to me why the Committee sent six men to steal BEER. And somebody pick up that clerk before Bucky eats his paperwork.\u201d' },
+    moves: [
+      { id: 'satchel', label: 'Search the sergeant\u2019s satchel', tags: ['lore'], check: { skill: 'investigation', dc: 10 }, hint: 'Paperwork never lies. It just bores you to death first.',
+        success: { text: 'Under three copies of Form 27-B is a real order, stamped twice: \u201cLocate and requisition FOUR REFORGED PERSONS, last seen at the Temple of Waukeen. Taps optional.\u201d The squad wasn\u2019t here for the beer. It was here for you.', effects: [{ flag: 'squad_orders', flagText: 'the Committee squad was sent for the four of you, not the taps' }, { xp: 25, who: 'self', why: 'found the real requisition order' }] },
+        failure: { text: 'You find forty-one blank forms, a half-eaten sandwich, and a paper cut that will haunt you for days.', effects: [] } },
+      { id: 'clerk', label: 'Lean on the clerk under the table', tags: ['talk', 'risky'], check: { skill: 'intimidation', dc: 15 }, hint: 'He\u2019s already scared. Make it official.',
+        success: { text: 'The clerk folds faster than a tax return. The squad reports to **Commissar Gulpwell** in Thimbleby, past the Border March, and he hands over his own stamped travel pass to make you go away. It is, technically, a voluntary donation.', effects: [{ flag: 'border_pass', flagText: 'a stamped Committee travel pass for the Border March' }, { xp: 25, who: 'self', why: 'broke the clerk' }] },
+        failure: { text: 'You loom. The clerk wets himself, faints, and tells you nothing. Mags charges you a gold for the mop.', effects: [{ coin: -100, who: 'self', why: 'the mop fee' }] } },
+      { id: 'cleanup', label: 'Help Mags put the Tankard back together', tags: ['work'], check: { skill: 'athletics', dc: 10 }, hint: 'Lift tables. Lift clerks. Lift spirits.',
+        success: { text: 'You haul the bar upright, toss the clerks into the alley in alphabetical order, and Mags slips you three gold \u201cfor the labor, not the attitude.\u201d', effects: [{ coin: 300, who: 'self', why: 'Mags paid for the cleanup' }] },
+        failure: { text: 'You lift the last good table, and the last good table becomes two bad tables. Two gold, says Mags, and she is not smiling.', effects: [{ coin: -200, who: 'self', why: 'broke the last good table' }] } },
+      { id: 'ledger', label: 'Read the requisition ledger', tags: ['lore'], check: { skill: 'history', dc: 15 }, hint: 'Somewhere in here is a list of everything they\u2019ve stolen.',
+        success: { text: 'Page nine, line twelve: \u201cURN, BRASS, ONE (1), CONTENTS: HAROLD. Held at Thimbleby pending melt-down.\u201d Pending melt-down. You show Mags, and she stops dusting.', effects: [{ flag: 'harold_urn', flagText: 'Harold\u2019s urn is in Gulpwell\u2019s office in Thimbleby' }, { flag: 'urn_deadline', flagText: 'the Committee plans to melt Harold\u2019s urn' }, { xp: 25, who: 'self', why: 'found Harold in the ledger' }] },
+        failure: { text: 'The ledger is in Committee shorthand. You learn that someone, somewhere, requisitioned a goose. Possibly the goose.', effects: [] } },
+    ],
+    freeDc: 15, absentText: 'Sits on an unconscious clerk, drinks whatever survived the brawl, and lets the others handle it. No roll.',
+    after: { effects: [] },
+    next: 'Then: the road to the Border March, where the first real battle waits.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);

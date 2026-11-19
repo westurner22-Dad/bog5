@@ -149,11 +149,11 @@ export function resolveNight(g, scene, plan, { seed, now = Date.now(), early = f
     if (carts[e.cid]) row.cart = carts[e.cid]; if (between[e.cid]) row.between = between[e.cid];
     entries.push(row);
   }
-  // 2. battle: orders for up to 3 rounds; absentees fight on their preset stance (Cautious default)
+  // 2. battle: orders for one round (or the rest of the current round); absentees fight on their preset stance (Cautious default)
   let battle = null;
   if (g.state.encounter && ['active', 'awaiting_orders', 'paused'].includes(g.state.encounter.status)) {
     const orders = {}; for (const e of plan.entries) orders[e.cid] = e.kind === 'orders' ? { ...e.orders, stance: e.stance } : { absent: true, stance: e.stance };
-    const i0 = g.log.length; const r = resolveBattle(g, orders, { maxRounds: 3 }); battle = battleSummary(g, i0, r);
+    const i0 = g.log.length; const r = resolveBattle(g, orders, { maxRounds: 1 }); battle = battleSummary(g, i0, r);
   }
   // 3. scripted aftermath (start a battle, award milestone XP)
   const afterFx = []; for (const ef of scene.after?.effects || []) for (const cid of [g.state.party.order[0]]) applyEffect(g, cid, ef, afterFx);
