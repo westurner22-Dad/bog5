@@ -553,7 +553,7 @@ const spName = id => SRD.spells[id]?.name || id; const tgName = (g, t) => ({ nea
 const describe = (p, g) => [p.move === 'hold' ? 'hold position' : Array.isArray(p.move) ? `move to ${p.move}` : null, p.bonus ? `bonus: ${p.bonus.do}${p.bonus.spell ? ' ' + spName(p.bonus.spell) : ''}` : null, p.action ? `${p.action.do === 'cast' ? 'cast ' + spName(p.action.spell) : p.action.do}${Array.isArray(p.action.targets) && p.action.targets.length > 1 ? ' \u2192 ' + p.action.targets.map(t => tgName(g, t)).join(', ') : p.action.target ? ' \u2192 ' + tgName(g, p.action.target) : ''}` : null].filter(Boolean).join('; ');
 function pickAlly(g, c, sel) {
   const allies = alliesOf(g, c).filter(a => !isDead(g, a));
-  if (sel === 'self' || !sel) return c; if (enc(g).combatants[sel]) return C(g, sel);
+  if (sel === 'self' || !sel) return c; if (enc(g).combatants[sel]) { const t = C(g, sel); return t.uid === c.uid || allies.some(x => x.uid === t.uid) ? t : c; } // an enemy picked for an ally spell (old Heroism picker) falls back to the caster
   if (sel === 'ally_down') return allies.find(a => hpOf(g, a) === 0) || null;
   if (sel === 'ally_lowest') return [...allies].sort((a, b) => hpOf(g, a) / maxHp(g, a) - hpOf(g, b) / maxHp(g, b))[0];
   return c;

@@ -207,7 +207,7 @@ function ordersCard(st) {
 // ally spells that take several creatures at their base level (Bless 3, Aid 3): the Target chips become a multi-pick
 const multiTargets = id => { const m = spellModel(id); return m && (m.kind === 'buff' || m.kind === 'heal') && !m.outOfCombat && m.targets > 1 && ['heal', 'buff'].includes(spellKind(id)) ? m.targets : 0; };
 const tgtList = a => Array.isArray(a?.targets) && a.targets.length > 1 ? a.targets : null;
-const spellKind = id => ({ healing_word: 'heal', cure_wounds: 'heal', bless: 'buff', aid: 'heal', shield_of_faith: 'buff', guidance: 'buff', prayer_of_healing: 'heal' }[id] || 'attack');
+const spellKind = id => ({ healing_word: 'heal', cure_wounds: 'heal', bless: 'buff', heroism: 'buff', aid: 'heal', shield_of_faith: 'buff', guidance: 'buff', prayer_of_healing: 'heal' }[id] || 'attack');
 function orderLines(o, s, c) { const r = o?.thisRound || {}; const a = r.action || {}; const tname = t => ({ nearest: 'nearest foe', weakest: 'weakest foe', boss: 'the boss', ally_lowest: 'most hurt ally', self: 'myself' }[t] || T.game.view.combatants.find(x => x.uid === t)?.name || T.players.find(p => p.cid === t)?.name || t);
   const pre = presets(c, s).find(p => p.id === o?.preset);
   return [['Move', r.move === 'hold' ? 'hold position' : Array.isArray(r.move) ? `to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in as needed'], ['Action', `${a.do === 'cast' ? `<i>${esc(SRD.spells[a.spell]?.name)}</i>` : esc(a.do)}${tgtList(a) ? ' \u2192 ' + tgtList(a).map(t => esc(tname(t === T.me?.cid ? 'self' : t))).join(', ') : a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + esc(tname(a.target)) : ''}`], ...(o?.actionSurge ? [['Action Surge', 'on']] : []), ['Standing order', esc(pre?.t || 'none')]]; }
