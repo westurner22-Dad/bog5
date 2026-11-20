@@ -12,6 +12,7 @@ import * as F5 from './phase5.js';
 import * as PA from './portrait-art.js';
 import { partySupplies, suppliesOf } from '../engine/src/shop.js';
 import { normalizeDraft, draftAction } from './draft.js';
+import { spellModel } from '../engine/src/rules/spellEffects.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
@@ -191,22 +192,25 @@ function ordersCard(st) {
   if (s.resources.healing_hands?.left > 0) acts.push(['healing_hands', 'Healing Hands']);
   const allyTarget = act.do === 'cast' && ['heal', 'buff'].includes(spellKind(act.spell)) || ['help', 'healing_hands'].includes(act.do);
   const tg = allyTarget ? [['ally_lowest', 'Most hurt ally'], ['self', 'Myself'], ...T.players.filter(p => p.pid !== OWNER).map(p => [p.cid, esc(first(p.name))])] : [['nearest', 'Nearest'], ['weakest', 'Weakest'], ['boss', 'The boss'], ...foes.map(f => [f.uid, esc(foeLabel(f))])];
-  const mv = r.move === 'hold' ? 'hold' : Array.isArray(r.move) ? 'cell' : 'auto';
+  const mv = r.move === 'hold' ? 'hold' : Array.isArray(r.move) ? 'cell' : 'auto'; const multi = act.do === 'cast' ? multiTargets(act.spell) : 0;
   const pre = presets(c, s);
   return `<div class="card" id="orders"><h2>Your ${fightWord()} orders</h2>
    <div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">This round \u00b7 move</div><div class="chips">${chip('move', 'auto', 'Close in as needed', mv === 'auto')}${chip('move', 'hold', 'Hold position', mv === 'hold')}${chip('move', 'cell', Array.isArray(r.move) ? `Move to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : T.pickCell ? 'Tap a square on the map\u2026' : 'Pick a square', mv === 'cell' || T.pickCell)}</div>
    <div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">Action</div><div class="chips">${acts.map(([v, l]) => chip('act', v, l, (act.do === 'cast' ? 'cast:' + act.spell : act.do) === v)).join('')}</div>
-   ${['dodge', 'dash'].includes(act.do) ? '' : `<div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">Target</div><div class="chips">${tg.map(([v, l]) => chip('tgt', v, l, act.target === v)).join('')}</div>`}
+   ${['dodge', 'dash'].includes(act.do) ? '' : `<div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">Target${multi ? ` \u00b7 up to ${multi}` : ''}</div><div class="chips">${tg.map(([v, l]) => chip('tgt', v, l, multi && Array.isArray(act.targets) && act.targets.length ? v !== 'ally_lowest' && act.targets.includes(v === 'self' ? me.cid : v) : act.target === v)).join('')}</div>`}
    ${s.resources.action_surge?.left > 0 ? `<div class="chips" style="margin-top:8px">${chip('surge', o.actionSurge ? '0' : '1', `Action Surge ${o.actionSurge ? 'ON' : 'off'} <small>(${s.resources.action_surge.left} left)</small>`, !!o.actionSurge)}</div>` : ''}
    <div class="sc meta" style="margin-top:10px;color:var(--wine);font-weight:700">Standing order</div>${pre.map(p => `<button class="move ${o.preset === p.id ? 'sel' : ''}" data-t="preset" data-v="${p.id}" style="margin:5px 0" ${canEdit ? '' : 'disabled'}><div class="ic">${svgI(p.id === 'none' ? 'sword' : 'party')}</div><div style="flex:1"><div class="t">${esc(p.t)}</div><div class="meta">${esc(p.d)}</div></div><div class="check"></div></button>`).join('')}
    <textarea rows="2" style="margin-top:7px" data-f="say" placeholder="Optional war cry (I say\u2026)" ${canEdit ? '' : 'disabled'}>${esc(T.draft.say)}</textarea>
    <div class="note">The engine plays one round, then stops for new orders, or earlier if an ally drops to 0 or a new enemy appears. A boss phase change or broken concentration is only a notice. If you miss the cutoff, you fight on your stance (<b>${STANCE_TXT[stanceOf(OWNER)]}</b>; change it on the Hero tab).</div>
    <div class="row" style="margin-top:10px"><button class="btn" data-t="lockorders" style="flex:1" ${canEdit ? '' : 'disabled'}>Lock orders</button></div></div>`;
 }
+// ally spells that take several creatures at their base level (Bless 3, Aid 3): the Target chips become a multi-pick
+const multiTargets = id => { const m = spellModel(id); return m && (m.kind === 'buff' || m.kind === 'heal') && !m.outOfCombat && m.targets > 1 && ['heal', 'buff'].includes(spellKind(id)) ? m.targets : 0; };
+const tgtList = a => Array.isArray(a?.targets) && a.targets.length > 1 ? a.targets : null;
 const spellKind = id => ({ healing_word: 'heal', cure_wounds: 'heal', bless: 'buff', aid: 'heal', shield_of_faith: 'buff', guidance: 'buff', prayer_of_healing: 'heal' }[id] || 'attack');
 function orderLines(o, s, c) { const r = o?.thisRound || {}; const a = r.action || {}; const tname = t => ({ nearest: 'nearest foe', weakest: 'weakest foe', boss: 'the boss', ally_lowest: 'most hurt ally', self: 'myself' }[t] || T.game.view.combatants.find(x => x.uid === t)?.name || T.players.find(p => p.cid === t)?.name || t);
   const pre = presets(c, s).find(p => p.id === o?.preset);
-  return [['Move', r.move === 'hold' ? 'hold position' : Array.isArray(r.move) ? `to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in as needed'], ['Action', `${a.do === 'cast' ? `<i>${esc(SRD.spells[a.spell]?.name)}</i>` : esc(a.do)}${a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + esc(tname(a.target)) : ''}`], ...(o?.actionSurge ? [['Action Surge', 'on']] : []), ['Standing order', esc(pre?.t || 'none')]]; }
+  return [['Move', r.move === 'hold' ? 'hold position' : Array.isArray(r.move) ? `to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in as needed'], ['Action', `${a.do === 'cast' ? `<i>${esc(SRD.spells[a.spell]?.name)}</i>` : esc(a.do)}${tgtList(a) ? ' \u2192 ' + tgtList(a).map(t => esc(tname(t === T.me?.cid ? 'self' : t))).join(', ') : a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + esc(tname(a.target)) : ''}`], ...(o?.actionSurge ? [['Action Surge', 'on']] : []), ['Standing order', esc(pre?.t || 'none')]]; }
 
 // ---------- resolution ----------
 function entryCard(e, r) {
@@ -261,7 +265,7 @@ function lootResult(r) {
   return out.length ? `<div class="card" id="lootres"><h2>Between scenes: gear, loot, levels, rest</h2><ul class="list">${out.join('')}</ul></div>` : '';
 }
 function orderText(e) { const o = e.orders || {}; const r = o.thisRound || {}; const a = r.action || {}; const tn = t => ({ nearest: 'nearest foe', weakest: 'weakest foe', boss: 'the boss', ally_lowest: 'most hurt ally', self: 'self' }[t] || t);
-  return esc([r.move === 'hold' ? 'hold' : Array.isArray(r.move) ? `move to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in', a.do === 'cast' ? `${SRD.spells[a.spell]?.name || a.spell} \u2192 ${tn(a.target)}` : `${a.do || 'attack'}${a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + tn(a.target) : ''}`, o.actionSurge ? 'Action Surge' : null, o.preset && o.preset !== 'none' ? `standing order: ${({ guard: 'Dodge when hurt', healer: 'Healer first', medic: 'No one bleeds out' })[o.preset] || o.preset}` : null].filter(Boolean).join(' \u00b7 ')); }
+  return esc([r.move === 'hold' ? 'hold' : Array.isArray(r.move) ? `move to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in', a.do === 'cast' ? `${SRD.spells[a.spell]?.name || a.spell} \u2192 ${tgtList(a) ? tgtList(a).map(t => N.shortName(T.players.find(p => p.cid === t)?.name || tn(t))).join(', ') : tn(a.target)}` : `${a.do || 'attack'}${a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + tn(a.target) : ''}`, o.actionSurge ? 'Action Surge' : null, o.preset && o.preset !== 'none' ? `standing order: ${({ guard: 'Dodge when hurt', healer: 'Healer first', medic: 'No one bleeds out' })[o.preset] || o.preset}` : null].filter(Boolean).join(' \u00b7 ')); }
 async function verify(k) { const r = T.results[k], sc = T.scenes[k]; if (!r || !sc) return; (T.verify = T.verify || {})[k] = { seed: N.verifyCommit(r.seed, sc.commit), dc: sc.dcCommit ? N.commit(r.salt + '|' + JSON.stringify(r.dcs)) === sc.dcCommit : null }; }
 
 // ---------- recap / chronicle ----------
@@ -334,7 +338,11 @@ async function onClick(e) {
       case 'ord': { const r = T.orders.thisRound; T.pickCell = false;
         if (k === 'move') { if (v === 'cell') { T.pickCell = true; } else r.move = v === 'hold' ? 'hold' : null; }
         if (k === 'act') { const [d, spell] = v.split(':'); const ally = d === 'cast' && ['heal', 'buff'].includes(spellKind(spell)) || ['help', 'healing_hands'].includes(d); r.action = { do: d, ...(spell ? { spell } : {}), target: ally ? 'ally_lowest' : 'nearest' }; }
-        if (k === 'tgt') r.action = { ...r.action, target: v }; if (k === 'surge') T.orders.actionSurge = v === '1'; break; }
+        if (k === 'tgt') { const max = r.action?.do === 'cast' ? multiTargets(r.action.spell) : 0;
+          if (!max || v === 'ally_lowest') { const { targets, ...a } = r.action || {}; r.action = { ...a, target: v }; }
+          else { const id = v === 'self' ? T.me.cid : v; let list = Array.isArray(r.action.targets) ? [...r.action.targets] : (r.action.target && r.action.target !== 'ally_lowest' ? [r.action.target === 'self' ? T.me.cid : r.action.target] : []);
+            list = list.includes(id) ? list.filter(x => x !== id) : list.length < max ? [...list, id] : list;
+            const { targets, ...a } = r.action; r.action = list.length ? { ...a, target: list[0] === T.me.cid ? 'self' : list[0], targets: list } : { ...a, target: 'ally_lowest' }; } } if (k === 'surge') T.orders.actionSurge = v === '1'; break; }
       case 'cell': T.orders.thisRound.move = [+b.dataset.x, +b.dataset.y]; T.pickCell = false; break;
       case 'preset': T.orders.preset = v; break;
       case 'lockorders': await saveOrders(true); T.editing = false; break;

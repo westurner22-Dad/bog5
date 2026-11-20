@@ -550,7 +550,7 @@ function pcTurn(g, T, c, o) {
   if (!T.bonusUsed && conscious(g, c) && hasEff(g, c, 'spiritual_weapon') && !T.castSW) { const w = effects(g, c).find(x => x.id === 'spiritual_weapon'); const t = pickTarget(g, c, act.target || 'nearest'); if (t) { T.bonusUsed = true; const sm = spellMod(g, c, 'spiritual_weapon'); attack(g, T, c, t, { name: 'Spiritual Weapon', melee: true, reach: 999, toHit: sm.atk, dice: w.dice, dmgBonus: sm.mod, type: w.type, magical: true, properties: [], spell: true }); } }
 }
 const spName = id => SRD.spells[id]?.name || id; const tgName = (g, t) => ({ nearest: 'nearest foe', weakest: 'weakest foe', boss: 'the boss' }[t] || g?.state.encounter?.combatants?.[t]?.name || t);
-const describe = (p, g) => [p.move === 'hold' ? 'hold position' : Array.isArray(p.move) ? `move to ${p.move}` : null, p.bonus ? `bonus: ${p.bonus.do}${p.bonus.spell ? ' ' + spName(p.bonus.spell) : ''}` : null, p.action ? `${p.action.do === 'cast' ? 'cast ' + spName(p.action.spell) : p.action.do}${p.action.target ? ' \u2192 ' + tgName(g, p.action.target) : ''}` : null].filter(Boolean).join('; ');
+const describe = (p, g) => [p.move === 'hold' ? 'hold position' : Array.isArray(p.move) ? `move to ${p.move}` : null, p.bonus ? `bonus: ${p.bonus.do}${p.bonus.spell ? ' ' + spName(p.bonus.spell) : ''}` : null, p.action ? `${p.action.do === 'cast' ? 'cast ' + spName(p.action.spell) : p.action.do}${Array.isArray(p.action.targets) && p.action.targets.length > 1 ? ' \u2192 ' + p.action.targets.map(t => tgName(g, t)).join(', ') : p.action.target ? ' \u2192 ' + tgName(g, p.action.target) : ''}` : null].filter(Boolean).join('; ');
 function pickAlly(g, c, sel) {
   const allies = alliesOf(g, c).filter(a => !isDead(g, a));
   if (sel === 'self' || !sel) return c; if (enc(g).combatants[sel]) return C(g, sel);
@@ -577,8 +577,10 @@ function doAction(g, T, c, act, target) {
       const sp = SRD.spells[act.spell]; if (!sp) { trig(g, 'order_impossible', `unknown spell ${act.spell}`); return; }
       const mdl = spellModel(act.spell); let L = act.level || sp.level; if (L > 0 && !canCastNow(g, c, act.spell, L)) L = pickSlot(g, c, L) || 0;
       let targets = []; if (['save'].includes(mdl.kind) && target) targets = foesOf(g, c).filter(f => up(g, f) && dist(f, target) <= (act.radius ?? 5)).slice(0, act.maxTargets || 3); else if (target) targets = [target];
-      if (mdl.kind === 'buff' && act.targets) targets = act.targets.map(u => C(g, u)).filter(Boolean);
-      if (mdl.kind === 'heal' && mdl.targets && act.targets) targets = act.targets.map(u => C(g, u)).filter(Boolean);
+      if (((mdl.kind === 'buff') || (mdl.kind === 'heal' && mdl.targets)) && Array.isArray(act.targets) && act.targets.length) { // multi-target ally spells (Bless, Aid...): every pick must be alive and in range
+        const rngT = parseInt(sp.range) || (/touch/i.test(sp.range) ? 5 : 60); const picked = [...new Set(act.targets.map(u => u === 'self' ? c.uid : u))].map(u => C(g, u)).filter(t => t && !isDead(g, t));
+        const near = picked.filter(t => t.uid === c.uid || dist(c, t) <= rngT); const far = picked.filter(t => !near.includes(t)); if (far.length) say(g, `${far.map(t => t.name).join(' and ')} ${far.length > 1 ? 'are' : 'is'} out of ${sp.name}'s range.`);
+        if (near.length) { targets = near; if (!target || !near.some(t => t.uid === target.uid)) target = near[0]; } }
       const okRange = target && dist(c, target) <= (parseInt(sp.range) || (/touch/i.test(sp.range) ? 5 : 60));
       const res = (sp.level === 0 || L) && (okRange || /self/i.test(sp.range)) ? castSpell(g, T, c, act.spell, L, targets.length ? targets : [c], { dtype: act.dtype, markTarget: target }) : { ok: false, why: okRange ? 'no slot left' : 'out of range' };
       if (!res.ok) { say(g, `${c.name} can't cast ${sp.name} (${res.why}); attacks instead.`); trig(g, 'order_impossible', `${c.name}: ${sp.name} — ${res.why}`); const t = pickTarget(g, c, 'nearest'); if (t) attackAction(g, T, c, t, {}); }
