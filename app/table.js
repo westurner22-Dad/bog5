@@ -13,6 +13,7 @@ import * as PA from './portrait-art.js';
 import { partySupplies, suppliesOf } from '../engine/src/shop.js';
 import { normalizeDraft, draftAction } from './draft.js';
 import { spellModel } from '../engine/src/rules/spellEffects.js';
+import { RULES_V2_NIGHT, castRounds, castTimeLabel } from '../engine/src/combat.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
@@ -52,7 +53,7 @@ async function load() {
   if (T.cart == null) { T.cart = T.mine?.cart || []; T.lootPick = T.mine?.loot || {}; T.restPick = T.mine?.rest || {}; F5.loadExtras(T.mine); }
   T.asks = await store.listAsks().catch(() => []);
   T.issues = await store.listIssues().catch(() => []);
-  if (T.orders == null) T.orders = T.mine?.orders ? structuredClone(T.mine.orders) : { thisRound: { move: null, action: { do: 'attack', target: 'nearest' } }, standing: [], preset: 'none' };
+  if (T.orders == null) T.orders = T.mine?.orders ? structuredClone(T.mine.orders) : { thisRound: { move: null, action: (T.me && castingOf(T.game?.state?.chars?.[T.me.cid])) ? { do: 'continue_cast' } : { do: 'attack', target: 'nearest' } }, standing: [], preset: 'none' };
 }
 async function resultOf(k) { if (!(k in T.results) || !T.results[k]) T.results[k] = await store.result(k); if (!T.scenes[k]) T.scenes[k] = await store.scene(k); return T.results[k]; }
 const ch = cid => T.game?.state?.chars?.[cid]; const sheetOf = cid => { const c = ch(cid); return c ? deriveSheet(c) : null; };
@@ -160,9 +161,13 @@ function initStrip(view) { const order = view.order || []; const cur = order[vie
     return `<span class="ini ${u === cur ? 'now' : ''}">${pid ? AV(pid) : `<span class="fd">${esc(foeLabel(c))}</span>`}${pid === OWNER ? 'you' : esc(first(c.name))}</span>`; }).join('')}</div>`; }
 function legend(view) { const foes = view.combatants.filter(c => c.side !== 'pc' && c.kind !== 'pc');
   const lg = { floor: 'floor', difficult: 'tables (difficult)', wall: 'bar (wall)', ...(view.map?.legend || {}) };
-  return `<div class="legend"><span style="--c:#8a6438">${esc(lg.floor)}</span><span style="--c:repeating-linear-gradient(45deg,#5b3d1f 0 3px,#3a2612 3px 6px)">${esc(lg.difficult)}</span><span style="--c:${view.map?.water ? '#2f6f9e' : '#2b1c12'}">${esc(lg.wall)}</span><span style="--c:#e35d4f">bloodied</span></div>
+  return `<div class="legend"><span style="--c:#8a6438">${esc(lg.floor)}</span><span style="--c:repeating-linear-gradient(45deg,#5b3d1f 0 3px,#3a2612 3px 6px)">${esc(lg.difficult)}</span><span style="--c:${view.map?.water ? '#2f6f9e' : '#2b1c12'}">${esc(lg.wall)}</span><span style="--c:#e35d4f">bloodied</span>${(T.game?.state?.encounter?.startedNight || 0) >= RULES_V2_NIGHT ? '<span class="sq">1 square = 10 ft</span>' : ''}</div>
    <div class="meta" style="color:#b89b62;margin-top:6px">${foes.map(f => `<b style="color:#f0d58a">${esc(foeLabel(f))}</b> ${esc(f.name)} ${f.hp > 0 ? `(${f.hp <= f.max / 2 ? 'bloodied' : 'unhurt'})` : '(down)'}`).join(' \u00b7 ')}</div>`; }
 const SPELL_OK = id => { const sp = SRD.spells[id]; return sp && /^action/i.test(sp.castingTime || ''); };
+// post-fight rules (Night 20+): 10-ft squares, casting times shown between rounds, 1-minute spells take 10 rounds
+const isV2 = () => ((T.game?.state?.encounter?.startedNight ?? T.n) || 0) >= RULES_V2_NIGHT;
+const SPELL_OK_V2 = id => { const sp = SRD.spells[id]; return sp && (/^action/i.test(sp.castingTime || '') || (castRounds(sp) > 1 && castRounds(sp) <= 10)); };
+const castingOf = c => (c?.effects || []).find(e => e.id === 'casting') || null;
 function castable(c, s, ok = SPELL_OK) { const sc = s.spellcasting; if (!sc) return []; const slots = sc.slotsLeft || [];
   const ids = [...new Set([...(c.cantrips || []), ...(c.prepared || []), ...(sc.always || [])])].filter(ok);
   return ids.map(id => ({ id, name: SRD.spells[id].name, level: SRD.spells[id].level })).filter(x => x.level === 0 || slots.slice(x.level - 1).some(n => n > 0)).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name)); }
@@ -187,8 +192,8 @@ function ordersCard(st) {
   if (T.mine?.locked && !T.editing) return `<div class="card" id="orders"><h2>Your ${fightWord()} orders</h2><ul class="list">${orderLines(T.mine.orders, s, c).map(([k, v]) => `<li>${k}<span class="r">${v}</span></li>`).join('')}</ul><div class="note">\u2713 Locked at ${timeLA(T.mine.at)}. ${canEdit ? 'You can change them until the table locks.' : ''}</div>${canEdit ? '<div class="row" style="margin-top:9px"><button class="btn ghost" data-t="unlock" style="flex:1;color:var(--wine);border-color:var(--wine)">Change my orders</button></div>' : ''}</div>`;
   const foes = view.combatants.filter(x => x.side !== 'pc' && x.kind !== 'pc' && x.hp > 0);
   const chip = (grp, v, label, on) => `<button class="chip ${on ? 'on' : ''}" data-t="ord" data-k="${grp}" data-v="${esc(v)}" ${canEdit ? '' : 'disabled'}>${label}</button>`;
-  const act = r.action || {}; const spells = castable(c, s);
-  const acts = [['attack', 'Attack'], ...spells.slice(0, 8).map(x => ['cast:' + x.id, `<i>${esc(x.name)}</i>${x.level ? ` <small>L${x.level}</small>` : ''}`]), ['dodge', 'Dodge'], ['help', 'Help an ally'], ['dash', 'Dash']];
+  const act = r.action || {}; const v2 = isV2(); const spells = castable(c, s, v2 ? SPELL_OK_V2 : SPELL_OK); const casting = v2 ? castingOf(c) : null; const conc = v2 && c.conc && !c.conc.casting ? c.conc : null;
+  const acts = [...(casting ? [['continue_cast', `Keep casting <i>${esc(SRD.spells[casting.spell]?.name)}</i> <small>${casting.left} round${casting.left === 1 ? '' : 's'} left</small>`]] : []), ['attack', 'Attack'], ...spells.slice(0, 8).map(x => ['cast:' + x.id, v2 ? `<i>${esc(x.name)}</i> <small>${x.level ? `L${x.level} \u00b7 ` : ''}${esc(castTimeLabel(SRD.spells[x.id]))}${(conc || casting) && SRD.spells[x.id].concentration ? ` \u00b7 ends ${esc(SRD.spells[(conc || casting).spell]?.name)}` : ''}</small>` : `<i>${esc(x.name)}</i>${x.level ? ` <small>L${x.level}</small>` : ''}`]), ['dodge', 'Dodge'], ['help', 'Help an ally'], ['dash', 'Dash']];
   if (s.resources.healing_hands?.left > 0) acts.push(['healing_hands', 'Healing Hands']);
   const allyTarget = act.do === 'cast' && ['heal', 'buff'].includes(spellKind(act.spell)) || ['help', 'healing_hands'].includes(act.do);
   const tg = allyTarget ? [['ally_lowest', 'Most hurt ally'], ['self', 'Myself'], ...T.players.filter(p => p.pid !== OWNER).map(p => [p.cid, esc(first(p.name))])] : [['nearest', 'Nearest'], ['weakest', 'Weakest'], ['boss', 'The boss'], ...foes.map(f => [f.uid, esc(foeLabel(f))])];
@@ -197,7 +202,9 @@ function ordersCard(st) {
   return `<div class="card" id="orders"><h2>Your ${fightWord()} orders</h2>
    <div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">This round \u00b7 move</div><div class="chips">${chip('move', 'auto', 'Close in as needed', mv === 'auto')}${chip('move', 'hold', 'Hold position', mv === 'hold')}${chip('move', 'cell', Array.isArray(r.move) ? `Move to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : T.pickCell ? 'Tap a square on the map\u2026' : 'Pick a square', mv === 'cell' || T.pickCell)}</div>
    <div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">Action</div><div class="chips">${acts.map(([v, l]) => chip('act', v, l, (act.do === 'cast' ? 'cast:' + act.spell : act.do) === v)).join('')}</div>
-   ${['dodge', 'dash'].includes(act.do) ? '' : `<div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">Target${multi ? ` \u00b7 up to ${multi}` : ''}</div><div class="chips">${tg.map(([v, l]) => chip('tgt', v, l, multi && Array.isArray(act.targets) && act.targets.length ? v !== 'ally_lowest' && act.targets.includes(v === 'self' ? me.cid : v) : act.target === v)).join('')}</div>`}
+   ${casting && act.do !== 'continue_cast' ? `<div class="note">Picking anything else stops ${esc(SRD.spells[casting.spell]?.name)}; the spell is lost (no slot spent).</div>` : ''}
+   ${conc ? `<div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">Concentrating on ${esc(SRD.spells[conc.spell]?.name)}</div><div class="chips">${chip('keep', '1', `Keep it going${conc.spell === 'heat_metal' ? ' <small>burns again (bonus action)</small>' : ''}`, r.keep !== false)}${chip('keep', '0', 'Let it end', r.keep === false)}</div>` : ''}
+   ${['dodge', 'dash', 'continue_cast'].includes(act.do) ? '' : `<div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">Target${multi ? ` \u00b7 up to ${multi}` : ''}</div><div class="chips">${tg.map(([v, l]) => chip('tgt', v, l, multi && Array.isArray(act.targets) && act.targets.length ? v !== 'ally_lowest' && act.targets.includes(v === 'self' ? me.cid : v) : act.target === v)).join('')}</div>`}
    ${s.resources.action_surge?.left > 0 ? `<div class="chips" style="margin-top:8px">${chip('surge', o.actionSurge ? '0' : '1', `Action Surge ${o.actionSurge ? 'ON' : 'off'} <small>(${s.resources.action_surge.left} left)</small>`, !!o.actionSurge)}</div>` : ''}
    <div class="sc meta" style="margin-top:10px;color:var(--wine);font-weight:700">Standing order</div>${pre.map(p => `<button class="move ${o.preset === p.id ? 'sel' : ''}" data-t="preset" data-v="${p.id}" style="margin:5px 0" ${canEdit ? '' : 'disabled'}><div class="ic">${svgI(p.id === 'none' ? 'sword' : 'party')}</div><div style="flex:1"><div class="t">${esc(p.t)}</div><div class="meta">${esc(p.d)}</div></div><div class="check"></div></button>`).join('')}
    <textarea rows="2" style="margin-top:7px" data-f="say" placeholder="Optional war cry (I say\u2026)" ${canEdit ? '' : 'disabled'}>${esc(T.draft.say)}</textarea>
@@ -210,7 +217,7 @@ const tgtList = a => Array.isArray(a?.targets) && a.targets.length > 1 ? a.targe
 const spellKind = id => ({ healing_word: 'heal', cure_wounds: 'heal', bless: 'buff', heroism: 'buff', aid: 'heal', shield_of_faith: 'buff', guidance: 'buff', prayer_of_healing: 'heal' }[id] || 'attack');
 function orderLines(o, s, c) { const r = o?.thisRound || {}; const a = r.action || {}; const tname = t => ({ nearest: 'nearest foe', weakest: 'weakest foe', boss: 'the boss', ally_lowest: 'most hurt ally', self: 'myself' }[t] || T.game.view.combatants.find(x => x.uid === t)?.name || T.players.find(p => p.cid === t)?.name || t);
   const pre = presets(c, s).find(p => p.id === o?.preset);
-  return [['Move', r.move === 'hold' ? 'hold position' : Array.isArray(r.move) ? `to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in as needed'], ['Action', `${a.do === 'cast' ? `<i>${esc(SRD.spells[a.spell]?.name)}</i>` : esc(a.do)}${tgtList(a) ? ' \u2192 ' + tgtList(a).map(t => esc(tname(t === T.me?.cid ? 'self' : t))).join(', ') : a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + esc(tname(a.target)) : ''}`], ...(o?.actionSurge ? [['Action Surge', 'on']] : []), ['Standing order', esc(pre?.t || 'none')]]; }
+  return [['Move', r.move === 'hold' ? 'hold position' : Array.isArray(r.move) ? `to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in as needed'], ['Action', `${a.do === 'cast' ? `<i>${esc(SRD.spells[a.spell]?.name)}</i>` : a.do === 'continue_cast' ? 'keep casting' : esc(a.do)}${tgtList(a) ? ' \u2192 ' + tgtList(a).map(t => esc(tname(t === T.me?.cid ? 'self' : t))).join(', ') : a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + esc(tname(a.target)) : ''}`], ...(o?.actionSurge ? [['Action Surge', 'on']] : []), ...(r.keep === false ? [['Concentration', 'let it end']] : []), ['Standing order', esc(pre?.t || 'none')]]; }
 
 // ---------- resolution ----------
 function entryCard(e, r) {
@@ -265,7 +272,7 @@ function lootResult(r) {
   return out.length ? `<div class="card" id="lootres"><h2>Between scenes: gear, loot, levels, rest</h2><ul class="list">${out.join('')}</ul></div>` : '';
 }
 function orderText(e) { const o = e.orders || {}; const r = o.thisRound || {}; const a = r.action || {}; const tn = t => ({ nearest: 'nearest foe', weakest: 'weakest foe', boss: 'the boss', ally_lowest: 'most hurt ally', self: 'self' }[t] || t);
-  return esc([r.move === 'hold' ? 'hold' : Array.isArray(r.move) ? `move to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in', a.do === 'cast' ? `${SRD.spells[a.spell]?.name || a.spell} \u2192 ${tgtList(a) ? tgtList(a).map(t => N.shortName(T.players.find(p => p.cid === t)?.name || tn(t))).join(', ') : tn(a.target)}` : `${a.do || 'attack'}${a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + tn(a.target) : ''}`, o.actionSurge ? 'Action Surge' : null, o.preset && o.preset !== 'none' ? `standing order: ${({ guard: 'Dodge when hurt', healer: 'Healer first', medic: 'No one bleeds out' })[o.preset] || o.preset}` : null].filter(Boolean).join(' \u00b7 ')); }
+  return esc([r.move === 'hold' ? 'hold' : Array.isArray(r.move) ? `move to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in', a.do === 'cast' ? `${SRD.spells[a.spell]?.name || a.spell} \u2192 ${tgtList(a) ? tgtList(a).map(t => N.shortName(T.players.find(p => p.cid === t)?.name || tn(t))).join(', ') : tn(a.target)}` : a.do === 'continue_cast' ? 'keep casting' : `${a.do || 'attack'}${a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + tn(a.target) : ''}`, r.keep === false ? 'let concentration end' : null, o.actionSurge ? 'Action Surge' : null, o.preset && o.preset !== 'none' ? `standing order: ${({ guard: 'Dodge when hurt', healer: 'Healer first', medic: 'No one bleeds out' })[o.preset] || o.preset}` : null].filter(Boolean).join(' \u00b7 ')); }
 async function verify(k) { const r = T.results[k], sc = T.scenes[k]; if (!r || !sc) return; (T.verify = T.verify || {})[k] = { seed: N.verifyCommit(r.seed, sc.commit), dc: sc.dcCommit ? N.commit(r.salt + '|' + JSON.stringify(r.dcs)) === sc.dcCommit : null }; }
 
 // ---------- recap / chronicle ----------
@@ -283,6 +290,35 @@ function recapView(k) {
    <div class="meta" style="margin-top:8px"><b>Party XP</b> \u00b7 ${xpAvg.toLocaleString()} / ${nx.toLocaleString()} to level ${lvAvg + 1} (average)</div><div class="xpbar"><i style="width:${Math.min(100, Math.round(100 * xpAvg / nx))}%"></i></div></div>
    <div class="card dark"><h2>Next</h2><p style="margin:7px 0 4px;font-size:15px;color:#efe0bb">${nextSc ? `Night ${k + 1} is up: <b style="color:#f0d58a">${esc(nextSc.title)}.</b> Choose by <b style="color:#f0d58a">${N.fmtLA(nextSc.cutoffMs)}</b>.` : esc(r.nextTeaser || 'The GM will open the next scene soon.')}</p>
    <div class="row" style="margin-top:8px">${nextSc ? '<button class="btn gold sm" data-t="go" data-v="table" style="width:auto">Open tonight\u2019s scene</button>' : ''}<div class="sp"></div><button class="btn ghost sm" data-t="go" data-v="chron" style="width:auto;color:#f0d58a;border-color:#f0d58a">All recaps</button></div></div>`;
+}
+// ---------- recap popup (post-fight list item 1) ----------
+// The latest night's recap opens full screen once per night per player on this device (localStorage only; nothing is
+// written to the database). The front lists every request made to the GM that night, write-ins and Ask the GM, and
+// how each was ruled; the narration follows; "Back to the table" closes it.
+const SEEN_KEY = () => `bog5.recapSeen.${q.get('store') || 'local'}.${OWNER || 'guest'}`;
+const seenNights = () => { try { const v = JSON.parse(localStorage.getItem(SEEN_KEY()) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
+function markSeen(k) { try { localStorage.setItem(SEEN_KEY(), JSON.stringify([...seenNights().filter(x => x !== k), k].slice(-60))); } catch {} }
+export function gmRequests(k, r, asks = T.asks || [], players = T.players || []) {
+  const out = []; const nameOf = pid => players.find(p => p.pid === pid)?.name || pid;
+  for (const e of (r?.entries || []).filter(e => e.kind === 'free')) { const c = e.check; const dc = e.dcCall; const why = dc?.why ? dc.why.replace(/^default (Easy|Medium|Hard): /, '') : '';
+    out.push({ pid: e.pid, name: e.name, kind: 'Write-in', text: e.text, ruling: c ? `${c.label || c.skill || 'Check'} \u00b7 ${dc?.word || c.word} (DC ${dc?.dc ?? c.dc})${why ? ` \u00b7 ${why}` : ''}`: 'No roll needed', result: c ? `${c.ok ? 'Success' : 'Failure'} (${c.total} vs DC ${c.dc}). ${e.outcome || ''}` : (e.outcome || '') }); }
+  for (const a of asks.filter(a => a.night === k).sort((x, y) => x.at - y.at)) out.push({ pid: a.by, name: nameOf(a.by), kind: 'Ask the GM', text: a.text, ruling: a.answer ? `${a.answer.text}${a.answer.srd ? ` (${a.answer.srd})` : ''}` : 'Not answered yet.', result: '' });
+  return out;
+}
+function recapPopupHtml(k, r) {
+  const reqs = gmRequests(k, r);
+  const front = `<div class="card"><h2>Requests to the GM \u00b7 Night ${k}</h2>${reqs.length ? `<ul class="list">${reqs.map(x => `<li>${AV(x.pid)}<div style="flex:1;min-width:0"><b>${esc(first(x.name))}</b> <span class="tag">${esc(x.kind)}</span><div class="meta">\u201c${esc(x.text)}\u201d</div><div class="meta"><b style="color:#7d1d2e">Ruled:</b> ${esc(x.ruling)}</div>${x.result ? `<div class="meta">${esc(x.result)}</div>` : ''}</div></li>`).join('')}</ul>` : '<div class="note">No write-ins or questions for the GM that night.</div>'}</div>`;
+  const narr = `<div class="card"><h2>The GM narrates</h2>${(r.narration || '').split(/\n\s*\n/).map(p => `<p class="prose" style="font-size:15.5px">${md(p)}</p>`).join('')}</div>`;
+  return `<div class="recappop-in"><div class="card dark"><div class="eyebrow" style="color:#cdb27a">Night ${k} \u00b7 the recap</div><div class="title" style="color:#f0d58a">${esc(r.title || '')}</div></div>${front}${narr}<button class="btn gold back" data-recapclose="1">Back to the table</button></div>`;
+}
+async function maybeRecapPopup() {
+  if (T.view !== 'table' || !T.n || q.get('norecap')) return; const k = T.scene?.status === 'resolved' ? T.n : T.n - 1; if (k < 1 || seenNights().includes(k)) return;
+  const r = await resultOf(k).catch(() => null); if (!r?.narration) return;
+  const el = document.createElement('div'); el.className = 'recappop'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', `Night ${k} recap`); el.innerHTML = recapPopupHtml(k, r);
+  const close = () => { markSeen(k); el.remove(); document.body.classList.remove('popopen'); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  el.addEventListener('click', e => { if (e.target.closest('[data-recapclose]')) close(); }); document.addEventListener('keydown', onKey);
+  document.body.appendChild(el); document.body.classList.add('popopen'); el.scrollTop = 0;
 }
 function chronView() {
   const ks = Array.from({ length: T.n }, (_, i) => i + 1).reverse();
@@ -342,7 +378,7 @@ async function onClick(e) {
           if (!max || v === 'ally_lowest') { const { targets, ...a } = r.action || {}; r.action = { ...a, target: v }; }
           else { const id = v === 'self' ? T.me.cid : v; let list = Array.isArray(r.action.targets) ? [...r.action.targets] : (r.action.target && r.action.target !== 'ally_lowest' ? [r.action.target === 'self' ? T.me.cid : r.action.target] : []);
             list = list.includes(id) ? list.filter(x => x !== id) : list.length < max ? [...list, id] : list;
-            const { targets, ...a } = r.action; r.action = list.length ? { ...a, target: list[0] === T.me.cid ? 'self' : list[0], targets: list } : { ...a, target: 'ally_lowest' }; } } if (k === 'surge') T.orders.actionSurge = v === '1'; break; }
+            const { targets, ...a } = r.action; r.action = list.length ? { ...a, target: list[0] === T.me.cid ? 'self' : list[0], targets: list } : { ...a, target: 'ally_lowest' }; } } if (k === 'surge') T.orders.actionSurge = v === '1'; if (k === 'keep') { if (v === '0') r.keep = false; else delete r.keep; } break; }
       case 'cell': T.orders.thisRound.move = [+b.dataset.x, +b.dataset.y]; T.pickCell = false; break;
       case 'preset': T.orders.preset = v; break;
       case 'lockorders': await saveOrders(true); T.editing = false; break;
@@ -367,6 +403,7 @@ export async function boot(o) {
   if (T.view === 'table' && T.scene?.status === 'resolved') await verify(T.n);
   document.addEventListener('click', onClick); document.addEventListener('input', onInput);
   window.__bog5t = { T, render, load, store }; render();
+  maybeRecapPopup().catch(e => console.warn('recap popup', e));
   setInterval(() => { if (T.view === 'table' && T.scene?.status === 'open') { const el = document.querySelector('.timer'); if (el) el.textContent = fmtLeft(T.scene.cutoffMs - now()); } }, 30000);
   // the GM resolved tonight or opened the next night while this page was open: offer a refresh (never reload mid-typing)
   setInterval(async () => { if (document.hidden || T._moved) return; try { const c = await store.campaign(); const s = T.n ? await store.scene(T.n) : null;

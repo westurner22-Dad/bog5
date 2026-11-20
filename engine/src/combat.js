@@ -44,6 +44,24 @@ export function dist(a, b) {
   const ax2 = a.pos[0] + (a.size || 1) - 1, ay2 = a.pos[1] + (a.size || 1) - 1, bx2 = b.pos[0] + (b.size || 1) - 1, by2 = b.pos[1] + (b.size || 1) - 1;
   const dx = Math.max(0, b.pos[0] - ax2, a.pos[0] - bx2), dy = Math.max(0, b.pos[1] - ay2, a.pos[1] - by2); return 5 * Math.max(dx, dy);
 }
+// ---------- post-Dylan-fight rules (Wes, Nov 19 2026 8:23 PM PT, "make the adjustments from the list")
+// Gated on the night: battles started (and spells cast) from Night 20 on use them; Nights 1-19 played on the old
+// rules and their logs replay untouched (replay applies recorded ops, never re-runs these rules).
+export const RULES_V2_NIGHT = 20;
+export const rulesV2 = g => ((g.state.encounter ? g.state.encounter.startedNight : g.state.meta?.night) || 0) >= RULES_V2_NIGHT;
+// List item 3: 10-ft squares (a 30 ft speed is 3 squares). Touching squares still count as 5 ft (melee reach),
+// so every "within 5 ft" rule keeps working; beyond that each square is 10 ft. Old battles stay on 5-ft squares.
+export const squareFt = g => (rulesV2(g) ? 10 : 5);
+function D(g, a, b) { const k = dist(a, b) / 5; const ft = squareFt(g); return ft === 5 || k <= 1 ? 5 * k : ft * k; }
+// speeds round to whole squares (halves round up: 25 ft = 3 squares, 5 ft = 1 square)
+const squaresBudget = (g, ft) => { const sq = squareFt(g); return sq === 5 ? ft : Math.round(ft / sq) * sq; };
+// List item 4: enemy AC flattened by difficulty; attack bonuses drop by the same amount the AC dropped (never raised).
+// Content may tag a foe tier: 'Easy' | 'Medium' | 'Hard'; untagged bosses are Hard, everyone else Medium.
+export const ENEMY_AC = { Easy: 8, Medium: 10, Hard: 13 };
+export function flattenFoe(tpl, f = {}) {
+  const tier = ENEMY_AC[f.tier] ? f.tier : f.boss ? 'Hard' : 'Medium'; const ac = ENEMY_AC[tier]; const drop = Math.max(0, tpl.ac - ac);
+  return { ...tpl, ac, attacks: (tpl.attacks || []).map(a => ({ ...a, toHit: a.toHit - drop })) };
+}
 const occupied = (g, mover, x, y) => Object.values(enc(g).combatants).some(o => o.uid !== mover.uid && !isDead(g, o) && x + (mover.size || 1) - 1 >= o.pos[0] && x <= o.pos[0] + (o.size || 1) - 1 && y + (mover.size || 1) - 1 >= o.pos[1] && y <= o.pos[1] + (o.size || 1) - 1);
 const terrain = (g, x, y) => enc(g).map.terrain?.[`${x},${y}`] || null;
 const inMap = (g, x, y, s = 1) => x >= 0 && y >= 0 && x + s - 1 < enc(g).map.w && y + s - 1 < enc(g).map.h;
@@ -55,21 +73,21 @@ function speedOf(g, c) {
 }
 // greedy step-by-step movement toward a goal distance; triggers opportunity attacks; returns feet used
 function moveToward(g, T, c, goal, wantDist, budget) {
-  let used = 0; const st = enc(g);
-  while (used < budget && dist(c, goal) > wantDist && up(g, c)) {
+  budget = squaresBudget(g, budget); let used = 0; const st = enc(g);
+  while (used < budget && D(g, c, goal) > wantDist && up(g, c)) {
     let best = null;
     for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
       if (!dx && !dy) continue; const x = c.pos[0] + dx, y = c.pos[1] + dy;
       if (!inMap(g, x, y, c.size) || occupied(g, c, x, y) || terrain(g, x, y) === 'wall') continue;
-      const cost = terrain(g, x, y) === 'difficult' ? 10 : 5; if (used + cost > budget) continue;
-      const d = dist({ pos: [x, y], size: c.size }, goal); if (!best || d < best.d || (d === best.d && cost < best.cost)) best = { x, y, d, cost };
+      const sq = squareFt(g); const cost = terrain(g, x, y) === 'difficult' ? 2 * sq : sq; if (used + cost > budget) continue;
+      const d = D(g, { pos: [x, y], size: c.size }, goal); if (!best || d < best.d || (d === best.d && cost < best.cost)) best = { x, y, d, cost };
     }
-    if (!best || best.d >= dist(c, goal)) break;
+    if (!best || best.d >= D(g, c, goal)) break;
     // opportunity attacks: leaving an enemy's reach
     if (!T.disengaged) for (const f of foesOf(g, c)) {
       if (!conscious(g, f) || !st.combatants[f.uid].reaction) continue;
       const reach = f.kind === 'pc' ? Math.max(5, ...sheet(g, f).attacks.filter(a => a.melee).map(a => a.reach)) : 5;
-      if (dist(c, f) <= reach && dist({ pos: [best.x, best.y], size: c.size }, f) > reach) {
+      if (D(g, c, f) <= reach && D(g, { pos: [best.x, best.y], size: c.size }, f) > reach) {
         if (f.kind === 'pc' && T.orders?.[f.cid]?.reactions?.opportunity === false) continue;
         g.set(['encounter', 'combatants', f.uid, 'reaction'], false); say(g, `${f.name} makes an opportunity attack on ${c.name}.`);
         const FT = { attacker: f, orders: T.orders, oa: true }; const atk = f.kind === 'pc' ? bestWeapon(g, f, c, true) : f.attacks.find(a => a.melee) || f.attacks[0];
@@ -175,7 +193,7 @@ export function deathSave(g, c) {
 // ---------- attacks
 const acOf = (g, c) => (c.kind === 'pc' ? sheet(g, c).ac.v : c.ac + (hasEff(g, c, 'shield_of_faith') ? 2 : 0));
 function bestWeapon(g, c, target, meleeOnly) {
-  const s = sheet(g, c); const d = dist(c, target); let list = s.attacks.filter(a => a.weapon !== 'unarmed' || s.cls === 'monk');
+  const s = sheet(g, c); const d = D(g, c, target); let list = s.attacks.filter(a => a.weapon !== 'unarmed' || s.cls === 'monk');
   list = list.filter(a => (a.melee ? d <= a.reach : !meleeOnly && d <= (a.range?.[1] || 0) && (!a.ammo || ammoLeft(g, c, a) > 0)));
   if (!list.length) list = s.attacks.filter(a => a.melee && d <= a.reach);
   return list.sort((a, b) => (b.toHit * 2 + avg(b.dice) + b.dmgBonus) - (a.toHit * 2 + avg(a.dice) + a.dmgBonus))[0] || null;
@@ -191,7 +209,7 @@ function spendAmmo(g, c, a) {
 // one attack roll + damage. atk is a sheet attack (pc) or monster attack (npc)
 export function attack(g, T, a, t, atk, opt = {}) {
   a = C(g, a.uid); t = C(g, t.uid); if (!up(g, t) && t.kind === 'npc') return { miss: true };
-  const pc = a.kind === 'pc'; const d = dist(a, t); const melee = atk.melee && d <= (atk.reach || 5);
+  const pc = a.kind === 'pc'; const d = D(g, a, t); const melee = atk.melee && d <= (atk.reach || 5);
   if (pc && atk.ammo && !melee) { if (!spendAmmo(g, a, atk)) { say(g, `${a.name} is out of ammunition!`); trig(g, 'order_impossible', `${a.name} has no ammunition`); return { miss: true, noAmmo: true }; } }
   let adv = !!opt.adv, dis = !!opt.dis; const why = [];
   const tc = conds(g, t);
@@ -202,10 +220,11 @@ export function attack(g, T, a, t, atk, opt = {}) {
   if (hasEff(g, t, 'guiding_bolt_adv')) { adv = true; remEff(g, t, e => e.id === 'guiding_bolt_adv'); }
   if (hasEff(g, t, 'reckless')) adv = true;
   if (effects(g, a).some(e => e.id === 'vex' && e.target === t.uid)) { adv = true; remEff(g, a, e => e.id === 'vex' && e.target === t.uid); why.push('Vex'); }
+  if (hasEff(g, a, 'heat_metal_dis')) { dis = true; why.push('holding red-hot metal'); }
   if (hasEff(g, a, 'sap')) { dis = true; remEff(g, a, e => e.id === 'sap'); why.push('Sapped'); }
   if (hasEff(g, a, 'help')) { adv = true; remEff(g, a, e => e.id === 'help'); }
   if (opt.reckless) adv = true;
-  if (!atk.melee && foesOf(g, a).some(f => conscious(g, f) && dist(a, f) <= 5)) { dis = true; why.push('enemy adjacent to a ranged attacker'); }
+  if (!atk.melee && foesOf(g, a).some(f => conscious(g, f) && D(g, a, f) <= 5)) { dis = true; why.push('enemy adjacent to a ranged attacker'); }
   if (!atk.melee && atk.range && d > (atk.range[0] || atk.range)) { dis = true; why.push('long range'); }
   if (atk.spell && hasEff(g, a, 'innate_sorcery')) adv = true;
   const r = d20Test(g, a, 'attack', { adv, dis, why: `vs ${t.name}` });
@@ -233,7 +252,7 @@ export function attack(g, T, a, t, atk, opt = {}) {
     const hm = effects(g, a).find(e => e.id === 'hunters_mark' && e.target === t.uid); if (hm) extra.push(['1d6', 'force', "Hunter's Mark"]);
     const hx = effects(g, a).find(e => e.id === 'hex' && e.target === t.uid); if (hx) extra.push(['1d6', 'necrotic', 'Hex']);
     if (!atk.spell && ch(g, a).cls === 'ranger' && ch(g, a).subclass && ch(g, a).choices.hunters_prey === 'colossus_slayer' && !T.colossus && hpOf(g, t) < maxHp(g, t)) { T.colossus = true; extra.push(['1d8', atk.type, 'Colossus Slayer']); }
-    if (P.sneakAttack && !atk.spell && !T.sneak && (atk.properties.includes('finesse') || !atk.melee) && !dis && (adv || alliesOf(g, a).some(x => x.uid !== a.uid && conscious(g, x) && dist(x, t) <= 5))) { T.sneak = true; extra.push([P.sneakAttack, atk.type, 'Sneak Attack']); }
+    if (P.sneakAttack && !atk.spell && !T.sneak && (atk.properties.includes('finesse') || !atk.melee) && !dis && (adv || alliesOf(g, a).some(x => x.uid !== a.uid && conscious(g, x) && D(g, x, t) <= 5))) { T.sneak = true; extra.push([P.sneakAttack, atk.type, 'Sneak Attack']); }
     { const rv = effects(g, a).find(e => e.id === 'celestial_revelation'); if (rv && !T.revelation) { T.revelation = true; extra.push([String(P.pb), rv.form === 'shroud' ? 'necrotic' : 'radiant', 'Celestial Revelation']); } }
     if (SPECIES[ch(g, a).species].onHit) { const oh = SPECIES[ch(g, a).species].onHit(ch(g, a).speciesChoices); /* Giant Ancestry: used only on orders */ }
     // Divine Smite (bonus action): by order {smite: {when:'crit'|'always'|'boss'|'never', level}}
@@ -247,6 +266,7 @@ export function attack(g, T, a, t, atk, opt = {}) {
     }
     if (!T.frenzy && c0.cls === 'barbarian' && c0.subclass && hasEff(g, a, 'rage') && hasEff(g, a, 'reckless') && atk.ability === 'str') { T.frenzy = true; extra.push([`${+P.rageDamage}d6`, atk.type, 'Frenzy']); }
     if (!T.divineStrike && c0.cls === 'cleric' && c0.level >= 7 && !atk.spell) { T.divineStrike = true; extra.push(['1d8', 'radiant', 'Blessed Strikes']); }
+    if (atk.trueStrike) extra.push([atk.trueStrike, 'radiant', 'True Strike']);
     if (atk.spell && atk.agonizing) flat += P.mods.cha;
     if (P.gwf && !atk.spell && atk.melee && (atk.twoHanded || atk.properties.includes('versatile'))) opt.gwf = true;
   } else if (atk.extra) extra.push([atk.extra.dice, atk.extra.type, 'rider']);
@@ -299,8 +319,50 @@ function affinity(g, c, type, T) { const c0 = ch(g, c); if (c0.cls === 'sorcerer
 const spellMod = (g, c, id) => { const c0 = ch(g, c); const s = sheet(g, c); const mi = c0.choices.magicInitiate; if (mi && (mi.cantrips.includes(id) || mi.spell === id) && !(s.spellcasting && classList(c0.cls).includes(id))) return { dc: s.spellcasting.miDc ?? 8 + s.mods[mi.ability] + s.pb, atk: s.spellcasting.miAttack ?? s.mods[mi.ability] + s.pb, mod: s.mods[mi.ability] }; const inn = c0.cls === 'sorcerer' && (obj(g, c).effects || []).some(e => e.id === 'innate_sorcery') ? 1 : 0; return { dc: s.spellcasting.dc + inn, atk: s.spellcasting.attack, mod: s.mods[s.spellcasting.ability] }; };
 const _cl = {}; const classList = cls => (_cl[cls] = _cl[cls] || Object.values(SRD.spells).filter(s => s.classes.includes(cls)).map(s => s.id));
 // cast a spell (in or out of combat). targets: combatant objects. Returns {ok, why}
+// Wes, Nov 19 2026 8:04 PM PT: for the rest of the Director of Subversion fight only,
+// Poison Spray is official 5e (Constitution save, no disadvantage). Gated on the live
+// dylan combatant. This is not the general post-fight Poison Spray fix (item 8).
+function inDirectorFight(g) {
+  const e = g.state.encounter;
+  return !!(e && e.combatants && e.combatants.dylan && ['active', 'awaiting_orders', 'paused'].includes(e.status));
+}
+// From Night 20 (rulesV2) the post-fight list replaces that override everywhere:
+//   item 8: Poison Spray is a Constitution save (house rule; SRD 5.2.1 prints it as a ranged spell attack), no attack roll, so no disadvantage;
+//   item 5: True Strike (SRD 5.2.1): one attack with a proficient weapon using the spellcasting modifier for the attack and damage
+//           rolls, Radiant or the weapon's type, +1d6/2d6/3d6 Radiant at levels 5/11/17;
+//   item 6: Heat Metal: the creature touching the object always takes the fire damage; its CON save only decides whether it drops the
+//           object. If it keeps hold, it has Disadvantage on attacks until the start of the caster's next turn. A bonus action on each
+//           later turn burns it again while it still holds the object (the caster's "keep it going" order).
+export function spellModelForCast(g, id) {
+  const m = spellModel(id);
+  if (id === 'poison_spray' && (rulesV2(g) || inDirectorFight(g))) {
+    return { id: 'poison_spray', kind: 'save', save: 'con', dice: '1d12', type: 'poison', half: false, cantrip: true, level: 0, concentration: false, source: rulesV2(g) ? 'house_rule' : 'dylan_fight_ruling' };
+  }
+  if (rulesV2(g) && id === 'true_strike') return { id, kind: 'true_strike', level: 0, cantrip: true, concentration: false, source: 'override' };
+  if (rulesV2(g) && id === 'heat_metal') return { ...m, kind: 'heat_metal', save: 'con', dice: '2d8', type: 'fire', upcast: '1d8' };
+  return m;
+}
+// True Strike weapon pick: proficient weapons usable at this distance, scored with the spellcasting modifier
+function trueStrikeWeapon(g, c, t, smod) {
+  const s = sheet(g, c); const d = D(g, c, t); const adjFoe = foesOf(g, c).some(f => conscious(g, f) && D(g, c, f) <= 5);
+  const list = s.attacks.filter(a => a.weapon !== 'unarmed' && (a.melee ? d <= a.reach : d <= (a.range?.[1] || 0) && (!a.ammo || ammoLeft(g, c, a) > 0)))
+    .map(a => { const m0 = s.mods[a.ability] ?? 0; return { ...a, toHit: a.toHit - m0 + smod, dmgBonus: a.dmgBonus - m0 + smod }; });
+  const score = a => a.toHit * 2 + avg(a.dice) + a.dmgBonus - (!a.melee && adjFoe ? 6 : 0) - (!a.melee && a.range && d > a.range[0] ? 6 : 0);
+  return list.sort((a, b) => score(b) - score(a))[0] || null;
+}
+const trueStrikeReach = (g, c) => { const ws = sheet(g, c).attacks.filter(a => a.weapon !== 'unarmed'); const m = ws.find(a => a.melee); return m ? m.reach : ws[0]?.range?.[0] || 5; };
+function heatMetalBurn(g, T, c, t, dice, dc, name) {
+  const dmg = g.roll(dice, {}, 'Heat Metal damage').total; t = C(g, t.uid); if (!up(g, t)) return;
+  const r = saveRoll(g, t, 'con', dc, name);
+  say(g, `${t.name} takes ${dmg} fire from the red-hot metal (CON ${r.total} vs DC ${dc}: ${r.ok ? 'keeps hold of it' : 'drops it'}).`);
+  applyDamage(g, T, t, dmg, 'fire', { magical: true, by: c }); t = C(g, t.uid); if (!up(g, t)) return;
+  remEff(g, t, e => e.id === 'heat_metal' && e.src === c.uid);
+  if (r.ok) { addEff(g, t, { id: 'heat_metal', src: c.uid, conc: c.uid, spell: 'heat_metal', dice, dc }); addEff(g, t, { id: 'heat_metal_dis', src: c.uid, rounds: 1 }); }
+  else say(g, `${t.name} is no longer touching the hot metal; Heat Metal can't burn ${t.name} again.`);
+}
+
 export function castSpell(g, T, c, id, L, targets, opt = {}) {
-  const sp = SRD.spells[id]; const m = spellModel(id); if (!sp) return { ok: false, why: 'unknown spell' };
+  const sp = SRD.spells[id]; const m = spellModelForCast(g, id); if (!sp) return { ok: false, why: 'unknown spell' };
   const c0 = ch(g, c); L = sp.level === 0 ? 0 : Math.max(L || sp.level, sp.level);
   const miFree = sp.level === 1 && c0.choices.magicInitiate?.spell === id && deriveSheet(c0).resources.magic_initiate?.left > 0 && opt.free;
   if (opt.freeCast) { /* feature-granted cast without a slot (e.g. Favored Enemy) */ } else
@@ -322,7 +384,20 @@ export function castSpell(g, T, c, id, L, targets, opt = {}) {
       const n = (m.rays ? m.rays + (m.raysPerSlot || 0) * up_ : 0) || (m.beamsAt ? Object.entries(m.beamsAt).reduce((a, [l, k]) => (c0.level >= +l ? k : a), 1) : 1);
       for (let i = 0; i < n; i++) { const t = targets[i % targets.length]; if (!t || !up(g, C(g, t.uid))) continue; attack(g, T, c, t, { name: sp.name, melee: /touch|5 feet/i.test(sp.range || '') , reach: 5, range: [999], toHit: satk, dice: dmgDice(m.dice, m.upcast), dmgBonus: affinity(g, c, opt.dtype || m.type, T), agonizing: id === 'eldritch_blast' && c0.choices.invocations?.includes('agonizing_blast'), type: opt.dtype || m.type, magical: true, ammo: null, properties: [], spell: true }, {}); if (m.rider === 'guiding_bolt_adv' && up(g, C(g, t.uid))) addEff(g, C(g, t.uid), { id: 'guiding_bolt_adv', src: c.uid, rounds: 1 }); }
       break; }
-    case 'auto_hit': { const n = m.darts + up_ * (m.dartsPerSlot || 1); for (let i = 0; i < n; i++) { const t = targets[i % targets.length]; if (t && up(g, C(g, t.uid))) applyDamage(g, T, t, g.roll(m.dice, {}, 'dart').total, m.type, { magical: true }); } break; }
+    case 'auto_hit': { const n = m.darts + up_ * (m.dartsPerSlot || 1);
+      if (rulesV2(g) && c.side) { // item 6: no darts wasted on a fallen target: the rest fly to the nearest foe still up, or aren't fired
+        const rng = parseInt(sp.range) || 120;
+        for (let i = 0; i < n; i++) { let t = targets[i % targets.length]; t = t && C(g, t.uid);
+          if (!t || !up(g, t) || t.side === c.side) { t = pickTarget(g, C(g, c.uid), 'nearest', foesOf(g, c).filter(f => up(g, f) && D(g, C(g, c.uid), f) <= rng)); if (t) say(g, `The next dart turns toward ${t.name}.`); }
+          if (!t) { say(g, `${n - i} dart${n - i === 1 ? ' stays' : 's stay'} unfired: no one left to hit.`); break; }
+          applyDamage(g, T, t, g.roll(m.dice, {}, 'dart').total, m.type, { magical: true }); }
+        break; }
+      for (let i = 0; i < n; i++) { const t = targets[i % targets.length]; if (t && up(g, C(g, t.uid))) applyDamage(g, T, t, g.roll(m.dice, {}, 'dart').total, m.type, { magical: true }); } break; }
+    case 'true_strike': { const t = targets[0] && C(g, targets[0].uid); if (!t || !up(g, t) || !c.side) { say(g, `${c.name} has no target for True Strike.`); break; }
+      const w = trueStrikeWeapon(g, c, t, smod); if (!w) { say(g, `${c.name} has no weapon that can reach ${t.name} for True Strike.`); trig(g, 'order_impossible', `${c.name}: True Strike needs a weapon in reach`); break; }
+      const resists = t.kind === 'npc' && ([...(t.resist || []), ...(t.immune || [])].includes('radiant')); const lvl = c0.level; const bonus = lvl >= 17 ? '3d6' : lvl >= 11 ? '2d6' : lvl >= 5 ? '1d6' : null;
+      attack(g, T, c, t, { ...w, name: `${w.name}, True Strike`, type: resists ? w.type : 'radiant', magical: true, trueStrike: bonus }, {}); break; }
+    case 'heat_metal': { const t = targets[0] && C(g, targets[0].uid); if (!t || !up(g, t)) break; heatMetalBurn(g, T, c, t, dmgDice(m.dice, m.upcast), dc, sp.name); break; }
     case 'save': {
       const d = dmgDice(m.dice, m.upcast); const dmg = g.roll(d, {}, sp.name + ' damage').total + affinity(g, c, m.type, T);
       for (const t of targets) { const tt = C(g, t.uid); if (!up(g, tt)) continue; const r = saveRoll(g, tt, m.save, dc, sp.name); let v = r.ok ? (m.half || (evoker && sp.level === 0) ? Math.floor(dmg / 2) : 0) : dmg;
@@ -362,7 +437,8 @@ export function startEncounter(g, { name, map = { w: 16, h: 12, terrain: {} }, p
   return g.event('battle_start', { name }, () => {
     const cmb = {};
     for (const p of party) { const c0 = g.state.chars[p.cid]; cmb[p.cid] = { uid: p.cid, cid: p.cid, kind: 'pc', side: 'party', name: c0.name, pos: p.pos, size: 1, reaction: true }; }
-    foes.forEach((f, i) => { const uid = f.uid || `f${i + 1}`; cmb[uid] = { uid, side: 'foe', ...monsterTemplate(f.monster, { name: f.name || null }), name: f.name || `${monsterTemplate(f.monster).name} ${i + 1}`, pos: f.pos, boss: !!f.boss, tactics: f.tactics || {}, reaction: true, ...(f.defeatText ? { defeatText: f.defeatText } : {}) }; });
+    const v2 = (g.state.meta?.night || 0) >= RULES_V2_NIGHT; const tpl = f => (v2 ? flattenFoe(monsterTemplate(f.monster, { name: f.name || null }), f) : monsterTemplate(f.monster, { name: f.name || null }));
+    foes.forEach((f, i) => { const uid = f.uid || `f${i + 1}`; cmb[uid] = { uid, side: 'foe', ...tpl(f), name: f.name || `${monsterTemplate(f.monster).name} ${i + 1}`, pos: f.pos, boss: !!f.boss, tactics: f.tactics || {}, reaction: true, ...(f.defeatText ? { defeatText: f.defeatText } : {}) }; });
     g.set(['encounter'], { name, location, map, round: 1, turn: 0, order: [], combatants: cmb, status: 'active', stop: null, batch: null, script, ammoSpent: {}, startedNight: g.state.meta.night, pause: null, xpAwarded: false });
     // initiative
     const rolls = [];
@@ -463,13 +539,13 @@ export function takeTurn(g, uid, orders) {
   const T = { orders, absent: c.kind === 'pc' && (!orders[c.cid] || orders[c.cid].absent), bonusUsed: false, slotSpell: false, disengaged: false }; g._T = T;
   try {
     // round-start script (new enemies)
-    if (e.turn === 0) for (const s of e.script || []) if (s.round === e.round && !s.done) { s.add.forEach((f, i) => { const u = f.uid || `r${e.round}_${i}`; g.set(['encounter', 'combatants', u], { uid: u, side: 'foe', ...monsterTemplate(f.monster), name: f.name || monsterTemplate(f.monster).name, pos: f.pos, boss: !!f.boss, tactics: f.tactics || {}, reaction: true, init: 0 }); g.set(['encounter', 'order'], [...enc(g).order, u]); }); g.set(['encounter', 'script', e.script.indexOf(s), 'done'], true); say(g, `Round ${e.round}: ${s.text || 'new enemies arrive'}!`); trig(g, 'new_enemy', s.text || 'reinforcements'); }
+    if (e.turn === 0) for (const s of e.script || []) if (s.round === e.round && !s.done) { s.add.forEach((f, i) => { const u = f.uid || `r${e.round}_${i}`; g.set(['encounter', 'combatants', u], { uid: u, side: 'foe', ...(rulesV2(g) ? flattenFoe(monsterTemplate(f.monster), f) : monsterTemplate(f.monster)), name: f.name || monsterTemplate(f.monster).name, pos: f.pos, boss: !!f.boss, tactics: f.tactics || {}, reaction: true, init: 0 }); g.set(['encounter', 'order'], [...enc(g).order, u]); }); g.set(['encounter', 'script', e.script.indexOf(s), 'done'], true); say(g, `Round ${e.round}: ${s.text || 'new enemies arrive'}!`); trig(g, 'new_enemy', s.text || 'reinforcements'); }
     c = C(g, uid);
     if (!isDead(g, c)) {
       g.set(['encounter', 'combatants', uid, 'reaction'], true);
       tickEffects(g, c);
       // Spirit-guardians style auras hurt enemies starting their turn inside
-      for (const f of foesOf(g, c)) for (const a of effects(g, f).filter(x => x.id === 'aura')) if (up(g, f) && dist(f, c) <= a.radius && up(g, c)) { const r = saveRoll(g, c, a.save, a.dc, 'aura'); const dmg = g.roll(a.dice, {}, 'aura').total; applyDamage(g, T, c, r.ok ? Math.floor(dmg / 2) : dmg, a.type, { magical: true }); }
+      for (const f of foesOf(g, c)) for (const a of effects(g, f).filter(x => x.id === 'aura')) if (up(g, f) && D(g, f, c) <= a.radius && up(g, c)) { const r = saveRoll(g, c, a.save, a.dc, 'aura'); const dmg = g.roll(a.dice, {}, 'aura').total; applyDamage(g, T, c, r.ok ? Math.floor(dmg / 2) : dmg, a.type, { magical: true }); }
       c = C(g, uid);
       if (c.kind === 'pc') { const c0 = ch(g, c); const hero = effects(g, c).find(x => x.id === 'heroism'); if (hero && up(g, c)) g.set(['chars', c.cid, 'hp', 'temp'], Math.max(c0.hp.temp, hero.temp)); }
       if (c.kind === 'pc' && hpOf(g, c) === 0) deathSave(g, c);
@@ -499,7 +575,7 @@ function tickEffects(g, c) {
 function pickTarget(g, c, sel, pool) {
   pool = pool || foesOf(g, c).filter(f => up(g, f)); if (!pool.length) return null;
   if (sel && typeof sel === 'string' && enc(g).combatants[sel]) { const t = C(g, sel); if (up(g, t) || t.side === c.side) return t; }
-  const by = { nearest: (a, b) => dist(c, a) - dist(c, b) || hpOf(g, a) - hpOf(g, b), weakest: (a, b) => hpOf(g, a) - hpOf(g, b) || dist(c, a) - dist(c, b), strongest: (a, b) => hpOf(g, b) - hpOf(g, a), boss: (a, b) => (b.boss ? 1 : 0) - (a.boss ? 1 : 0) || dist(c, a) - dist(c, b) };
+  const by = { nearest: (a, b) => D(g, c, a) - D(g, c, b) || hpOf(g, a) - hpOf(g, b), weakest: (a, b) => hpOf(g, a) - hpOf(g, b) || D(g, c, a) - D(g, c, b), strongest: (a, b) => hpOf(g, b) - hpOf(g, a), boss: (a, b) => (b.boss ? 1 : 0) - (a.boss ? 1 : 0) || D(g, c, a) - D(g, c, b) };
   return [...pool].sort(by[sel] || by.nearest)[0];
 }
 function ruleMatches(g, c, cond) {
@@ -519,10 +595,39 @@ function planFor(g, T, c, o) {
   return stancePlan(g, c, o.stance || ch(g, c).flavor?.stance || 'cautious');
 }
 function stancePlan(g, c, stance) {
-  const near = pickTarget(g, c, 'nearest'); const adj = near && dist(c, near) <= 5;
+  const near = pickTarget(g, c, 'nearest'); const adj = near && D(g, c, near) <= 5;
   if (stance === 'cautious') return adj ? { move: 'hold', action: { do: 'dodge' }, src: 'Cautious stance' } : { move: 'hold', action: { do: 'attack', target: 'nearest', rangedOnly: true }, src: 'Cautious stance' };
   if (stance === 'support') { const down = alliesOf(g, c).find(a => a.kind === 'pc' && a.uid !== c.uid && !isDead(g, a) && hpOf(g, a) === 0 && !ch(g, a).death.stable); if (down) return { action: { do: 'stabilize', target: down.uid }, src: 'Support stance' }; return { action: { do: 'attack', target: 'nearest' }, src: 'Support stance' }; }
   return { action: { do: 'attack', target: 'nearest' }, src: 'Aggressive stance' };
+}
+// List item 7: spells with a casting time longer than an action (1 minute = 10 rounds) take several turns. Each turn the
+// caster keeps casting unless this round's orders pick something else; then the spell is lost (2024: no slot spent).
+// Concentration on the casting can break like any other. Old battles never start one.
+export const castRounds = sp => { const t = String(sp?.castingTime || ''); if (/^(action|bonus|reaction)/i.test(t)) return 1; const m = t.match(/^(\d+)\s*(minute|hour)/i); return m ? +m[1] * (/hour/i.test(m[2]) ? 600 : 10) : 1; };
+export const castTimeLabel = sp => { const n = castRounds(sp); const t = String(sp?.castingTime || ''); return /^bonus/i.test(t) ? 'bonus action' : /^reaction/i.test(t) ? 'reaction' : n === 1 ? '1 action' : `${t.replace(/ or Ritual$/i, '')}: ${n} rounds`; };
+function startLongCast(g, T, c, sp, id, L, target) {
+  const n = castRounds(sp); endConcentration(g, c, 'new spell'); g.set([...base(c), 'conc'], { spell: id, rounds: n + 1, casting: true });
+  addEff(g, c, { id: 'casting', src: c.uid, conc: c.uid, spell: id, level: L || 0, left: n - 1, total: n, target: target?.uid || null });
+  say(g, `${c.name} begins casting ${sp.name} (${castTimeLabel(sp)}). It goes off in ${n - 1} more round${n - 1 === 1 ? '' : 's'} if ${c.name} keeps casting.`);
+}
+function longCastTurn(g, T, c, plan) {
+  const k = effects(g, c).find(e => e.id === 'casting'); if (!k) return false; const sp = SRD.spells[k.spell];
+  const keep = plan.src !== 'this round' || !plan.action || plan.action.do === 'continue_cast';
+  if (!keep) { say(g, `${c.name} stops casting ${sp.name}; the spell is lost (no slot spent).`); remEff(g, c, e => e.id === 'casting'); endConcentration(g, c, 'stopped casting'); return false; }
+  const left = k.left - 1;
+  if (left > 0) { setEffects(g, c, effects(g, c).map(e => (e.id === 'casting' ? { ...e, left } : e))); say(g, `${c.name} keeps casting ${sp.name} (${left} more round${left === 1 ? '' : 's'}).`); return true; }
+  remEff(g, c, e => e.id === 'casting'); g.set([...base(c), 'conc'], null);
+  const m = spellModel(k.spell); const ally = ['heal', 'buff', 'cure'].includes(m?.kind); let t = k.target ? C(g, k.target) : null; if (!t || isDead(g, t) || (!ally && !up(g, t))) t = ally ? c : pickTarget(g, c, 'nearest');
+  const r = castSpell(g, T, c, k.spell, k.level, t ? [t] : [c], { markTarget: t }); if (!r.ok) { say(g, `${c.name} finishes the words, but ${sp.name} fizzles (${r.why}).`); trig(g, 'order_impossible', `${c.name}: ${sp.name} — ${r.why}`); }
+  return true;
+}
+// keep a running concentration spell going (orders: thisRound.keep !== false), or let it end; Heat Metal burns again as a bonus action
+function keepConcentration(g, T, c, plan, o) {
+  c = C(g, c.uid); const cc = obj(g, c).conc; if (!cc || cc.casting || !conscious(g, c)) return;
+  const keep = plan.keep ?? o.thisRound?.keep;
+  if (keep === false) { say(g, `${c.name} lets ${spName(cc.spell)} end.`); endConcentration(g, c, 'let go'); return; }
+  if (cc.spell === 'heat_metal' && !T.bonusUsed) { const held = Object.values(enc(g).combatants).map(x => [x, effects(g, x).find(e => e.id === 'heat_metal' && e.src === c.uid)]).find(([x, e]) => e && up(g, x));
+    if (held) { T.bonusUsed = true; say(g, `${c.name} keeps Heat Metal going (bonus action).`); heatMetalBurn(g, T, c, held[0], held[1].dice, held[1].dc, 'Heat Metal'); } }
 }
 function pcTurn(g, T, c, o) {
   const plan = planFor(g, T, c, o); const s = sheet(g, c); const c0 = ch(g, c);
@@ -530,13 +635,15 @@ function pcTurn(g, T, c, o) {
   let budget = speedOf(g, c); const act = plan.action || { do: 'attack', target: 'nearest' };
   if (act.do === 'dash') budget *= 2; if (act.do === 'disengage') T.disengaged = true;
   // bonus actions first when they set up the attack
+  if (rulesV2(g) && longCastTurn(g, T, c, plan)) return;
   if (plan.bonus) bonusAction(g, T, c, plan.bonus);
+  if (rulesV2(g)) keepConcentration(g, T, c, plan, o);
   if (o.actionSurge && s.resources.action_surge?.left > 0) { /* applied after main action */ }
   // decide target + position
   let target = null, want = 5;
   if (act.do === 'attack') { target = pickTarget(g, c, act.target); if (target) { const o = attackOptions(g, c); T.mode = act.melee ? 'melee' : (act.ranged || act.rangedOnly || (o.ranged && (!o.melee || o.ranged.ev >= o.melee.ev))) ? 'ranged' : 'melee'; if (T.mode === 'ranged' && !o.ranged) T.mode = 'melee';
-      want = T.mode === 'ranged' ? Math.min(o.ranged.range, 60) : o.melee ? o.melee.reach : 5; if (act.rangedOnly && T.mode !== 'ranged') target = dist(c, target) <= 5 ? target : null; } }
-  if (act.do === 'cast') { const sp = SRD.spells[act.spell]; const mdl = sp && spellModel(act.spell); const ally = ['heal', 'buff', 'cure'].includes(mdl?.kind); target = ally ? pickAlly(g, c, act.target) : pickTarget(g, c, act.target); const rng = parseInt(sp?.range) || (/touch/i.test(sp?.range || '') ? 5 : /self/i.test(sp?.range || '') ? 15 : 60); want = Math.min(rng, ally ? rng : 60); }
+      want = T.mode === 'ranged' ? Math.min(o.ranged.range, 60) : o.melee ? o.melee.reach : 5; if (act.rangedOnly && T.mode !== 'ranged') target = D(g, c, target) <= 5 ? target : null; } }
+  if (act.do === 'cast') { const sp = SRD.spells[act.spell]; const mdl = sp && spellModel(act.spell); const ally = ['heal', 'buff', 'cure'].includes(mdl?.kind); target = ally ? pickAlly(g, c, act.target) : pickTarget(g, c, act.target); const rng = parseInt(sp?.range) || (/touch/i.test(sp?.range || '') ? 5 : /self/i.test(sp?.range || '') ? 15 : 60); want = Math.min(rng, ally ? rng : 60); if (rulesV2(g) && act.spell === 'true_strike') want = trueStrikeReach(g, c); }
   if (['help', 'stabilize', 'lay_on_hands', 'healing_hands', 'potion'].includes(act.do)) { target = act.do === 'potion' ? pickAlly(g, c, act.target || 'self') : pickAlly(g, c, act.target); want = 5; }
   if (T.dash) budget *= 2; if (plan.move === 'hold' || act.do === 'dodge' || T.steady) budget = 0;
   if (Array.isArray(plan.move)) moveToward(g, T, c, { pos: plan.move, size: 1 }, 0, budget); else if (target && target.uid !== c.uid && budget > 0) moveToward(g, T, c, target, want, budget);
@@ -545,8 +652,8 @@ function pcTurn(g, T, c, o) {
   if (o.actionSurge && sheet(g, c).resources.action_surge?.left > 0 && foesOf(g, c).some(f => up(g, f))) { g.set(['chars', c.cid, 'resSpent', 'action_surge'], (c0.resSpent.action_surge || 0) + 1); say(g, `${c.name} uses Action Surge!`); doAction(g, T, c, act, pickTarget(g, c, act.target)); }
   // free bonus: monk Martial Arts strike, spiritual weapon
   c = C(g, c.uid);
-  if (T.flurry && conscious(g, c)) { const n = c0.level >= 10 ? 3 : 2; for (let i = 0; i < n; i++) { const t = pickTarget(g, c, 'nearest'); if (t && dist(C(g, c.uid), t) <= 5) attack(g, T, C(g, c.uid), t, sheet(g, c).attacks.find(a => a.weapon === 'unarmed')); } }
-  if (!T.bonusUsed && conscious(g, c) && c0.cls === 'monk' && act.do === 'attack') { const t = pickTarget(g, c, 'nearest'); if (t && dist(c, t) <= 5) { T.bonusUsed = true; attack(g, T, c, t, sheet(g, c).attacks.find(a => a.weapon === 'unarmed')); } }
+  if (T.flurry && conscious(g, c)) { const n = c0.level >= 10 ? 3 : 2; for (let i = 0; i < n; i++) { const t = pickTarget(g, c, 'nearest'); if (t && D(g, C(g, c.uid), t) <= 5) attack(g, T, C(g, c.uid), t, sheet(g, c).attacks.find(a => a.weapon === 'unarmed')); } }
+  if (!T.bonusUsed && conscious(g, c) && c0.cls === 'monk' && act.do === 'attack') { const t = pickTarget(g, c, 'nearest'); if (t && D(g, c, t) <= 5) { T.bonusUsed = true; attack(g, T, c, t, sheet(g, c).attacks.find(a => a.weapon === 'unarmed')); } }
   if (!T.bonusUsed && conscious(g, c) && hasEff(g, c, 'spiritual_weapon') && !T.castSW) { const w = effects(g, c).find(x => x.id === 'spiritual_weapon'); const t = pickTarget(g, c, act.target || 'nearest'); if (t) { T.bonusUsed = true; const sm = spellMod(g, c, 'spiritual_weapon'); attack(g, T, c, t, { name: 'Spiritual Weapon', melee: true, reach: 999, toHit: sm.atk, dice: w.dice, dmgBonus: sm.mod, type: w.type, magical: true, properties: [], spell: true }); } }
 }
 const spName = id => SRD.spells[id]?.name || id; const tgName = (g, t) => ({ nearest: 'nearest foe', weakest: 'weakest foe', boss: 'the boss' }[t] || g?.state.encounter?.combatants?.[t]?.name || t);
@@ -564,24 +671,25 @@ function doAction(g, T, c, act, target) {
     case 'dodge': addEff(g, c, { id: 'dodge', src: c.uid, rounds: 1 }); say(g, `${c.name} takes the Dodge action.`); return;
     case 'dash': case 'disengage': return;
     case 'help': if (target) { const f = pickTarget(g, c, 'nearest'); if (f) addEff(g, target, { id: 'help', src: c.uid, rounds: 1 }); } return;
-    case 'stabilize': { if (!target || hpOf(g, target) > 0 || dist(c, target) > 5) { say(g, `${c.name} can't reach anyone to stabilize.`); return; } const kitIdx = c0.inventory.findIndex(i => i.id === 'healers_kit' && (i.charges ?? 10) > 0);
+    case 'stabilize': { if (!target || hpOf(g, target) > 0 || D(g, c, target) > 5) { say(g, `${c.name} can't reach anyone to stabilize.`); return; } const kitIdx = c0.inventory.findIndex(i => i.id === 'healers_kit' && (i.charges ?? 10) > 0);
       if (kitIdx >= 0) { const it = c0.inventory[kitIdx]; g.set(['chars', c.cid, 'inventory', kitIdx, 'charges'], (it.charges ?? 10) - 1); g.set(['chars', target.cid, 'death', 'stable'], true); say(g, `${c.name} stabilizes ${target.name} with a Healer's Kit.`); return; }
       const r = d20Test(g, c, 'check', { why: 'Medicine DC 10' }); const tot = r.nat + s.skills.medicine.v + r.bonus; if (tot >= 10) { g.set(['chars', target.cid, 'death', 'stable'], true); say(g, `${c.name} stabilizes ${target.name} (Medicine ${tot}).`); } else say(g, `${c.name} fails to stabilize ${target.name} (Medicine ${tot}).`); return; }
     case 'potion': return usePotionInCombat(g, T, c, act, target);
     case 'preserve_life': { if (!(c0.cls === 'cleric' && c0.subclass === 'life' && s.resources.channel_divinity?.left > 0)) { trig(g, 'order_impossible', `${c.name} can't use Preserve Life`); return; } g.set(['chars', c.cid, 'resSpent', 'channel_divinity'], (c0.resSpent.channel_divinity || 0) + 1);
-      let pool = 5 * c0.level; const hurt = alliesOf(g, c).filter(a => !isDead(g, a) && dist(c, a) <= 30 && hpOf(g, a) < maxHp(g, a) / 2).sort((x, y) => hpOf(g, x) - hpOf(g, y));
+      let pool = 5 * c0.level; const hurt = alliesOf(g, c).filter(a => !isDead(g, a) && D(g, c, a) <= 30 && hpOf(g, a) < maxHp(g, a) / 2).sort((x, y) => hpOf(g, x) - hpOf(g, y));
       say(g, `${c.name} channels Preserve Life (${pool} HP).`); for (const a of hurt) { const cap = Math.floor(maxHp(g, a) / 2) - hpOf(g, a); const h = Math.min(cap, pool); if (h > 0) { heal(g, a, h, 'Preserve Life'); pool -= h; } } return; }
-    case 'healing_hands': { if (!target || !(s.resources.healing_hands?.left > 0) || dist(c, target) > 5) { trig(g, 'order_impossible', `${c.name} can't use Healing Hands`); return; } g.set(['chars', c.cid, 'resSpent', 'healing_hands'], (c0.resSpent.healing_hands || 0) + 1); heal(g, target, g.roll(`${s.pb}d4`, {}, 'Healing Hands').total, 'Healing Hands'); return; }
-    case 'lay_on_hands': { const pool = s.resources.lay_on_hands?.left || 0; if (!target || !pool || dist(c, target) > 5) { trig(g, 'order_impossible', `${c.name} can't Lay on Hands`); return; } const need = Math.min(pool, act.amount || maxHp(g, target) - hpOf(g, target)); g.set(['chars', c.cid, 'resSpent', 'lay_on_hands'], (c0.resSpent.lay_on_hands || 0) + need); heal(g, target, need, 'Lay on Hands'); return; }
+    case 'healing_hands': { if (!target || !(s.resources.healing_hands?.left > 0) || D(g, c, target) > 5) { trig(g, 'order_impossible', `${c.name} can't use Healing Hands`); return; } g.set(['chars', c.cid, 'resSpent', 'healing_hands'], (c0.resSpent.healing_hands || 0) + 1); heal(g, target, g.roll(`${s.pb}d4`, {}, 'Healing Hands').total, 'Healing Hands'); return; }
+    case 'lay_on_hands': { const pool = s.resources.lay_on_hands?.left || 0; if (!target || !pool || D(g, c, target) > 5) { trig(g, 'order_impossible', `${c.name} can't Lay on Hands`); return; } const need = Math.min(pool, act.amount || maxHp(g, target) - hpOf(g, target)); g.set(['chars', c.cid, 'resSpent', 'lay_on_hands'], (c0.resSpent.lay_on_hands || 0) + need); heal(g, target, need, 'Lay on Hands'); return; }
     case 'cast': {
       const sp = SRD.spells[act.spell]; if (!sp) { trig(g, 'order_impossible', `unknown spell ${act.spell}`); return; }
       const mdl = spellModel(act.spell); let L = act.level || sp.level; if (L > 0 && !canCastNow(g, c, act.spell, L)) L = pickSlot(g, c, L) || 0;
-      let targets = []; if (['save'].includes(mdl.kind) && target) targets = foesOf(g, c).filter(f => up(g, f) && dist(f, target) <= (act.radius ?? 5)).slice(0, act.maxTargets || 3); else if (target) targets = [target];
+      let targets = []; if (['save'].includes(mdl.kind) && target && !(rulesV2(g) && act.spell === 'heat_metal')) targets = foesOf(g, c).filter(f => up(g, f) && D(g, f, target) <= (act.radius ?? 5)).slice(0, act.maxTargets || 3); else if (target) targets = [target];
       if (((mdl.kind === 'buff') || (mdl.kind === 'heal' && mdl.targets)) && Array.isArray(act.targets) && act.targets.length) { // multi-target ally spells (Bless, Aid...): every pick must be alive and in range
         const rngT = parseInt(sp.range) || (/touch/i.test(sp.range) ? 5 : 60); const picked = [...new Set(act.targets.map(u => u === 'self' ? c.uid : u))].map(u => C(g, u)).filter(t => t && !isDead(g, t));
-        const near = picked.filter(t => t.uid === c.uid || dist(c, t) <= rngT); const far = picked.filter(t => !near.includes(t)); if (far.length) say(g, `${far.map(t => t.name).join(' and ')} ${far.length > 1 ? 'are' : 'is'} out of ${sp.name}'s range.`);
+        const near = picked.filter(t => t.uid === c.uid || D(g, c, t) <= rngT); const far = picked.filter(t => !near.includes(t)); if (far.length) say(g, `${far.map(t => t.name).join(' and ')} ${far.length > 1 ? 'are' : 'is'} out of ${sp.name}'s range.`);
         if (near.length) { targets = near; if (!target || !near.some(t => t.uid === target.uid)) target = near[0]; } }
-      const okRange = target && dist(c, target) <= (parseInt(sp.range) || (/touch/i.test(sp.range) ? 5 : 60));
+      const okRange = target && D(g, c, target) <= (parseInt(sp.range) || (/touch/i.test(sp.range) ? 5 : 60));
+      if (rulesV2(g) && castRounds(sp) > 1 && castRounds(sp) <= 10) { if ((sp.level === 0 || L) && canCastNow(g, c, act.spell, L || 0) && (okRange || /self|touch/i.test(sp.range))) { startLongCast(g, T, c, sp, act.spell, L, target); return; } }
       const res = (sp.level === 0 || L) && (okRange || /self/i.test(sp.range)) ? castSpell(g, T, c, act.spell, L, targets.length ? targets : [c], { dtype: act.dtype, markTarget: target }) : { ok: false, why: okRange ? 'no slot left' : 'out of range' };
       if (!res.ok) { say(g, `${c.name} can't cast ${sp.name} (${res.why}); attacks instead.`); trig(g, 'order_impossible', `${c.name}: ${sp.name} — ${res.why}`); const t = pickTarget(g, c, 'nearest'); if (t) attackAction(g, T, c, t, {}); }
       return; }
@@ -593,13 +701,13 @@ function attackOptions(g, c) {
   const s = sheet(g, c); const c0 = ch(g, c); let melee = null, ranged = null;
   for (const a of s.attacks) { if (a.weapon === 'unarmed' && s.cls !== 'monk') continue; const ev = avg(a.dice) + a.dmgBonus + a.toHit / 2; if (a.melee) { if (!melee || ev > melee.ev) melee = { ev, reach: a.reach, atk: a }; } else if (ammoLeft(g, c, a) > 0 && (!ranged || ev > ranged.ev)) ranged = { ev, range: a.range?.[0] || 30, atk: a }; }
   const mi = c0.choices.magicInitiate?.cantrips || [];
-  for (const id of [...(c0.cantrips || []), ...mi]) { const m = spellModel(id); if (!['attack', 'save'].includes(m.kind) || !m.dice) continue; const r = parseInt(SRD.spells[id].range) || 5; const sm = s.spellcasting ? spellMod(g, c, id) : null; if (!sm) continue;
+  for (const id of [...(c0.cantrips || []), ...mi]) { const m = rulesV2(g) ? spellModelForCast(g, id) : spellModel(id); if (!['attack', 'save'].includes(m.kind) || !m.dice) continue; const r = parseInt(SRD.spells[id].range) || 5; const sm = s.spellcasting ? spellMod(g, c, id) : null; if (!sm) continue;
     const ev = avg(cantripDice(m, c0.level)) * (m.beamsAt ? 1 : 1) + (m.kind === 'attack' ? sm.atk : sm.dc - 8) / 2 + (c0.choices.invocations?.includes('agonizing_blast') && id === 'eldritch_blast' ? s.mods.cha : 0);
     const o = { ev, range: r, cantrip: id, reach: r }; if (r <= 5) { if (!melee || ev > melee.ev) melee = o; } else if (!ranged || ev > ranged.ev) ranged = o; }
   return { melee, ranged };
 }
 function attackAction(g, T, c, target, act) {
-  { const o = attackOptions(g, c); const d = dist(c, target); const pick = T.mode === 'ranged' ? o.ranged : o.melee; const alt = T.mode === 'ranged' ? o.melee : o.ranged;
+  { const o = attackOptions(g, c); const d = D(g, c, target); const pick = T.mode === 'ranged' ? o.ranged : o.melee; const alt = T.mode === 'ranged' ? o.melee : o.ranged;
     const use = pick && d <= (pick.range || pick.reach) ? pick : alt && d <= (alt.range || alt.reach) ? alt : null;
     if (use?.cantrip) { castSpell(g, T, c, use.cantrip, 0, [target]); return; } }
   const s = sheet(g, c); const n = s.extraAttacks; const c0 = ch(g, c);
@@ -607,10 +715,10 @@ function attackAction(g, T, c, target, act) {
   let reckless = false; if (c0.cls === 'barbarian' && c0.level >= 2 && (act.reckless || T.orders?.[c.cid]?.reckless)) { reckless = true; addEff(g, c, { id: 'reckless', src: c.uid, rounds: 1 }); }
   for (let i = 0; i < n; i++) {
     let t = up(g, C(g, target.uid)) ? C(g, target.uid) : pickTarget(g, c, act.target === 'weakest' ? 'weakest' : 'nearest'); if (!t) return;
-    let w = act.weapon ? s.attacks.find(a => a.uid === act.weapon || a.weapon === act.weapon) : null; if (w && !(w.melee ? dist(c, t) <= w.reach : ammoLeft(g, c, w) > 0)) w = null;
+    let w = act.weapon ? s.attacks.find(a => a.uid === act.weapon || a.weapon === act.weapon) : null; if (w && !(w.melee ? D(g, c, t) <= w.reach : ammoLeft(g, c, w) > 0)) w = null;
     w = w || bestWeapon(g, c, t, false);
     if (!w) { // move closer if possible? no movement left: try a cantrip
-      const cant = (c0.cantrips || []).map(id => [id, spellModel(id)]).find(([id, m]) => ['attack', 'save'].includes(m.kind) && dist(c, t) <= (parseInt(SRD.spells[id].range) || 5));
+      const cant = (c0.cantrips || []).map(id => [id, spellModel(id)]).find(([id, m]) => ['attack', 'save'].includes(m.kind) && D(g, c, t) <= (parseInt(SRD.spells[id].range) || 5));
       if (cant) { castSpell(g, T, c, cant[0], 0, [t]); return; }
       say(g, `${c.name} can't reach ${t.name}.`); return;
     }
@@ -630,22 +738,22 @@ function bonusAction(g, T, c, b) {
   if (b.do === 'celestial_revelation' && s.resources.celestial_revelation?.left > 0 && !hasEff(g, c, 'celestial_revelation')) {
     const form = ['wings', 'radiance', 'shroud'].includes(b.form) ? b.form : 'radiance'; spend('celestial_revelation'); addEff(g, c, { id: 'celestial_revelation', form, src: c.uid, rounds: 10 }); T.bonusUsed = true;
     say(g, `${c.name} reveals their celestial nature (${{ wings: 'Heavenly Wings', radiance: 'Inner Radiance', shroud: 'Necrotic Shroud' }[form]}).`);
-    if (form === 'shroud') { const dc = 8 + s.mods.cha + s.pb; for (const f of foesOf(g, c)) if (up(g, f) && dist(c, f) <= 10) { const r = saveRoll(g, f, 'wis', dc, 'Necrotic Shroud'); if (!r.ok) { addCond(g, f, { id: 'frightened', src: c.uid, untilSrcTurn: true }); say(g, `${f.name} is frightened.`); } } }
+    if (form === 'shroud') { const dc = 8 + s.mods.cha + s.pb; for (const f of foesOf(g, c)) if (up(g, f) && D(g, c, f) <= 10) { const r = saveRoll(g, f, 'wis', dc, 'Necrotic Shroud'); if (!r.ok) { addCond(g, f, { id: 'frightened', src: c.uid, untilSrcTurn: true }); say(g, `${f.name} is frightened.`); } } }
     return; }
   if (b.do === 'innate_sorcery' && s.resources.innate_sorcery?.left > 0 && !hasEff(g, c, 'innate_sorcery')) { spend('innate_sorcery'); addEff(g, c, { id: 'innate_sorcery', src: c.uid, rounds: 10 }); T.bonusUsed = true; say(g, `${c.name} unleashes Innate Sorcery.`); return; }
-  if (b.do === 'flurry' && c0.cls === 'monk' && s.resources.focus?.left > 0) { const t = pickTarget(g, c, b.target || 'nearest'); if (!t || dist(c, t) > 5) return; spend('focus'); T.bonusUsed = true; T.flurry = true; return; }
+  if (b.do === 'flurry' && c0.cls === 'monk' && s.resources.focus?.left > 0) { const t = pickTarget(g, c, b.target || 'nearest'); if (!t || D(g, c, t) > 5) return; spend('focus'); T.bonusUsed = true; T.flurry = true; return; }
   if (b.do === 'patient_defense' && c0.cls === 'monk') { T.bonusUsed = true; if (s.resources.focus?.left > 0) { spend('focus'); addEff(g, c, { id: 'dodge', src: c.uid, rounds: 1 }); } T.disengaged = true; return; }
   if (b.do === 'cast') { const sp = SRD.spells[b.spell]; const m = spellModel(b.spell); if (!m?.bonusAction) return; const ally = ['heal', 'buff'].includes(m.kind) && m.effect !== 'hunters_mark' && m.effect !== 'hex'; const t = ally ? pickAlly(g, c, b.target || 'ally_lowest') : pickTarget(g, c, b.target || 'nearest');
     if (!t) return; if ((m.effect === 'hunters_mark' || m.effect === 'hex') && effects(g, c).some(e => e.id === m.effect && up(g, C(g, e.target) || {}) )) return;
     if (ally && m.kind === 'heal' && b.onlyIfDown && hpOf(g, t) > 0) return;
-    const rng = parseInt(sp.range) || 60; if (dist(c, t) > rng) { trig(g, 'order_impossible', `${c.name}: ${sp.name} out of range`); return; }
+    const rng = parseInt(sp.range) || 60; if (D(g, c, t) > rng) { trig(g, 'order_impossible', `${c.name}: ${sp.name} out of range`); return; }
     const fe = b.spell === 'hunters_mark' && s.resources.favored_enemy?.left > 0; if (fe) { g.set(['chars', c.cid, 'resSpent', 'favored_enemy'], (c0.resSpent.favored_enemy || 0) + 1); const r = castSpell(g, T, c, b.spell, 1, [t], { markTarget: t, freeCast: true }); if (r.ok) T.bonusUsed = true; return; }
     const L = sp.level ? pickSlot(g, c, b.level || sp.level) : 0; const r = castSpell(g, T, c, b.spell, L, [t], { markTarget: t }); if (r.ok) { T.bonusUsed = true; if (b.spell === 'spiritual_weapon') T.castSW = true; } else trig(g, 'order_impossible', `${c.name}: ${sp.name} — ${r.why}`); return; }
 }
 function usePotionInCombat(g, T, c, act, target) {
   const c0 = ch(g, c); target = target || c; const idx = c0.inventory.findIndex(i => (act.item ? i.uid === act.item || i.id === act.item : /^potion_of_healing/.test(i.id)) && i.qty > 0);
   if (idx < 0) { say(g, `${c.name} has no potion.`); trig(g, 'order_impossible', `${c.name} has no potion`); return; }
-  if (dist(c, target) > 5) { say(g, `${target.name} is out of reach for a potion.`); return; }
+  if (D(g, c, target) > 5) { say(g, `${target.name} is out of reach for a potion.`); return; }
   const it = c0.inventory[idx]; const d = itemDef(it); g.set(['chars', c.cid, 'inventory', idx, 'qty'], it.qty - 1); T.bonusUsed = true;
   if (d.use?.heal) heal(g, target, g.roll(d.use.heal, {}, d.name).total, d.name);
   if (d.use?.effect === 'resistance_potion') addEff(g, target, { id: 'resistance_potion', type: act.type || 'fire', rounds: 600 });
@@ -656,11 +764,11 @@ function npcTurn(g, T, c) {
   if (c.tactics?.flee && hpOf(g, c) <= c.maxHp / 4 && !c.boss) { g.set(['encounter', 'combatants', c.uid, 'fled'], true); say(g, `${c.name} flees!`); return; }
   const pcs = foesOf(g, c).filter(p => !isDead(g, p)); let pool = pcs.filter(p => hpOf(g, p) > 0); if (c.tactics?.finisher) pool = pcs; if (!pool.length) return;
   const melee = c.attacks.find(a => a.melee) || null; const ranged = c.attacks.find(a => a.ranged && !a.melee) || c.attacks.find(a => a.ranged);
-  let t = [...pool].sort((a, b) => dist(c, a) - dist(c, b) || hpOf(g, a) - hpOf(g, b))[0];
+  let t = [...pool].sort((a, b) => D(g, c, a) - D(g, c, b) || hpOf(g, a) - hpOf(g, b))[0];
   let atk = melee;
-  if (melee) { if (dist(c, t) > 5) moveToward(g, T, c, t, 5, speedOf(g, c)); c = C(g, c.uid); if (!up(g, c)) return; t = C(g, t.uid); if (dist(c, t) > 5) { const adj = pool.find(p => dist(c, p) <= 5); if (adj) t = adj; else if (ranged && dist(c, t) <= ranged.range) atk = ranged; else { say(g, `${c.name} closes in.`); return; } } }
-  else if (ranged) { atk = ranged; if (dist(c, t) > ranged.range) moveToward(g, T, c, t, ranged.range, speedOf(g, c)); }
+  if (melee) { if (D(g, c, t) > 5) moveToward(g, T, c, t, 5, speedOf(g, c)); c = C(g, c.uid); if (!up(g, c)) return; t = C(g, t.uid); if (D(g, c, t) > 5) { const adj = pool.find(p => D(g, c, p) <= 5); if (adj) t = adj; else if (ranged && D(g, c, t) <= ranged.range) atk = ranged; else { say(g, `${c.name} closes in.`); return; } } }
+  else if (ranged) { atk = ranged; if (D(g, c, t) > ranged.range) moveToward(g, T, c, t, ranged.range, speedOf(g, c)); }
   if (!atk) { say(g, `${c.name}: no automated attack (GM runs its actions).`); return; }
-  for (let i = 0; i < c.multi; i++) { t = C(g, t.uid); if (isDead(g, t) || (hpOf(g, t) === 0 && !c.tactics?.finisher)) { const n = pool.filter(p => up(g, p) && dist(C(g, c.uid), p) <= (atk.melee ? 5 : atk.range)); if (!n.length) return; t = n[0]; } attack(g, T, C(g, c.uid), t, atk); if (!up(g, C(g, c.uid))) return; }
+  for (let i = 0; i < c.multi; i++) { t = C(g, t.uid); if (isDead(g, t) || (hpOf(g, t) === 0 && !c.tactics?.finisher)) { const n = pool.filter(p => up(g, p) && D(g, C(g, c.uid), p) <= (atk.melee ? 5 : atk.range)); if (!n.length) return; t = n[0]; } attack(g, T, C(g, c.uid), t, atk); if (!up(g, C(g, c.uid))) return; }
 }
 export { sheet as pcSheet, C as combatant, up as isUp, isDead };

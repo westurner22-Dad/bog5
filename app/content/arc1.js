@@ -113,5 +113,28 @@ export const NIGHTS = [
     freeDc: 14, absentText: 'Sits on an unconscious clerk, drinks whatever survived the brawl, and lets the others handle it. No roll.',
     after: { rest: { kind: 'long', food: 'inn', water: 'inn' }, effects: [] },
     next: 'In the morning, a side quest: the Agent at Court, if you will have it, or the road to the Border March.' },
+
+  // Night 20 (opened as a1n7): after the Agent at Court side quest. GM-authored Nov 19 2026.
+  { n: 7, id: 'a1n7', adventure: 'a1', title: 'Back to the Main Road', place: 'The capital \u00b7 the palace steps', bg: 'city', time: 'Night', shop: 'capital',
+    prose: [
+      'The Office of Tariffs is behind you, and it will be a while before anyone wants to work in it. Dylan Stewart is on the floor with his clipboard, and the Steward has already paid the bounty: seventy-five gold each, a pair of Sending Stones waiting to be divided, and ten percent off at the capital\u2019s guild stalls. Wes ruled that Gorlock could be raised, and the rest healed, free and at full health, with no lingering penalties. All four of you are on your feet again.',
+      'Outside, the palace steps smell of wet stone and a little of what you left behind. The city is still awake. The main road heads toward the Border March, which is what the morning after the bar brawl had offered in the first place, once the Agent at Court was done.',
+      'On the way you pass the Guildhall Bazaar. The stalls know your faces now, and the discount is real. Anything in your cart is bought on the way. The Sending Stones are still waiting for Need or Greed, if you have not settled them yet.',
+    ],
+    quote: { who: 'the Steward', text: '\u201cThe file is closed. The road is open. I would not linger on the steps; the laundry will have questions, and I would prefer not to answer them.\u201d' },
+    moves: [
+      { id: 'steward', label: 'Thank the Steward properly', tags: ['talk'], check: { skill: 'persuasion', dc: 9 }, hint: 'He already paid you. Manners still count.',
+        success: { text: 'The Steward actually smiles, which looks like it hurts a little. He says the court will remember who cleared the office, and he has a courier ready if you ever need one.', effects: [{ inspiration: true, why: 'the Steward\u2019s good opinion' }] },
+        failure: { text: 'You thank him three times, then a fourth, and he gently steers you toward the stairs before a fifth can happen.', effects: [] } },
+      { id: 'clipboard', label: 'Look at Dylan\u2019s clipboard before you go', tags: ['lore'], check: { skill: 'investigation', dc: 9 }, hint: 'It is still in his hand. He does not need it now.',
+        success: { text: 'Under a grease stain is the Writ of Fireball Approval, finally marked APPROVED, end of day, in a hand that gets shakier toward the bottom. Question forty-seven is blank. You keep it anyway.', effects: [{ xp: 25, who: 'self', why: 'found the approved writ' }] },
+        failure: { text: 'You pick up the clipboard. You put the clipboard down. Some documents do not deserve a second reading.', effects: [] } },
+      { id: 'road', label: 'Ask around about the road to the Border March', tags: ['lore'], check: { skill: 'survival', dc: 14 }, hint: 'Teamsters gossip. Guard sergeants gossip louder.',
+        success: { text: 'A caravan master on the steps says the Border March is busy with Committee wagons, and Thimbleby is charging a \u201cvoluntary inspection fee\u201d at the gate. The road itself is open, if you do not mind being counted.', effects: [{ xp: 25, who: 'self', why: 'got a true report of the road' }] },
+        failure: { text: 'You get three directions to the Border March and two of them are the same alley. You will find it in the morning, the way everyone does.', effects: [] } },
+    ],
+    freeDc: 14, absentText: 'Waits on the palace steps, breathes the night air, and lets the others do the talking. No roll.',
+    after: { effects: [] },
+    next: 'The road to the Border March is open.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);
