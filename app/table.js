@@ -293,21 +293,20 @@ function recapView(k) {
 }
 // ---------- recap popup (post-fight list item 1) ----------
 // The latest night's recap opens full screen once per night per player on this device (localStorage only; nothing is
-// written to the database). The front lists every request made to the GM that night, write-ins and Ask the GM, and
-// how each was ruled; the narration follows; "Back to the table" closes it.
+// written to the database). It opens with that night's Ask the GM questions and their answers (omitted entirely if
+// there are none); the colored narration follows; "Back to the table" closes it. Write-in / "Something else"
+// summaries (skill, DC, reason, result) are not listed here.
 const SEEN_KEY = () => `bog5.recapSeen.${q.get('store') || 'local'}.${OWNER || 'guest'}`;
 const seenNights = () => { try { const v = JSON.parse(localStorage.getItem(SEEN_KEY()) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
 function markSeen(k) { try { localStorage.setItem(SEEN_KEY(), JSON.stringify([...seenNights().filter(x => x !== k), k].slice(-60))); } catch {} }
 export function gmRequests(k, r, asks = T.asks || [], players = T.players || []) {
-  const out = []; const nameOf = pid => players.find(p => p.pid === pid)?.name || pid;
-  for (const e of (r?.entries || []).filter(e => e.kind === 'free')) { const c = e.check; const dc = e.dcCall; const why = dc?.why ? dc.why.replace(/^default (Easy|Medium|Hard): /, '') : '';
-    out.push({ pid: e.pid, name: e.name, kind: 'Write-in', text: e.text, ruling: c ? `${c.label || c.skill || 'Check'} \u00b7 ${dc?.word || c.word} (DC ${dc?.dc ?? c.dc})${why ? ` \u00b7 ${why}` : ''}`: 'No roll needed', result: c ? `${c.ok ? 'Success' : 'Failure'} (${c.total} vs DC ${c.dc}). ${e.outcome || ''}` : (e.outcome || '') }); }
-  for (const a of asks.filter(a => a.night === k).sort((x, y) => x.at - y.at)) out.push({ pid: a.by, name: nameOf(a.by), kind: 'Ask the GM', text: a.text, ruling: a.answer ? `${a.answer.text}${a.answer.srd ? ` (${a.answer.srd})` : ''}` : 'Not answered yet.', result: '' });
-  return out;
+  const nameOf = pid => players.find(p => p.pid === pid)?.name || pid;
+  return asks.filter(a => a.night === k).sort((x, y) => x.at - y.at)
+    .map(a => ({ pid: a.by, name: nameOf(a.by), kind: 'Ask the GM', text: a.text, ruling: a.answer ? `${a.answer.text}${a.answer.srd ? ` (${a.answer.srd})` : ''}` : 'Not answered yet.', result: '' }));
 }
 function recapPopupHtml(k, r) {
   const reqs = gmRequests(k, r);
-  const front = `<div class="card"><h2>Requests to the GM \u00b7 Night ${k}</h2>${reqs.length ? `<ul class="list">${reqs.map(x => `<li>${AV(x.pid)}<div style="flex:1;min-width:0"><b>${esc(first(x.name))}</b> <span class="tag">${esc(x.kind)}</span><div class="meta">\u201c${esc(x.text)}\u201d</div><div class="meta"><b style="color:#7d1d2e">Ruled:</b> ${esc(x.ruling)}</div>${x.result ? `<div class="meta">${esc(x.result)}</div>` : ''}</div></li>`).join('')}</ul>` : '<div class="note">No write-ins or questions for the GM that night.</div>'}</div>`;
+  const front = reqs.length ? `<div class="card"><h2>Ask the GM \u00b7 Night ${k}</h2><ul class="list">${reqs.map(x => `<li>${AV(x.pid)}<div style="flex:1;min-width:0"><b>${esc(first(x.name))}</b> <span class="tag">${esc(x.kind)}</span><div class="meta">\u201c${esc(x.text)}\u201d</div><div class="meta"><b style="color:#7d1d2e">Ruled:</b> ${esc(x.ruling)}</div>${x.result ? `<div class="meta">${esc(x.result)}</div>` : ''}</div></li>`).join('')}</ul></div>` : '';
   const narr = `<div class="card"><h2>The GM narrates</h2>${(r.narration || '').split(/\n\s*\n/).map(p => `<p class="prose" style="font-size:15.5px">${md(p)}</p>`).join('')}</div>`;
   return `<div class="recappop-in"><div class="card dark"><div class="eyebrow" style="color:#cdb27a">Night ${k} \u00b7 the recap</div><div class="title" style="color:#f0d58a">${esc(r.title || '')}</div></div>${front}${narr}<button class="btn gold back" data-recapclose="1">Back to the table</button></div>`;
 }
