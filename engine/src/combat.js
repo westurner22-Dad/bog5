@@ -60,8 +60,12 @@ const squaresBudget = (g, ft) => { const sq = squareFt(g); return sq === 5 ? ft 
 export const ENEMY_AC = { Easy: 8, Medium: 10, Hard: 13 };
 export function flattenFoe(tpl, f = {}) {
   const tier = ENEMY_AC[f.tier] ? f.tier : f.boss ? 'Hard' : 'Medium'; const ac = ENEMY_AC[tier]; const drop = Math.max(0, tpl.ac - ac);
-  return { ...tpl, ac, attacks: (tpl.attacks || []).map(a => ({ ...a, toHit: a.toHit - drop })) };
+  // Wes, Nov 19 2026: attack bonuses drop with AC but never below +0; ones already at +0 or lower stay as they are
+  return { ...tpl, ac, attacks: (tpl.attacks || []).map(a => ({ ...a, toHit: a.toHit > 0 ? Math.max(0, a.toHit - drop) : a.toHit })), ...(f.metal ? { metalBody: true } : {}) };
 }
+// creatures that are themselves the metal (Heat Metal can't be dropped). Content can mark any foe with metal: true.
+export const METAL_FOES = new Set(['animated_armor', 'animated_flying_sword', 'iron_golem', 'shield_guardian']);
+export const isMetalBody = t => !!(t && (t.metalBody || METAL_FOES.has(t.monster)));
 const occupied = (g, mover, x, y) => Object.values(enc(g).combatants).some(o => o.uid !== mover.uid && !isDead(g, o) && x + (mover.size || 1) - 1 >= o.pos[0] && x <= o.pos[0] + (o.size || 1) - 1 && y + (mover.size || 1) - 1 >= o.pos[1] && y <= o.pos[1] + (o.size || 1) - 1);
 const terrain = (g, x, y) => enc(g).map.terrain?.[`${x},${y}`] || null;
 const inMap = (g, x, y, s = 1) => x >= 0 && y >= 0 && x + s - 1 < enc(g).map.w && y + s - 1 < enc(g).map.h;
@@ -353,11 +357,11 @@ function trueStrikeWeapon(g, c, t, smod) {
 const trueStrikeReach = (g, c) => { const ws = sheet(g, c).attacks.filter(a => a.weapon !== 'unarmed'); const m = ws.find(a => a.melee); return m ? m.reach : ws[0]?.range?.[0] || 5; };
 function heatMetalBurn(g, T, c, t, dice, dc, name) {
   const dmg = g.roll(dice, {}, 'Heat Metal damage').total; t = C(g, t.uid); if (!up(g, t)) return;
-  const r = saveRoll(g, t, 'con', dc, name);
-  say(g, `${t.name} takes ${dmg} fire from the red-hot metal (CON ${r.total} vs DC ${dc}: ${r.ok ? 'keeps hold of it' : 'drops it'}).`);
+  const r = saveRoll(g, t, 'con', dc, name); const metal = isMetalBody(t);
+  say(g, `${t.name} takes ${dmg} fire from the red-hot metal (CON ${r.total} vs DC ${dc}: ${metal ? `${t.name} is the metal and can't drop itself` : r.ok ? 'keeps hold of it' : 'drops it'}).`);
   applyDamage(g, T, t, dmg, 'fire', { magical: true, by: c }); t = C(g, t.uid); if (!up(g, t)) return;
   remEff(g, t, e => e.id === 'heat_metal' && e.src === c.uid);
-  if (r.ok) { addEff(g, t, { id: 'heat_metal', src: c.uid, conc: c.uid, spell: 'heat_metal', dice, dc }); addEff(g, t, { id: 'heat_metal_dis', src: c.uid, rounds: 1 }); }
+  if (r.ok || metal) { addEff(g, t, { id: 'heat_metal', src: c.uid, conc: c.uid, spell: 'heat_metal', dice, dc }); addEff(g, t, { id: 'heat_metal_dis', src: c.uid, rounds: 1 }); }
   else say(g, `${t.name} is no longer touching the hot metal; Heat Metal can't burn ${t.name} again.`);
 }
 
