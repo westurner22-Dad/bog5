@@ -442,5 +442,7 @@ div.portrait{background-color:#2b1c12}
 .recappop{position:fixed;inset:0;z-index:40;background:#140d08;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .recappop-in{max-width:440px;margin:0 auto;padding:14px 10px calc(24px + env(safe-area-inset-bottom))}
 .recappop .back{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));margin-top:12px;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.recap-reel video{width:100%;display:block;margin:10px 0 6px;border-radius:8px;background:#000;aspect-ratio:16/9}
+.recap-reel-credit{font-size:11px;color:#9a8a70;margin-top:2px}
 body.popopen{overflow:hidden}
 .legend span.sq:before{display:none}

@@ -14,6 +14,7 @@ import { partySupplies, suppliesOf } from '../engine/src/shop.js';
 import { normalizeDraft, draftAction } from './draft.js';
 import { spellModel } from '../engine/src/rules/spellEffects.js';
 import { RULES_V2_NIGHT, castRounds, castTimeLabel } from '../engine/src/combat.js';
+import { reelFor, reelHtml } from './content/battle-reels.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
@@ -282,7 +283,8 @@ function recapView(k) {
   const xpBy = cid => r.sheetChanges.filter(c => c.cid === cid && c.what === 'XP').map(c => c.delta).join(' ');
   const xpAvg = Math.round(T.players.reduce((s, p) => s + (ch(p.cid)?.xp || 0), 0) / Math.max(1, T.players.length)); const lvAvg = Math.min(...T.players.map(p => ch(p.cid)?.level || 3)); const nx = XP_NEXT[lvAvg] || 14000;
   const nextSc = T.scenes[k + 1];
-  return `<div class="card"><div class="eyebrow">Chronicle \u00b7 Night ${k}</div><div class="title">${esc(r.title)}</div>${(r.narration || '').split(/\n\s*\n/).slice(0, 2).map(p => `<p class="prose">${md(p)}</p>`).join('')}</div>
+  const reel = reelHtml(reelFor(k, T.scenes[k]?.id || r.sceneId || r.scene));
+  return `${reel}<div class="card"><div class="eyebrow">Chronicle \u00b7 Night ${k}</div><div class="title">${esc(r.title)}</div>${(r.narration || '').split(/\n\s*\n/).slice(0, 2).map(p => `<p class="prose">${md(p)}</p>`).join('')}</div>
    ${best.length ? `<div class="card dark"><h2>Dice of the night</h2>${best.map(e => `<div class="row" style="margin-top:9px;gap:12px">${D20(e.check.nat, e.check.nat === 20 ? '#b8862a' : e.check.nat === 1 ? '#7a1a1f' : '#2c6a8a')}<div><b style="font:700 14px Cinzel,serif;color:#f0d58a">${esc(first(e.name))} \u00b7 ${esc(e.label || 'something else')}</b><div class="meta" style="color:#cdb27a">${e.check.nat} ${e.check.parts.map(p => `${sgn(p.v).replace('+', '+ ').replace('\u2212', '\u2212 ')} ${esc(p.src)}`).join(' ')} = ${e.check.total} vs DC ${e.check.dc}. ${e.check.ok ? 'Success.' : 'Failure.'}</div></div></div>`).join('')}</div>` : ''}
    ${r.battle && !r.battle.started ? `<div class="card dark"><h2>The fight</h2><div class="meta" style="color:#cdb27a;margin-top:6px">${esc(r.battle.name)} \u00b7 through round ${r.battle.round} \u00b7 ${r.battle.unfinished ? `saved, resumes Night ${k + 1}` : esc(r.battle.status)}${r.battle.stop ? ` \u00b7 stopped: ${esc(r.battle.stop.text)}` : ''}</div></div>` : ''}
    <div class="card"><h2>The heroes</h2><ul class="list">${T.players.map(p => { const c = ch(p.cid); const s = sheetOf(p.cid); const e = r.entries.find(x => x.pid === p.pid);
@@ -293,9 +295,10 @@ function recapView(k) {
 }
 // ---------- recap popup (post-fight list item 1) ----------
 // The latest night's recap opens full screen once per night per player on this device (localStorage only; nothing is
-// written to the database). It opens with that night's Ask the GM questions and their answers (omitted entirely if
-// there are none); the colored narration follows; "Back to the table" closes it. Write-in / "Something else"
-// summaries (skill, DC, reason, result) are not listed here.
+// written to the database). An optional static battle reel (content/battle-reels.js, keyed by night or scene id; not
+// stored in the save) plays at the top when one is configured, then that night's Ask the GM questions and their
+// answers (omitted entirely if there are none); the colored narration follows; "Back to the table" closes it. Write-in /
+// "Something else" summaries (skill, DC, reason, result) are not listed here.
 const SEEN_KEY = () => `bog5.recapSeen.${q.get('store') || 'local'}.${OWNER || 'guest'}`;
 const seenNights = () => { try { const v = JSON.parse(localStorage.getItem(SEEN_KEY()) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
 function markSeen(k) { try { localStorage.setItem(SEEN_KEY(), JSON.stringify([...seenNights().filter(x => x !== k), k].slice(-60))); } catch {} }
@@ -306,9 +309,10 @@ export function gmRequests(k, r, asks = T.asks || [], players = T.players || [])
 }
 function recapPopupHtml(k, r) {
   const reqs = gmRequests(k, r);
+  const reel = reelHtml(reelFor(k, T.scenes?.[k]?.id || r.sceneId || r.scene));
   const front = reqs.length ? `<div class="card"><h2>Ask the GM \u00b7 Night ${k}</h2><ul class="list">${reqs.map(x => `<li>${AV(x.pid)}<div style="flex:1;min-width:0"><b>${esc(first(x.name))}</b> <span class="tag">${esc(x.kind)}</span><div class="meta">\u201c${esc(x.text)}\u201d</div><div class="meta"><b style="color:#7d1d2e">Ruled:</b> ${esc(x.ruling)}</div>${x.result ? `<div class="meta">${esc(x.result)}</div>` : ''}</div></li>`).join('')}</ul></div>` : '';
   const narr = `<div class="card"><h2>The GM narrates</h2>${(r.narration || '').split(/\n\s*\n/).map(p => `<p class="prose" style="font-size:15.5px">${md(p)}</p>`).join('')}</div>`;
-  return `<div class="recappop-in"><div class="card dark"><div class="eyebrow" style="color:#cdb27a">Night ${k} \u00b7 the recap</div><div class="title" style="color:#f0d58a">${esc(r.title || '')}</div></div>${front}${narr}<button class="btn gold back" data-recapclose="1">Back to the table</button></div>`;
+  return `<div class="recappop-in"><div class="card dark"><div class="eyebrow" style="color:#cdb27a">Night ${k} \u00b7 the recap</div><div class="title" style="color:#f0d58a">${esc(r.title || '')}</div></div>${reel}${front}${narr}<button class="btn gold back" data-recapclose="1">Back to the table</button></div>`;
 }
 async function maybeRecapPopup() {
   if (T.view !== 'table' || !T.n || q.get('norecap')) return; const k = T.scene?.status === 'resolved' ? T.n : T.n - 1; if (k < 1 || seenNights().includes(k)) return;
@@ -318,6 +322,7 @@ async function maybeRecapPopup() {
   const onKey = e => { if (e.key === 'Escape') close(); };
   el.addEventListener('click', e => { if (e.target.closest('[data-recapclose]')) close(); }); document.addEventListener('keydown', onKey);
   document.body.appendChild(el); document.body.classList.add('popopen'); el.scrollTop = 0;
+  el.querySelector('video')?.play?.().catch(() => {});
 }
 function chronView() {
   const ks = Array.from({ length: T.n }, (_, i) => i + 1).reverse();
