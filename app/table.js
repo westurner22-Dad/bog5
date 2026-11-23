@@ -15,6 +15,7 @@ import { normalizeDraft, draftAction } from './draft.js';
 import { spellModel } from '../engine/src/rules/spellEffects.js';
 import { RULES_V2_NIGHT, castRounds, castTimeLabel } from '../engine/src/combat.js';
 import { reelFor, reelHtml } from './content/battle-reels.js';
+import { mapHtml as spriteMap, initStripHtml, foeLabel } from './content/battle-sprites.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>');
@@ -146,20 +147,12 @@ function tableView() {
 }
 
 // ---------- battle ----------
-const foeLabel = c => { const nm = c.name; const n = nm.match(/(\d+)$/); const ini = nm.replace(/\s*\d+$/, '').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase(); return c.boss ? ini.slice(-1) : ini + (n ? n[1] : ''); };
-function mapHtml(view, { dest = null, clickable = false, paused = null } = {}) {
-  if (!view?.map) return ''; const { w, h, terrain = {} } = view.map; const S = 44; let cells = '';
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const t = terrain[`${x},${y}`]; const cls = t === 'wall' ? (view.map.water ? 'water' : 'bar') : t === 'difficult' ? 'tbl' : (x + y) % 2 ? 'floor' : 'floor2';
-    cells += `<div class="cell ${cls}" ${clickable && t !== 'wall' ? `data-t="cell" data-x="${x}" data-y="${y}"` : ''}>${x === 0 ? `<i>${y + 1}</i>` : y === 0 ? `<i>${'ABCDEFGHIJ'[x]}</i>` : ''}</div>`; }
-  const toks = view.combatants.map(c => { const big = c.boss; const sz = big ? 38 : 38; const L = c.pos[0] * S + 3, Tp = c.pos[1] * S + 3; const down = c.hp <= 0;
-    if (c.side === 'pc' || c.kind === 'pc') { const pid = pidOfCid(c.cid); return `<div class="tok pc ${pid === OWNER ? 'me' : ''} ${down ? 'down' : ''}" style="left:${L}px;top:${Tp}px;width:${sz}px;height:${sz}px">${AV(pid)}</div>`; }
-    if (down) return `<div class="tok foe gone" style="left:${L + 9}px;top:${Tp + 9}px;width:20px;height:20px"><b>\u2715</b></div>`;
-    return `<div class="tok foe ${big ? 'big' : ''} ${c.hp <= c.max / 2 ? 'bl' : ''}" style="left:${L}px;top:${Tp}px;width:${sz}px;height:${sz}px"><b>${esc(foeLabel(c))}</b></div>`; }).join('');
-  return `<div class="map" style="grid-template-columns:repeat(${w},44px);grid-template-rows:repeat(${h},44px);width:${w * 44}px;height:${h * 44}px">${cells}${toks}${dest ? `<div class="dest" style="left:${dest[0] * 44 + 3}px;top:${dest[1] * 44 + 3}px"></div>` : ''}${paused ? `<div class="paused"><span>${esc(paused)}</span></div>` : ''}</div>`;
+function mapHtml(view, opts = {}) {
+  return spriteMap(view, { ...opts, isMe: pid => pidOfCid(pid) === OWNER || pid === OWNER, pcFallback: pid => AV(pidOfCid(pid) || pid) });
 }
-function initStrip(view) { const order = view.order || []; const cur = order[view.turn];
-  return `<div class="init">${order.map(u => { const c = view.combatants.find(x => x.uid === u); if (!c || c.hp <= 0 && c.side !== 'pc') return ''; const pid = c.cid ? pidOfCid(c.cid) : null;
-    return `<span class="ini ${u === cur ? 'now' : ''}">${pid ? AV(pid) : `<span class="fd">${esc(foeLabel(c))}</span>`}${pid === OWNER ? 'you' : esc(first(c.name))}</span>`; }).join('')}</div>`; }
+function initStrip(view) {
+  return initStripHtml(view, { isMe: pid => pidOfCid(pid) === OWNER || pid === OWNER, pcFallback: pid => AV(pidOfCid(pid) || pid), firstName: first });
+}
 function legend(view) { const foes = view.combatants.filter(c => c.side !== 'pc' && c.kind !== 'pc');
   const lg = { floor: 'floor', difficult: 'tables (difficult)', wall: 'bar (wall)', ...(view.map?.legend || {}) };
   return `<div class="legend"><span style="--c:#8a6438">${esc(lg.floor)}</span><span style="--c:repeating-linear-gradient(45deg,#5b3d1f 0 3px,#3a2612 3px 6px)">${esc(lg.difficult)}</span><span style="--c:${view.map?.water ? '#2f6f9e' : '#2b1c12'}">${esc(lg.wall)}</span><span style="--c:#e35d4f">bloodied</span>${(T.game?.state?.encounter?.startedNight || 0) >= RULES_V2_NIGHT ? '<span class="sq">1 square = 10 ft</span>' : ''}</div>
