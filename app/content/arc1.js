@@ -558,5 +558,17 @@ export const NIGHTS = [
     freeDc: 14, absentText: 'Stays under the tarp with his boots tucked in and lets the wagon roll. No roll.',
     after: { effects: [] },
     next: 'The light is higher, the tarp is finally sitting right, and the men with the papers are still on the same road.' },
+
+  // Night 38 (opened as a1n25): first round of the small road fight. The talk went bad after Biggus confronted the riders; Yäest is in the weeds unseen; Gorlock was seen coming off the wagon; Boobington is still in the cart and the canvas has shifted. GM-authored Nov 23 2026.
+  { n: 25, id: 'a1n25', adventure: 'a1', title: 'The Claim on the Road', place: 'The Border March \u00b7 the road toward Thimbleby', bg: 'forest', time: 'Morning', battle: true,
+    prose: [
+      'The talk is over. Biggus hit the road on his feet and tried a word; the List-Coat Clerk wanted names, or a look under the tarp, or both, and he would not be waved off. Gorlock was already in the road, seen coming off the wagon. Boobington is still in the cart, and the canvas has shifted. Y\u00e4est is in the weeds on the east side of the road, where the riders did not see him go. Steel is out.',
+      'Two of them, both Medium: the **List-Coat Clerk** (27 HP, AC 10) in the road with the satchel, and the **Hired Rider** (16 HP, AC 10) just behind him. Initiative is Gorlock 21, the List-Coat Clerk 13, Biggus 13, the Hired Rider 12, Y\u00e4est 11, and Boobington 11. Gorlock is up first.',
+      'It is a small fight on the March road, one round tonight, then new orders. Set battle orders: where you move, what you do, and a standing order for when things go wrong. Spell slots are still spent from the stretch before the long rest; cantrips do not need them.',
+    ],
+    quote: { who: 'the List-Coat Clerk, the satchel already open', text: '\u201cNames. And you will stand away from that canvas.\u201d' },
+    moves: [], freeDc: 14, absentText: 'Fights on their preset stance.',
+    after: { effects: [] },
+    next: 'The fight on the March road goes on. Orders for the next round are due after this one resolves.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);
