@@ -89,8 +89,10 @@ function packCard(c, s) {
 // ---------- the shop
 function shopCard(P) {
   const T = X.T; const id = shopId(); const where = X.T.scene;
-  if (!id) return `<div class="card"><h2>No shop here tonight</h2><div class="note">${where?.status === 'open' && where.shop ? 'The table has locked for tonight.' : 'Shops open on nights in town: Bucky\u2019s stall at the Leaking Tankard II, the Guildhall Bazaar in the capital, and the bridge stall on the frontier.'} Sell back at half price. Rare items are quest-only.</div></div>`;
-  const tab = T.shopTab || 'foryou'; const v = SH.shopView(P.g.state, me().cid, id, tab);
+  if (!id) return `<div class="card"><h2>No shop here tonight</h2><div class="note">${where?.status === 'open' && where.shop ? 'The table has locked for tonight.' : 'Shops open on nights in town: Bucky\u2019s stall at the Leaking Tankard II, the Guildhall Bazaar in the capital, the bridge stall on the frontier, and the Pump Stall in Thimbleby.'} Sell back at half price. Rare items are quest-only.</div></div>`;
+  if (!SH.SHOPS[id]) return `<div class="card"><h2>Shop</h2><div class="note">A stall is open tonight, but the list is not in this catalog yet. Your pack is below. Try this tab again in a moment.</div></div>`;
+  const tab = T.shopTab || 'foryou';
+  let v; try { v = SH.shopView(P.g.state, me().cid, id, tab); } catch (e) { return `<div class="card"><h2>Shop</h2><div class="note">The stall is open, but the list could not be built. Your pack is below. ${e && e.message ? esc(e.message) : ''}</div></div>`; }
   const row = r => { const inCart = (T.cart || []).filter(l => l.op === 'buy' && l.key === r.key).length;
     return `<div class="item">${thumb(itemDef(SH.instOf(r.key).inst))}<div style="flex:1"><div class="nm">${esc(r.name)}${r.left !== Infinity && r.left < 9 ? ` <span class="meta">\u00b7 ${r.left} left</span>` : ''}</div><div class="tags">${r.tags.slice(0, 4).map(t => `<span class="tag ${t.k || ''}">${esc(t.t)}</span>`).join('')}</div></div>
      <div style="text-align:right"><div class="price">${gp(r.price)}${r.discount ? ' <span class="tag g" style="font-size:9px">\u221210%</span>' : ''}</div>${r.left <= 0 ? '<div class="meta warn">sold out</div>' : r.afford ? `<button class="btn sm" data-t="buy" data-v="${esc(r.key)}" style="margin-top:4px;width:auto">${inCart ? `In cart \u00d7${inCart} \u00b7 +1` : 'Buy'}</button>` : `<div class="meta warn">short ${gp(r.short)}</div>`}</div></div>`; };
@@ -121,8 +123,12 @@ export function questCard() {
 }
 export function gearView() {
   if (!me()) return '<div class="card"><div class="note">You are watching. Gear is per hero.</div></div>';
-  const c = st().chars[me().cid]; const s = deriveSheet(c); const P = sim();
-  return `<div class="stephead"><div class="eyebrow">${esc(X.T.scene?.shop ? (SH.SHOPS[X.T.scene.shop]?.place || 'In town') : (X.T.scene?.place ? X.T.scene.place.split(' \u00b7 ')[0] + ' \u00b7 no shop open' : 'On the road'))}</div><div class="title">Gear</div></div>` + lootCard() + dollCard(c, s) + cartCard(P) + packCard(c, s) + shopCard(P);
+  try {
+    const c = st().chars[me().cid]; const s = deriveSheet(c); const P = sim();
+    return `<div class="stephead"><div class="eyebrow">${esc(X.T.scene?.shop ? (SH.SHOPS[X.T.scene.shop]?.place || SH.SHOPS[X.T.scene.shop]?.name || 'In town') : (X.T.scene?.place ? X.T.scene.place.split(' \u00b7 ')[0] + ' \u00b7 no shop open' : 'On the road'))}</div><div class="title">Gear</div></div>` + lootCard() + dollCard(c, s) + cartCard(P) + packCard(c, s) + shopCard(P);
+  } catch (e) {
+    return `<div class="stephead"><div class="title">Gear</div></div><div class="card"><h2>Gear</h2><div class="note">This tab failed to load. Your other tabs are still fine; try Gear again in a moment.</div></div>`;
+  }
 }
 // ---------- issues
 export function issuesView() {

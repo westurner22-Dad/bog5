@@ -10,7 +10,7 @@ import * as P from './portrait.js';
 import * as G from './gear.js';
 import * as F5 from './phase5.js';
 import * as PA from './portrait-art.js';
-import { partySupplies, suppliesOf } from '../engine/src/shop.js';
+import { partySupplies, suppliesOf, SHOPS } from '../engine/src/shop.js';
 import { normalizeDraft, draftAction, FREE_TEXT_MAX, capFreeText } from './draft.js';
 import { spellModel } from '../engine/src/rules/spellEffects.js';
 import { RULES_V2_NIGHT, castRounds, castTimeLabel } from '../engine/src/combat.js';
@@ -143,7 +143,7 @@ function tableView() {
   const sc = T.scene; const st = status(); const prev = T.n > 1 ? `<button class="card ribbon" data-t="night" data-v="${T.n - 1}"><span>Last night: <b>${esc(T.scenes[T.n - 1]?.title || 'Night ' + (T.n - 1))}</b></span><span>Results \u2192</span></button>` : '';
   if (sc.status === 'resolved' && T.results[T.n]) return resolutionView(T.n) + F5.askCard();
   if (sc.battle) return prev + F5.levelBanner() + battleView(st) + F5.restCard() + F5.askCard();
-  const shopTeaser = sc.shop && st.open && T.me ? `<button class="card ribbon" data-t="go" data-v="gear"><span>\u{1F6D2} <b>${esc(sc.shop === 'tankard' ? 'Bucky\u2019s stall' : sc.shop === 'capital' ? 'The Guildhall Bazaar' : 'The bridge stall')}</b> is open tonight${T.cart?.length ? ` \u00b7 ${T.cart.length} in your cart` : ''}</span><span>Gear \u2192</span></button>` : '';
+  const shopTeaser = sc.shop && st.open && T.me ? `<button class="card ribbon" data-t="go" data-v="gear"><span>\u{1F6D2} <b>${esc(SHOPS[sc.shop]?.name || 'The shop')}</b> is open tonight${T.cart?.length ? ` \u00b7 ${T.cart.length} in your cart` : ''}</span><span>Gear \u2192</span></button>` : '';
   return prev + F5.levelBanner() + sceneCard(sc) + G.lootCard() + movesCard(sc, st) + partyCard(st) + F5.restCard() + shopTeaser + lockCard(st) + F5.askCard() + G.questCard();
 }
 
