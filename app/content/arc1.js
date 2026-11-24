@@ -616,5 +616,27 @@ export const NIGHTS = [
     freeDc: 14, absentText: 'Stays where he stood when the clerk fell, and lets the others decide what to do with the satchel and the road. No roll.',
     after: { effects: [] },
     next: 'The satchel is in the road, the carter is still here, and Thimbleby is still a few hours on.' },
+
+  // Night 42 (opened as a1n29): after the Claim. Yäest settled the carter, who will go on to Thimbleby and not make a speech of the fight; Boobington hid the bodies from a glance, but the ruts still show a fight; Biggus did not find a secure camp; the satchel is still unread; the party wants a long rest. GM-authored Nov 24 2026.
+  { n: 29, id: 'a1n29', adventure: 'a1', title: 'A Camp Off the Road', place: 'The Border March \u00b7 off the road toward Thimbleby', bg: 'forest', time: 'Evening',
+    prose: [
+      'The carter has clicked Bess on. He will still go to Thimbleby with canvas and empty crates, and he will not make a speech of the fight when he gets there. Boobington got the clerk and the rider covered in the weeds so a glance from the road would not pick them out, but the ruts still show that a fight happened here, and a secure camp off the road is still only a plan. The satchel has not been read. Y\u00e4est is still hurt, and nobody has had a proper night since well before the Claim.',
+      'Evening is coming on. They can still take the satchel with them, find a hollow back from the ruts, and keep a quiet watch. The village can wait until morning.',
+    ],
+    quote: { who: 'the carter, already clicking Bess on', text: '\u201cI am going to the village. That is still the whole of it.\u201d' },
+    moves: [
+      { id: 'camp', label: 'Find a secure camp off the road', tags: ['work'], check: { skill: 'survival', dc: 14 }, hint: 'Biggus already looked once and did not trust the hollows by the ruts. A better spot would be farther back from the March road, hidden enough to sleep in.',
+        success: { text: 'You find a hollow well back from the ruts, dry enough to lie down in and hidden enough that a rider on the road would not have a reason to look. It is not an inn, but it will hold until morning.', effects: [{ flag: 'camp_ready', flagText: 'the party found a secure camp off the March road, back from the ruts, hidden enough to sleep in until morning' }, { xp: 25, who: 'self', why: 'found a secure camp off the road' }] },
+        failure: { text: 'The ground close to the road still feels too open, and the ground farther back is wet or thick. You settle for a poor camp, closer to the ruts than anyone likes.', effects: [] } },
+      { id: 'satchel', label: 'Open the satchel and read the claim', tags: ['notice'], check: { skill: 'investigation', dc: 14 }, hint: 'The sheaf is still unread. He wanted names. The papers may say whose, and why.',
+        success: { text: 'The satchel is a claim file, not a grain ledger: a sheaf with a route and a request to stop the wagon and look under the canvas. The names are not written out in full, but the hand has been closing on this party since the gate.', effects: [{ flag: 'claim_read', flagText: 'the party read the clerk\'s satchel: a claim file aimed at stopping the wagon and looking under the canvas, the hand closing since the gate' }, { xp: 25, who: 'self', why: 'read the claim in the satchel' }] },
+        failure: { text: 'The sheaf is a mess of official hand and dust. You can tell it is a claim, and that it is about a wagon on this road, but the names and the rest of it will not come clear here.', effects: [] } },
+      { id: 'watch', label: 'Keep a quiet watch so the camp stays hidden from the road', tags: ['notice'], check: { skill: 'stealth', dc: 14 }, hint: 'The fight still shows in the ruts, and the March road will have other travelers before morning. A quiet watch might keep the camp from being noticed.',
+        success: { text: 'You take the watch and keep it quiet. No one on the road turns toward the hollow, and the camp stays a dark shape among the trees until the light changes.', effects: [{ flag: 'camp_watch', flagText: 'the party kept a quiet watch, and the camp stayed hidden from the March road' }, { xp: 25, who: 'self', why: 'kept a quiet watch over the off-road camp' }] },
+        failure: { text: 'The watch is restless, or a sound carries farther than it should. The camp is still there, but you cannot honestly say it went unnoticed.', effects: [] } },
+    ],
+    freeDc: 14, absentText: 'Lies down where the others settle, keeps his boots on, and lets the night do what it will. No roll.',
+    after: { rest: { kind: 'long', food: 'carried', water: 'carried' }, effects: [] },
+    next: 'Morning, after a night off the March road, and then the last few hours to Thimbleby.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);
