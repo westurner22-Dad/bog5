@@ -638,5 +638,27 @@ export const NIGHTS = [
     freeDc: 14, absentText: 'Lies down where the others settle, keeps his boots on, and lets the night do what it will. No roll.',
     after: { rest: { kind: 'long', food: 'carried', water: 'carried' }, effects: [] },
     next: 'Morning, after a night off the March road, and then the last few hours to Thimbleby.' },
+
+  // Night 43 (opened as a1n30): morning after the long rest. Gorlock settled a poor camp close to the ruts, but Biggus kept the watch and Boobington hid the trail. Yäest opened the satchel and could only tell it is a claim about a wagon on this road; the names will not come clear. Yäest is at 21 HP, out of rations. Thimbleby is a few hours on. GM-authored Nov 24 2026.
+  { n: 30, id: 'a1n30', adventure: 'a1', title: 'The Last Hours to Thimbleby', place: 'The Border March \u00b7 the road toward Thimbleby', bg: 'forest', time: 'Morning',
+    prose: [
+      'Morning after a long rest off the March road. The camp was closer to the ruts than anyone liked, but the watch stayed quiet and the trail was hidden. Spell slots are back, and everyone is on their feet. Y\u00e4est is whole at 21 HP; the old Aid is gone. He ate his last ration last night.',
+      'The satchel has been opened, and it is still only half a story: a claim, about a wagon on this road, in a messy official hand, with the names and the rest of it still unclear. Thimbleby is a few hours on. They can try the sheaf again in better light, look the road over as they walk, or think about how they want to arrive.',
+    ],
+    quote: { who: 'Biggus, already back on the road', text: '\u201cI will monitor the situation.\u201d' },
+    moves: [
+      { id: 'sheaf', label: 'Study the satchel again, now that there is daylight', tags: ['notice'], check: { skill: 'investigation', dc: 14 }, hint: 'Yäest already got this far: it is a claim about a wagon on this road. The names and the rest of it may come clear in better light.',
+        success: { text: 'Daylight does what the evening did not. The satchel is a claim file, not a grain ledger: a sheaf with a route and a request to stop the wagon and look under the canvas. The names are not written out in full, but the hand has been closing on this party since the gate.', effects: [{ flag: 'claim_read', flagText: 'the party read the clerk\'s satchel in daylight: a claim file aimed at stopping the wagon and looking under the canvas, the hand closing since the gate' }, { xp: 25, who: 'self', why: 'read the claim in the satchel in daylight' }] },
+        failure: { text: 'Even in better light the hand is a mess of official loops and dust. It is still a claim about a wagon on this road, and the names still will not come clear.', effects: [] } },
+      { id: 'road', label: 'Watch the road as you walk the last hours to the village', tags: ['notice'], check: { skill: 'perception', dc: 14 }, hint: 'The ruts behind you still show a fight if anyone looks closely, and Thimbleby is ahead. A careful look might say who else is on the road this morning.',
+        success: { text: 'The road ahead is ordinary morning traffic: a cart, a walker, woodsmoke from the village already in sight. Behind you, no one is turning up the trail you left. For now, the last hours look clear.', effects: [{ flag: 'road_clear_morning', flagText: 'the last hours of road to Thimbleby look clear this morning, with the village already in sight' }, { xp: 25, who: 'self', why: 'watched the last hours of road to Thimbleby' }] },
+        failure: { text: 'A dip and a stand of trees eat the view, and when you have it again the road is just a road. You cannot honestly say who else is on it this morning.', effects: [] } },
+      { id: 'arrive', label: 'Settle how you will walk into Thimbleby', tags: ['talk'], check: { skill: 'persuasion', dc: 14 }, hint: 'The carter is going there too, and he will not make a speech of the fight, but a village has eyes. A short, ordinary plan for how you arrive may be cheaper than improvising in the street.',
+        success: { text: 'You agree on a short, ordinary arrival: you are travelers on the March road, walking in by day, with no story you do not need. It will not cover a close question, but it will get you into Thimbleby without looking like a problem.', effects: [{ flag: 'thimbleby_cover', flagText: 'the party agreed on a short, ordinary way to walk into Thimbleby, as travelers on the March road, with no story they do not need' }, { xp: 25, who: 'self', why: 'settled how to walk into Thimbleby' }] },
+        failure: { text: 'No one can agree on a line that sounds ordinary. You will walk in as you are, and if anyone in Thimbleby asks, you will have to invent the rest of it there.', effects: [] } },
+    ],
+    freeDc: 14, absentText: 'Walks the last few hours with the others, keeps his head down, and lets Thimbleby come to him. No roll.',
+    after: { effects: [] },
+    next: 'Thimbleby is ahead, the satchel is only half-read, and morning is already on the road.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);
