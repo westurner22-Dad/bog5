@@ -582,5 +582,17 @@ export const NIGHTS = [
     moves: [], freeDc: 14, absentText: 'Fights on their preset stance.',
     after: { effects: [] },
     next: 'The fight on the March road goes on. Orders for the next round are due after this one resolves.' },
+
+  // Night 40 (opened as a1n27): round 3 of the small road fight. Gorlock hit the List-Coat Clerk for 9 slashing (Bless 4, Savage Attacker), clerk at 5 HP; clerk nat 1 miss; Biggus stopped at 5,6 short of a swing; Hired Rider missed Yäest twice; Vicious Mockery 6 psychic (9 vs DC 12); Boobington Fire Bolt 10 fire, rider falls. GM-authored Nov 23 2026.
+  { n: 27, id: 'a1n27', adventure: 'a1', title: 'The Claim on the Road (cont.)', place: 'The Border March \u00b7 the road toward Thimbleby', bg: 'forest', time: 'Morning', battle: true,
+    prose: [
+      'Round 2 is down, and the Hired Rider is down with him. Gorlock stayed on the List-Coat Clerk and hit: a 3 plus 9, a 12 against AC 10, the 9 being his usual 5 and a 4 from Bless, 9 slashing after Savage Attacker kept the better roll. The clerk is at 5 of 27 HP, still in the road. The clerk\'s shortsword at Gorlock was a 1 plus 2, a 3 against AC 13, and it did not land. Biggus tried for 6, 7; the weeds would have taken the rest of his speed, so he stopped at 5, 6, still on the road, short of a swing at the clerk. The Hired Rider swung twice at Yäest and neither landed (5 plus 1, a 6 against AC 14; 6 plus 1, a 7 against AC 14). Yäest pushed into the weeds, aiming for 6, 6, and made it to 6, 7, beside the rider. Vicious Mockery, no boss marked, so the rider in front of him: Wisdom 8 plus 1, a 9 against DC 12, 6 psychic, and the rider was at 10 HP. Boobington, still in the wagon, held and put a Fire Bolt into the rider, a 6 plus 4, a 10 against AC 10, 10 fire, and the Hired Rider fell. Yäest is still at 17 of 26 HP. Bless is still on Biggus and Gorlock.',
+      'Gorlock is still in the clerk\'s face at 3, 8. The List-Coat Clerk is at 4, 8, at 5 HP. Biggus is on the road at 5, 6. The Hired Rider is down in the weeds at 6, 8. Yäest is in the weeds at 6, 7. Boobington is still in the wagon at 4, 4. Initiative is unchanged: Gorlock 21, the List-Coat Clerk 13, Biggus 13, the Hired Rider 12, Yäest 11, and Boobington 11. Gorlock is up first.',
+      'Round 3 is next. Set battle orders: where you move, what you do, a bonus action if you have one, a smite on a hit if you can, and a standing order for when things go wrong. One round plays tonight, then the table stops for new orders.',
+    ],
+    quote: { who: 'the List-Coat Clerk, the rider already down', text: '\u201cGet up. I still want names.”' },
+    moves: [], freeDc: 14, absentText: 'Fights on their preset stance.',
+    after: { effects: [] },
+    next: 'The fight on the March road goes on. Orders for the next round are due after this one resolves.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);
