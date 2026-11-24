@@ -259,13 +259,20 @@ export function attack(g, T, a, t, atk, opt = {}) {
     if (P.sneakAttack && !atk.spell && !T.sneak && (atk.properties.includes('finesse') || !atk.melee) && !dis && (adv || alliesOf(g, a).some(x => x.uid !== a.uid && conscious(g, x) && D(g, x, t) <= 5))) { T.sneak = true; extra.push([P.sneakAttack, atk.type, 'Sneak Attack']); }
     { const rv = effects(g, a).find(e => e.id === 'celestial_revelation'); if (rv && !T.revelation) { T.revelation = true; extra.push([String(P.pb), rv.form === 'shroud' ? 'necrotic' : 'radiant', 'Celestial Revelation']); } }
     if (SPECIES[ch(g, a).species].onHit) { const oh = SPECIES[ch(g, a).species].onHit(ch(g, a).speciesChoices); /* Giant Ancestry: used only on orders */ }
-    // Divine Smite (bonus action): by order {smite: {when:'crit'|'always'|'boss'|'never', level}}
+    // Smite on a hit (bonus action after a melee weapon hit): {smite: {when, spell, level}}
     const sm = T.orders?.[a.cid]?.smite || (T.absent ? null : { when: 'crit' }); const c0 = ch(g, a);
-    if (c0.cls === 'paladin' && c0.level >= 2 && melee && !atk.spell && !T.bonusUsed && sm && sm.when !== 'never' && (sm.when === 'always' || (sm.when === 'crit' && crit) || (sm.when === 'boss' && t.boss))) {
-      const free = P.resources.free_smite?.left > 0; const L = free ? 1 : pickSlot(g, a, sm.level || 1);
-      if (free || (L && canCastNow(g, a, 'divine_smite', L))) {
+    const smiteId = sm?.spell || 'divine_smite'; const smM = spellModel(smiteId);
+    if (sm && sm.when !== 'never' && melee && !atk.spell && !T.bonusUsed && smM?.kind === 'smite' && knowsSpell(c0, smiteId)
+      && (sm.when === 'always' || (sm.when === 'crit' && crit) || (sm.when === 'boss' && t.boss))) {
+      const free = smiteId === 'divine_smite' && P.resources.free_smite?.left > 0;
+      const L = free ? 1 : pickSlot(g, a, sm.level || smM.level || 1);
+      if (free || (L && canCastNow(g, a, smiteId, L))) {
         if (free) g.set(['chars', a.cid, 'resSpent', 'free_smite'], (c0.resSpent.free_smite || 0) + 1); else { spendSlot(g, a, L); T.slotSpell = true; }
-        T.bonusUsed = true; extra.push([`${1 + L}d8`, 'radiant', 'Divine Smite']); if (['Fiend', 'Undead'].includes(t.type)) extra.push(['1d8', 'radiant', 'Divine Smite vs ' + t.type]);
+        T.bonusUsed = true;
+        const name = SRD.spells[smiteId]?.name || 'Smite';
+        extra.push([smiteDice(smM, L), smM.type || 'radiant', name]);
+        if (smM.extraVs && smM.extra && smM.extraVs.includes(t.type)) extra.push([smM.extra, smM.type || 'radiant', name + ' vs ' + t.type]);
+        if (smiteId === 'searing_smite') T.searing = { dice: smiteDice(smM, L), dc: spellMod(g, a, smiteId).dc };
       }
     }
     if (!T.frenzy && c0.cls === 'barbarian' && c0.subclass && hasEff(g, a, 'rage') && hasEff(g, a, 'reckless') && atk.ability === 'str') { T.frenzy = true; extra.push([`${+P.rageDamage}d6`, atk.type, 'Frenzy']); }
@@ -288,6 +295,7 @@ export function attack(g, T, a, t, atk, opt = {}) {
     if (tc0.cls === 'rogue' && tc0.level >= 5 && T.orders?.[t.cid]?.reactions?.uncanny_dodge !== false) { for (const k of Object.keys(byType)) byType[k] = Math.floor(byType[k] / 2); g.set(['encounter', 'combatants', t.uid, 'reaction'], false); say(g, `${t.name} uses Uncanny Dodge: damage halved.`); }
     else if (tc0.cls === 'monk' && tc0.level >= 3 && ['bludgeoning', 'piercing', 'slashing'].includes(atk.type) && T.orders?.[t.cid]?.reactions?.deflect !== false && tot >= 6) { const red = g.roll('1d10', {}, 'Deflect Attacks').total + sheet(g, t).mods.dex + tc0.level; byType[atk.type] = Math.max(0, byType[atk.type] - red); g.set(['encounter', 'combatants', t.uid, 'reaction'], false); say(g, `${t.name} Deflects Attacks: −${red}.`); } }
   let dealt = 0; for (const [ty, v] of Object.entries(byType)) dealt += applyDamage(g, T, t, v, ty, { crit, magical: atk.magical, by: a });
+  if (T.searing) { const victim = C(g, t.uid); if (up(g, victim)) { addEff(g, victim, { id: 'searing_smite', src: a.uid, dice: T.searing.dice, dc: T.searing.dc, rounds: 100 }); say(g, `${t.name} is lit by Searing Smite.`); } T.searing = null; }
   if (pc && up(g, C(g, t.uid)) && ch(g, a).cls === 'monk' && ch(g, a).level >= 5 && atk.melee && !atk.spell && !T.stunUsed && T.orders?.[a.cid]?.stunningStrike && P.resources.focus?.left > 0) { T.stunUsed = true; g.set(['chars', a.cid, 'resSpent', 'focus'], (ch(g, a).resSpent.focus || 0) + 1); const sr = saveRoll(g, C(g, t.uid), 'con', 8 + P.mods.wis + P.pb, 'Stunning Strike'); if (!sr.ok) { addCond(g, C(g, t.uid), { id: 'stunned', src: a.uid, untilSrcTurn: true }); say(g, `${t.name} is Stunned.`); } else addEff(g, C(g, t.uid), { id: 'stun_half_speed', src: a.uid, rounds: 1 }); }
   // mastery riders (pc)
   if (pc && atk.mastery && up(g, t)) mastery(g, a, t, atk, P);
@@ -305,6 +313,12 @@ function mastery(g, a, t, atk, P) {
 
 // ---------- spells
 function pickSlot(g, c, min) { const s = sheet(g, c).spellcasting; if (!s) return null; if (s.pact) return s.pactLeft > 0 && s.pact.level >= min ? s.pact.level : null; for (let L = min; L <= s.slots.length; L++) if (s.slotsLeft[L - 1] > 0) return L; return null; }
+function smiteDice(m, L) {
+  const match = String(m?.dice || '').match(/^(\d+)d(\d+)$/); if (!match) return m?.dice || '1d8';
+  let n = +match[1]; const face = match[2]; const above = (L || 1) - (m.level || 1);
+  if (above > 0 && m.upcast) { const u = String(m.upcast).match(/^(\d+)d(\d+)$/); if (u) n += above * +u[1]; }
+  return `${n}d${face}`;
+}
 function spendSlot(g, c, L) { const c0 = ch(g, c); const s = sheet(g, c).spellcasting; if (s.pact) g.set(['chars', c.cid, 'pactSpent'], c0.pactSpent + 1); else { const a = [...c0.slotsSpent]; while (a.length < L) a.push(0); a[L - 1] = (a[L - 1] || 0) + 1; g.set(['chars', c.cid, 'slotsSpent'], a); } }
 export function knowsSpell(c0, id) { const s = deriveSheet(c0).spellcasting; const mi = c0.choices.magicInitiate; if (s?.species?.cantrips.includes(id)) return true; return c0.cantrips.includes(id) || c0.prepared.includes(id) || (s?.always || []).includes(id) || (mi && (mi.cantrips.includes(id) || mi.spell === id)); }
 function cannotCastWhy(g, c, id, L, T, opt = {}) {
@@ -548,6 +562,12 @@ export function takeTurn(g, uid, orders) {
     if (!isDead(g, c)) {
       g.set(['encounter', 'combatants', uid, 'reaction'], true);
       tickEffects(g, c);
+      c = C(g, uid);
+      // 2024 Searing Smite: at the start of each of the target's turns, fire damage, then a CON save to end it
+      if (up(g, c)) { const burn = effects(g, c).find(x => x.id === 'searing_smite'); if (burn) {
+        const dmg = g.roll(burn.dice, {}, 'Searing Smite').total; applyDamage(g, T, c, dmg, 'fire', { magical: true }); say(g, `${c.name} takes ${dmg} fire from Searing Smite.`);
+        c = C(g, uid); if (up(g, c)) { const r = saveRoll(g, c, 'con', burn.dc, 'Searing Smite'); if (r.ok) { remEff(g, c, e => e.id === 'searing_smite'); say(g, `${c.name} throws off Searing Smite (CON ${r.total} vs DC ${burn.dc}).`); } else say(g, `${c.name} still burns (CON ${r.total} vs DC ${burn.dc}).`); }
+      } }
       // Spirit-guardians style auras hurt enemies starting their turn inside
       for (const f of foesOf(g, c)) for (const a of effects(g, f).filter(x => x.id === 'aura')) if (up(g, f) && D(g, f, c) <= a.radius && up(g, c)) { const r = saveRoll(g, c, a.save, a.dc, 'aura'); const dmg = g.roll(a.dice, {}, 'aura').total; applyDamage(g, T, c, r.ok ? Math.floor(dmg / 2) : dmg, a.type, { magical: true }); }
       c = C(g, uid);
@@ -747,7 +767,7 @@ function bonusAction(g, T, c, b) {
   if (b.do === 'innate_sorcery' && s.resources.innate_sorcery?.left > 0 && !hasEff(g, c, 'innate_sorcery')) { spend('innate_sorcery'); addEff(g, c, { id: 'innate_sorcery', src: c.uid, rounds: 10 }); T.bonusUsed = true; say(g, `${c.name} unleashes Innate Sorcery.`); return; }
   if (b.do === 'flurry' && c0.cls === 'monk' && s.resources.focus?.left > 0) { const t = pickTarget(g, c, b.target || 'nearest'); if (!t || D(g, c, t) > 5) return; spend('focus'); T.bonusUsed = true; T.flurry = true; return; }
   if (b.do === 'patient_defense' && c0.cls === 'monk') { T.bonusUsed = true; if (s.resources.focus?.left > 0) { spend('focus'); addEff(g, c, { id: 'dodge', src: c.uid, rounds: 1 }); } T.disengaged = true; return; }
-  if (b.do === 'cast') { const sp = SRD.spells[b.spell]; const m = spellModel(b.spell); if (!m?.bonusAction) return; const ally = ['heal', 'buff'].includes(m.kind) && m.effect !== 'hunters_mark' && m.effect !== 'hex'; const t = ally ? pickAlly(g, c, b.target || 'ally_lowest') : pickTarget(g, c, b.target || 'nearest');
+  if (b.do === 'cast') { const sp = SRD.spells[b.spell]; const m = spellModel(b.spell); if (!m?.bonusAction) return; const ally = ['heal', 'buff', 'cure'].includes(m.kind) && m.effect !== 'hunters_mark' && m.effect !== 'hex'; const t = ally ? pickAlly(g, c, b.target || 'ally_lowest') : pickTarget(g, c, b.target || 'nearest');
     if (!t) return; if ((m.effect === 'hunters_mark' || m.effect === 'hex') && effects(g, c).some(e => e.id === m.effect && up(g, C(g, e.target) || {}) )) return;
     if (ally && m.kind === 'heal' && b.onlyIfDown && hpOf(g, t) > 0) return;
     const rng = parseInt(sp.range) || 60; if (D(g, c, t) > rng) { trig(g, 'order_impossible', `${c.name}: ${sp.name} out of range`); return; }

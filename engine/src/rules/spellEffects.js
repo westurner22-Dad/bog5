@@ -47,11 +47,16 @@ const O = {
 };
 export function spellModel(id) {
   const s = SRD.spells[id]; if (!s) return null; const a = s.auto || {}; const o = O[id];
-  if (o) return { ...o, id, level: s.level, concentration: s.concentration, ritual: s.ritual, source: 'override' };
-  if (a.heal) return { id, kind: 'heal', dice: a.heal, upcast: a.upcast?.dice, addMod: a.healAddsMod, level: s.level, concentration: s.concentration, source: 'auto' };
-  if (a.damage && a.attack) return { id, kind: 'attack', dice: a.damage.dice, type: a.damage.type, upcast: a.upcast?.dice, cantrip: !!a.cantrip, cantripDice: a.cantrip, level: s.level, concentration: s.concentration, source: 'auto' };
-  if (a.damage && a.save) return { id, kind: 'save', save: a.save, dice: a.damage.dice, type: a.damage.type, half: a.half, upcast: a.upcast?.dice, cantrip: !!a.cantrip, cantripDice: a.cantrip, level: s.level, concentration: s.concentration, source: 'auto' };
-  return { id, kind: 'gm', level: s.level, concentration: s.concentration, ritual: s.ritual, source: 'gm' };
+  let m;
+  if (o) m = { ...o, id, level: s.level, concentration: s.concentration, ritual: s.ritual, source: 'override' };
+  else if (a.heal) m = { id, kind: 'heal', dice: a.heal, upcast: a.upcast?.dice, addMod: a.healAddsMod, level: s.level, concentration: s.concentration, source: 'auto' };
+  else if (a.damage && a.attack) m = { id, kind: 'attack', dice: a.damage.dice, type: a.damage.type, upcast: a.upcast?.dice, cantrip: !!a.cantrip, cantripDice: a.cantrip, level: s.level, concentration: s.concentration, source: 'auto' };
+  else if (a.damage && a.save) m = { id, kind: 'save', save: a.save, dice: a.damage.dice, type: a.damage.type, half: a.half, upcast: a.upcast?.dice, cantrip: !!a.cantrip, cantripDice: a.cantrip, level: s.level, concentration: s.concentration, source: 'auto' };
+  else m = { id, kind: 'gm', level: s.level, concentration: s.concentration, ritual: s.ritual, source: 'gm' };
+  const t = s.castingTime || '';
+  if (/^bonus/i.test(t)) m.bonusAction = true;
+  if (/^reaction/i.test(t)) m.reaction = true;
+  return m;
 }
 export function spellCoverage() {
   const by = { override: 0, auto: 0, gm: 0 }; const byLevel = {};

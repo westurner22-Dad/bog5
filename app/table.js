@@ -14,6 +14,7 @@ import { partySupplies, suppliesOf } from '../engine/src/shop.js';
 import { normalizeDraft, draftAction } from './draft.js';
 import { spellModel } from '../engine/src/rules/spellEffects.js';
 import { RULES_V2_NIGHT, castRounds, castTimeLabel } from '../engine/src/combat.js';
+import { actionSpells, bonusSpells, smiteSpells, bonusFeatures, actionFeatures, canSacredWeapon } from '../engine/src/orders.js';
 import { reelFor, reelHtml } from './content/battle-reels.js';
 import { mapHtml as spriteMap, initStripHtml, foeLabel } from './content/battle-sprites.js';
 
@@ -186,10 +187,11 @@ function ordersCard(st) {
   if (T.mine?.locked && !T.editing) return `<div class="card" id="orders"><h2>Your ${fightWord()} orders</h2><ul class="list">${orderLines(T.mine.orders, s, c).map(([k, v]) => `<li>${k}<span class="r">${v}</span></li>`).join('')}</ul><div class="note">\u2713 Locked at ${timeLA(T.mine.at)}. ${canEdit ? 'You can change them until the table locks.' : ''}</div>${canEdit ? '<div class="row" style="margin-top:9px"><button class="btn ghost" data-t="unlock" style="flex:1;color:var(--wine);border-color:var(--wine)">Change my orders</button></div>' : ''}</div>`;
   const foes = view.combatants.filter(x => x.side !== 'pc' && x.kind !== 'pc' && x.hp > 0);
   const chip = (grp, v, label, on) => `<button class="chip ${on ? 'on' : ''}" data-t="ord" data-k="${grp}" data-v="${esc(v)}" ${canEdit ? '' : 'disabled'}>${label}</button>`;
-  const act = r.action || {}; const v2 = isV2(); const spells = castable(c, s, v2 ? SPELL_OK_V2 : SPELL_OK); const casting = v2 ? castingOf(c) : null; const conc = v2 && c.conc && !c.conc.casting ? c.conc : null;
-  const acts = [...(casting ? [['continue_cast', `Keep casting <i>${esc(SRD.spells[casting.spell]?.name)}</i> <small>${casting.left} round${casting.left === 1 ? '' : 's'} left</small>`]] : []), ['attack', 'Attack'], ...spells.slice(0, 8).map(x => ['cast:' + x.id, v2 ? `<i>${esc(x.name)}</i> <small>${x.level ? `L${x.level} \u00b7 ` : ''}${esc(castTimeLabel(SRD.spells[x.id]))}${(conc || casting) && SRD.spells[x.id].concentration ? ` \u00b7 ends ${esc(SRD.spells[(conc || casting).spell]?.name)}` : ''}</small>` : `<i>${esc(x.name)}</i>${x.level ? ` <small>L${x.level}</small>` : ''}`]), ['dodge', 'Dodge'], ['help', 'Help an ally'], ['dash', 'Dash']];
-  if (s.resources.healing_hands?.left > 0) acts.push(['healing_hands', 'Healing Hands']);
-  const allyTarget = act.do === 'cast' && ['heal', 'buff'].includes(spellKind(act.spell)) || ['help', 'healing_hands'].includes(act.do);
+  const act = r.action || {}; const v2 = isV2(); const spells = actionSpells(c, s, { v2, castRounds }); const casting = v2 ? castingOf(c) : null; const conc = v2 && c.conc && !c.conc.casting ? c.conc : null;
+  const spellChip = (x, endConc) => v2 ? `<i>${esc(x.name)}</i> <small>${x.level ? `L${x.level} \u00b7 ` : ''}${esc(castTimeLabel(SRD.spells[x.id]))}${endConc && SRD.spells[x.id].concentration ? ` \u00b7 ends ${esc(SRD.spells[endConc.spell]?.name)}` : ''}</small>` : `<i>${esc(x.name)}</i>${x.level ? ` <small>L${x.level}</small>` : ''}`;
+  const acts = [...(casting ? [['continue_cast', `Keep casting <i>${esc(SRD.spells[casting.spell]?.name)}</i> <small>${casting.left} round${casting.left === 1 ? '' : 's'} left</small>`]] : []), ['attack', 'Attack'], ...spells.slice(0, 8).map(x => ['cast:' + x.id, spellChip(x, conc || casting)]), ['dodge', 'Dodge'], ['help', 'Help an ally'], ['dash', 'Dash']];
+  for (const f of actionFeatures(c, s)) acts.push([f.do, f.do === 'lay_on_hands' ? `Lay on Hands <small>(${f.left} HP)</small>` : f.name]);
+  const allyTarget = act.do === 'cast' && ['heal', 'buff', 'cure'].includes(spellKind(act.spell)) || ['help', 'healing_hands', 'lay_on_hands'].includes(act.do);
   const tg = allyTarget ? [['ally_lowest', 'Most hurt ally'], ['self', 'Myself'], ...T.players.filter(p => p.pid !== OWNER).map(p => [p.cid, esc(first(p.name))])] : [['nearest', 'Nearest'], ['weakest', 'Weakest'], ['boss', 'The boss'], ...foes.map(f => [f.uid, esc(foeLabel(f))])];
   const mv = r.move === 'hold' ? 'hold' : Array.isArray(r.move) ? 'cell' : 'auto'; const multi = act.do === 'cast' ? multiTargets(act.spell) : 0;
   const pre = presets(c, s);
@@ -200,6 +202,8 @@ function ordersCard(st) {
    ${conc ? `<div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">Concentrating on ${esc(SRD.spells[conc.spell]?.name)}</div><div class="chips">${chip('keep', '1', `Keep it going${conc.spell === 'heat_metal' ? ' <small>burns again (bonus action)</small>' : ''}`, r.keep !== false)}${chip('keep', '0', 'Let it end', r.keep === false)}</div>` : ''}
    ${['dodge', 'dash', 'continue_cast'].includes(act.do) ? '' : `<div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">Target${multi ? ` \u00b7 up to ${multi}` : ''}</div><div class="chips">${tg.map(([v, l]) => chip('tgt', v, l, multi && Array.isArray(act.targets) && act.targets.length ? v !== 'ally_lowest' && act.targets.includes(v === 'self' ? me.cid : v) : act.target === v)).join('')}</div>`}
    ${s.resources.action_surge?.left > 0 ? `<div class="chips" style="margin-top:8px">${chip('surge', o.actionSurge ? '0' : '1', `Action Surge ${o.actionSurge ? 'ON' : 'off'} <small>(${s.resources.action_surge.left} left)</small>`, !!o.actionSurge)}</div>` : ''}
+   ${canSacredWeapon(c, s) || o.sacredWeapon ? `<div class="chips" style="margin-top:8px">${chip('sacred', o.sacredWeapon ? '0' : '1', `Sacred Weapon ${o.sacredWeapon ? 'ON' : 'off'} <small>(Channel Divinity${s.resources.channel_divinity ? `, ${s.resources.channel_divinity.left} left` : ''})</small>`, !!o.sacredWeapon)}</div>` : ''}
+   ${bonusOrdersHtml(c, s, o, r, chip, conc, v2, spellChip, me)}
    <div class="sc meta" style="margin-top:10px;color:var(--wine);font-weight:700">Standing order</div>${pre.map(p => `<button class="move ${o.preset === p.id ? 'sel' : ''}" data-t="preset" data-v="${p.id}" style="margin:5px 0" ${canEdit ? '' : 'disabled'}><div class="ic">${svgI(p.id === 'none' ? 'sword' : 'party')}</div><div style="flex:1"><div class="t">${esc(p.t)}</div><div class="meta">${esc(p.d)}</div></div><div class="check"></div></button>`).join('')}
    <textarea rows="2" style="margin-top:7px" data-f="say" placeholder="Optional war cry (I say\u2026)" ${canEdit ? '' : 'disabled'}>${esc(T.draft.say)}</textarea>
    <div class="note">The engine plays one round, then stops for new orders, or earlier if an ally drops to 0 or a new enemy appears. A boss phase change or broken concentration is only a notice. If you miss the cutoff, you fight on your stance (<b>${STANCE_TXT[stanceOf(OWNER)]}</b>; change it on the Hero tab).</div>
@@ -208,10 +212,45 @@ function ordersCard(st) {
 // ally spells that take several creatures at their base level (Bless 3, Aid 3): the Target chips become a multi-pick
 const multiTargets = id => { const m = spellModel(id); return m && (m.kind === 'buff' || m.kind === 'heal') && !m.outOfCombat && m.targets > 1 && ['heal', 'buff'].includes(spellKind(id)) ? m.targets : 0; };
 const tgtList = a => Array.isArray(a?.targets) && a.targets.length > 1 ? a.targets : null;
-const spellKind = id => ({ healing_word: 'heal', cure_wounds: 'heal', bless: 'buff', heroism: 'buff', aid: 'heal', shield_of_faith: 'buff', guidance: 'buff', prayer_of_healing: 'heal' }[id] || 'attack');
+const spellKind = id => ({ healing_word: 'heal', cure_wounds: 'heal', bless: 'buff', heroism: 'buff', aid: 'heal', shield_of_faith: 'buff', guidance: 'buff', prayer_of_healing: 'heal', lesser_restoration: 'cure', dragons_breath: 'buff' }[id] || (['heal', 'buff', 'cure'].includes(spellModel(id)?.kind) ? spellModel(id).kind : 'attack'));
+function smiteWhenLabel(when) { return ({ never: 'Off', always: 'On a hit', crit: 'On a crit', boss: 'On the boss' })[when] || when; }
+function smiteLine(sm) { if (!sm || sm.when === 'never') return null; return `${SRD.spells[sm.spell || 'divine_smite']?.name || 'Smite'} ${({ always: 'on a hit', crit: 'on a crit', boss: 'on the boss' })[sm.when] || sm.when}`; }
+function bonusLine(b, tname) {
+  if (!b?.do) return null;
+  const name = b.do === 'cast' ? (SRD.spells[b.spell]?.name || b.spell) : b.do === 'celestial_revelation' ? 'Celestial Revelation' : b.do === 'bardic_inspiration' ? 'Bardic Inspiration' : b.do === 'second_wind' ? 'Second Wind' : b.do === 'innate_sorcery' ? 'Innate Sorcery' : b.do.replace(/_/g, ' ');
+  const tgt = b.target && !['second_wind', 'innate_sorcery', 'celestial_revelation'].includes(b.do) ? ' \u2192 ' + (typeof tname === 'function' ? tname(b.target) : b.target) : '';
+  return name + tgt;
+}
+function bonusOrdersHtml(c, s, o, r, chip, conc, v2, spellChip, me) {
+  const bSpells = bonusSpells(c, s); const bFeats = bonusFeatures(c, s); const smites = smiteSpells(c, s);
+  if (!bSpells.length && !bFeats.length && !smites.length) return '';
+  const b = r.bonus || null;
+  const onBonus = v => !b ? v === '0' : (b.do === 'cast' ? 'cast:' + b.spell : b.do) === v;
+  const bonusAlly = b && (b.do === 'cast' && ['heal', 'buff', 'cure'].includes(spellKind(b.spell)) || b.do === 'bardic_inspiration');
+  const bTg = bonusAlly ? [['ally_lowest', 'Most hurt ally'], ...(b.do === 'bardic_inspiration' ? [] : [['self', 'Myself']]), ...T.players.filter(p => p.pid !== OWNER && (b.do !== 'bardic_inspiration' || p.cid !== me.cid)).map(p => [p.cid, esc(first(p.name))])] : [];
+  const smWhen = o.smite?.when || (smites.length ? 'crit' : null);
+  const smSpell = o.smite?.spell || smites.find(x => x.id === 'divine_smite')?.id || smites[0]?.id;
+  const bonusBlocks = [];
+  if (bSpells.length || bFeats.length) {
+    const chips = [chip('bonus', '0', 'None', !b), ...bFeats.map(f => chip('bonus', f.do, `${esc(f.name)}${f.left != null ? ` <small>(${f.left} left${f.die ? ` \u00b7 ${esc(f.die)}` : ''})</small>` : ''}`, onBonus(f.do))), ...bSpells.map(x => chip('bonus', 'cast:' + x.id, spellChip(x, conc), onBonus('cast:' + x.id)))].join('');
+    bonusBlocks.push(`<div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">Bonus action</div><div class="chips">${chips}</div>`);
+    if (b && ['cast'].includes(b.do) && SRD.spells[b.spell]?.concentration && conc && conc.spell !== b.spell) bonusBlocks.push(`<div class="note">Casting ${esc(SRD.spells[b.spell]?.name)} ends ${esc(SRD.spells[conc.spell]?.name)}.</div>`);
+    if (bonusAlly) bonusBlocks.push(`<div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">Bonus target</div><div class="chips">${bTg.map(([v, l]) => chip('btgt', v, l, (b.target || (b.do === 'bardic_inspiration' ? 'ally_lowest' : 'self')) === v)).join('')}</div>`);
+  }
+  if (smites.length) {
+    const whenChips = [['never', 'Off'], ['always', 'On a hit'], ['crit', 'On a crit'], ['boss', 'On the boss']].map(([v, l]) => chip('smwhen', v, l, smWhen === v)).join('');
+    const spellChips = smites.map(x => chip('smspell', x.id, `<i>${esc(x.name)}</i> <small>${x.free ? 'free' : `L${x.level}`}</small>`, smSpell === x.id)).join('');
+    bonusBlocks.push(`<div class="sc meta" style="margin-top:8px;color:var(--wine);font-weight:700">Smite on a hit <small style="font-weight:500">\u00b7 bonus action after a melee hit</small></div><div class="chips">${whenChips}</div><div class="chips" style="margin-top:6px">${spellChips}</div>`);
+    if (smWhen && smWhen !== 'never' && !o.smite) bonusBlocks.push(`<div class="note">If you do not change this, Divine Smite still goes off on a critical hit (the engine default).</div>`);
+    if (b && smWhen && smWhen !== 'never') bonusBlocks.push(`<div class="note">A bonus action this round uses the same bonus as a smite, so the smite will not go off.</div>`);
+  }
+  return bonusBlocks.join('');
+}
 function orderLines(o, s, c) { const r = o?.thisRound || {}; const a = r.action || {}; const tname = t => ({ nearest: 'nearest foe', weakest: 'weakest foe', boss: 'the boss', ally_lowest: 'most hurt ally', self: 'myself' }[t] || T.game.view.combatants.find(x => x.uid === t)?.name || T.players.find(p => p.cid === t)?.name || t);
   const pre = presets(c, s).find(p => p.id === o?.preset);
-  return [['Move', r.move === 'hold' ? 'hold position' : Array.isArray(r.move) ? `to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in as needed'], ['Action', `${a.do === 'cast' ? `<i>${esc(SRD.spells[a.spell]?.name)}</i>` : a.do === 'continue_cast' ? 'keep casting' : esc(a.do)}${tgtList(a) ? ' \u2192 ' + tgtList(a).map(t => esc(tname(t === T.me?.cid ? 'self' : t))).join(', ') : a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + esc(tname(a.target)) : ''}`], ...(o?.actionSurge ? [['Action Surge', 'on']] : []), ...(r.keep === false ? [['Concentration', 'let it end']] : []), ['Standing order', esc(pre?.t || 'none')]]; }
+  const btxt = bonusLine(r.bonus, t => esc(tname(t === T.me?.cid ? 'self' : t)));
+  const stxt = smiteLine(o?.smite);
+  return [['Move', r.move === 'hold' ? 'hold position' : Array.isArray(r.move) ? `to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in as needed'], ['Action', `${a.do === 'cast' ? `<i>${esc(SRD.spells[a.spell]?.name)}</i>` : a.do === 'continue_cast' ? 'keep casting' : esc(a.do)}${tgtList(a) ? ' \u2192 ' + tgtList(a).map(t => esc(tname(t === T.me?.cid ? 'self' : t))).join(', ') : a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + esc(tname(a.target)) : ''}`], ...(btxt ? [['Bonus action', btxt]] : []), ...(stxt ? [['Smite', esc(stxt)]] : []), ...(o?.actionSurge ? [['Action Surge', 'on']] : []), ...(o?.sacredWeapon ? [['Sacred Weapon', 'on']] : []), ...(r.keep === false ? [['Concentration', 'let it end']] : []), ['Standing order', esc(pre?.t || 'none')]]; }
 
 // ---------- resolution ----------
 function entryCard(e, r) {
@@ -266,7 +305,7 @@ function lootResult(r) {
   return out.length ? `<div class="card" id="lootres"><h2>Between scenes: gear, loot, levels, rest</h2><ul class="list">${out.join('')}</ul></div>` : '';
 }
 function orderText(e) { const o = e.orders || {}; const r = o.thisRound || {}; const a = r.action || {}; const tn = t => ({ nearest: 'nearest foe', weakest: 'weakest foe', boss: 'the boss', ally_lowest: 'most hurt ally', self: 'self' }[t] || t);
-  return esc([r.move === 'hold' ? 'hold' : Array.isArray(r.move) ? `move to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in', a.do === 'cast' ? `${SRD.spells[a.spell]?.name || a.spell} \u2192 ${tgtList(a) ? tgtList(a).map(t => N.shortName(T.players.find(p => p.cid === t)?.name || tn(t))).join(', ') : tn(a.target)}` : a.do === 'continue_cast' ? 'keep casting' : `${a.do || 'attack'}${a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + tn(a.target) : ''}`, r.keep === false ? 'let concentration end' : null, o.actionSurge ? 'Action Surge' : null, o.preset && o.preset !== 'none' ? `standing order: ${({ guard: 'Dodge when hurt', healer: 'Healer first', medic: 'No one bleeds out' })[o.preset] || o.preset}` : null].filter(Boolean).join(' \u00b7 ')); }
+  return esc([r.move === 'hold' ? 'hold' : Array.isArray(r.move) ? `move to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in', a.do === 'cast' ? `${SRD.spells[a.spell]?.name || a.spell} \u2192 ${tgtList(a) ? tgtList(a).map(t => N.shortName(T.players.find(p => p.cid === t)?.name || tn(t))).join(', ') : tn(a.target)}` : a.do === 'continue_cast' ? 'keep casting' : `${a.do || 'attack'}${a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + tn(a.target) : ''}`, bonusLine(r.bonus, t => tn(t)), smiteLine(o.smite), r.keep === false ? 'let concentration end' : null, o.actionSurge ? 'Action Surge' : null, o.sacredWeapon ? 'Sacred Weapon' : null, o.preset && o.preset !== 'none' ? `standing order: ${({ guard: 'Dodge when hurt', healer: 'Healer first', medic: 'No one bleeds out' })[o.preset] || o.preset}` : null].filter(Boolean).join(' \u00b7 ')); }
 async function verify(k) { const r = T.results[k], sc = T.scenes[k]; if (!r || !sc) return; (T.verify = T.verify || {})[k] = { seed: N.verifyCommit(r.seed, sc.commit), dc: sc.dcCommit ? N.commit(r.salt + '|' + JSON.stringify(r.dcs)) === sc.dcCommit : null }; }
 
 // ---------- recap / chronicle ----------
@@ -351,7 +390,7 @@ async function saveExtras() { const base = T.mine ? { ...T.mine } : { kind: null
 async function saveDraft(locked) { const d = T.draft = normalizeDraft(T.draft); const a = { ...draftAction(d, locked), ...extras() };
   await store.putAction(T.n, a); T.mine = await store.myAction(T.n); T.locks = await store.locks(T.n); }
 async function saveOrders(locked) { const o = T.orders; const pre = presets(ch(T.me.cid), sheetOf(T.me.cid)).find(p => p.id === o.preset);
-  const orders = { thisRound: { ...o.thisRound, move: o.thisRound.move ?? undefined }, standing: pre?.rule || [], preset: o.preset, actionSurge: !!o.actionSurge };
+  const orders = { thisRound: { ...o.thisRound, move: o.thisRound.move ?? undefined }, standing: pre?.rule || [], preset: o.preset, actionSurge: !!o.actionSurge, ...(o.smite ? { smite: o.smite } : {}), ...(o.sacredWeapon ? { sacredWeapon: true } : {}) };
   const d = T.draft = normalizeDraft(T.draft); await store.putAction(T.n, { kind: 'orders', orders, say: (d.say || '').trim(), locked, ...extras() }); T.mine = await store.myAction(T.n); T.locks = await store.locks(T.n); }
 async function onClick(e) {
   const b = e.target.closest('[data-t]'); if (!b || b.disabled) return; const t = b.dataset.t, v = b.dataset.v, k = b.dataset.k;
@@ -375,7 +414,13 @@ async function onClick(e) {
           if (!max || v === 'ally_lowest') { const { targets, ...a } = r.action || {}; r.action = { ...a, target: v }; }
           else { const id = v === 'self' ? T.me.cid : v; let list = Array.isArray(r.action.targets) ? [...r.action.targets] : (r.action.target && r.action.target !== 'ally_lowest' ? [r.action.target === 'self' ? T.me.cid : r.action.target] : []);
             list = list.includes(id) ? list.filter(x => x !== id) : list.length < max ? [...list, id] : list;
-            const { targets, ...a } = r.action; r.action = list.length ? { ...a, target: list[0] === T.me.cid ? 'self' : list[0], targets: list } : { ...a, target: 'ally_lowest' }; } } if (k === 'surge') T.orders.actionSurge = v === '1'; if (k === 'keep') { if (v === '0') r.keep = false; else delete r.keep; } break; }
+            const { targets, ...a } = r.action; r.action = list.length ? { ...a, target: list[0] === T.me.cid ? 'self' : list[0], targets: list } : { ...a, target: 'ally_lowest' }; } } if (k === 'surge') T.orders.actionSurge = v === '1';
+        if (k === 'sacred') T.orders.sacredWeapon = v === '1';
+        if (k === 'bonus') { if (v === '0') delete r.bonus; else { const [d, spell] = v.split(':'); const ally = d === 'cast' && ['heal', 'buff', 'cure'].includes(spellKind(spell)) || d === 'bardic_inspiration'; r.bonus = { do: d, ...(spell ? { spell } : {}), ...(d === 'celestial_revelation' ? { form: 'radiance' } : {}), ...(ally ? { target: d === 'bardic_inspiration' ? 'ally_lowest' : 'self' } : {}) }; } }
+        if (k === 'btgt' && r.bonus) r.bonus = { ...r.bonus, target: v };
+        if (k === 'smwhen') T.orders.smite = { when: v, spell: T.orders.smite?.spell || 'divine_smite', ...(T.orders.smite?.level ? { level: T.orders.smite.level } : {}) };
+        if (k === 'smspell') T.orders.smite = { when: T.orders.smite?.when && T.orders.smite.when !== 'never' ? T.orders.smite.when : 'always', spell: v, ...(T.orders.smite?.level ? { level: T.orders.smite.level } : {}) };
+        if (k === 'keep') { if (v === '0') r.keep = false; else delete r.keep; } break; }
       case 'cell': T.orders.thisRound.move = [+b.dataset.x, +b.dataset.y]; T.pickCell = false; break;
       case 'preset': T.orders.preset = v; break;
       case 'lockorders': await saveOrders(true); T.editing = false; break;
