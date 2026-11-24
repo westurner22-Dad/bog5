@@ -570,5 +570,17 @@ export const NIGHTS = [
     moves: [], freeDc: 14, absentText: 'Fights on their preset stance.',
     after: { effects: [] },
     next: 'The fight on the March road goes on. Orders for the next round are due after this one resolves.' },
+
+  // Night 39 (opened as a1n26): round 2 of the small road fight. Gorlock crit the List-Coat Clerk down to 14 HP; Bless is on Biggus and Gorlock (Yäest was out of range); the Hired Rider closed on Yäest in the weeds and hit twice (Yäest 17 HP); True Strike and Fire Bolt missed. GM-authored Nov 23 2026.
+  { n: 26, id: 'a1n26', adventure: 'a1', title: 'The Claim on the Road (cont.)', place: 'The Border March \u00b7 the road toward Thimbleby', bg: 'forest', time: 'Morning', battle: true,
+    prose: [
+      'Round 1 is down, and nobody has dropped. Gorlock stepped in on the List-Coat Clerk and put a Champion critical through him: a 19 plus 5, a 24 against AC 10, 13 slashing, and the clerk is at 14 of 27 HP, still in the road. The clerk\'s shortsword at Gorlock missed (6 plus 2, an 8 against AC 13). Biggus cast Bless; Yäest was out of range in the weeds, so it is on Biggus and Gorlock only. The Hired Rider came up on Yäest and hit twice with the shortsword, 5 piercing and 4 piercing. Yäest is at 17 of 26 HP. His True Strike with the quarterstaff missed (3 plus 4, a 7 against AC 10). Boobington, still in the cart, threw a Fire Bolt at the clerk and missed (3 plus 4, a 7 against AC 10). The Hired Rider is still at 16 of 16.',
+      'Gorlock is in the clerk\'s face at 3, 8. The List-Coat Clerk is at 4, 8. Biggus is still in the road at 3, 6. The Hired Rider is in the weeds at 6, 8, on Yäest at 7, 8. Boobington is still in the wagon at 4, 4. Bless is up on Biggus and Gorlock. Initiative is unchanged: Gorlock 21, the List-Coat Clerk 13, Biggus 13, the Hired Rider 12, Yäest 11, and Boobington 11. Gorlock is up first.',
+      'Round 2 is next. Set battle orders: where you move, what you do, and a standing order for when things go wrong. One round plays tonight, then the table stops for new orders.',
+    ],
+    quote: { who: 'the List-Coat Clerk, shortsword still in hand', text: '\u201cNames. I still want names.\u201d' },
+    moves: [], freeDc: 14, absentText: 'Fights on their preset stance.',
+    after: { effects: [] },
+    next: 'The fight on the March road goes on. Orders for the next round are due after this one resolves.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);
