@@ -57,14 +57,17 @@ export const checkLabel = skill => ABN[skill] || (SKILLS[skill] ? skill.split('_
 // ---------- free-text DCs (P3-1): a fixed Easy / Medium / Hard scale, and the GM logs every pick with a
 // one-line reason. Anything else is refused before the dice roll.
 // v1 (nights 1–7, Wes Nov 11): Easy 10 / Medium 15 / Hard 20.
-// v2 (Night 8+, Wes Nov 19 10:00 AM PT): each tier minus 1 — Easy 9 / Medium 14 / Hard 19.
+// v2 (Night 8 through Night 37, Wes Nov 19 10:00 AM PT): each tier minus 1 — Easy 9 / Medium 14 / Hard 19.
+// v3 (Night 38+, Wes Nov 23 6:39 PM PT): Easy 6 / Medium 11 / Hard 16; otherwise the same.
 // A night already opened or resolved without a dcScale field is v1, so verify stays true and Night 7
-// (whose move-DC hash was published on the v1 scale) is not rewritten.
+// (whose move-DC hash was published on the v1 scale) is not rewritten. Nights 8–37 keep their stamped
+// v2 scale. Night 38 was already open as a combat round with no skill moves and is left untouched.
 export const DC_SCALE = {
   1: { Easy: 10, Medium: 15, Hard: 20 },
   2: { Easy: 9, Medium: 14, Hard: 19 },
+  3: { Easy: 6, Medium: 11, Hard: 16 },
 };
-export const DC_SCALE_CURRENT = 2;
+export const DC_SCALE_CURRENT = 3;
 export const FREE_DC = DC_SCALE[DC_SCALE_CURRENT];
 export function dcScale(ver = DC_SCALE_CURRENT) { return DC_SCALE[ver] || DC_SCALE[DC_SCALE_CURRENT]; }
 export function scaleLabel(ver) { const t = dcScale(ver); return `Easy ${t.Easy} / Medium ${t.Medium} / Hard ${t.Hard}`; }

@@ -259,10 +259,10 @@ export function addCondition(g, cid, id, extra = {}) { return g.event('condition
 export function removeCondition(g, cid, id) { return g.event('condition_end', { cid, id }, () => g.set(['chars', cid, 'conditions'], chr(g, cid).conditions.filter(x => x.id !== id))); }
 
 // ---------- ability checks (Lock 10): the player sees the difficulty word before rolling; the exact DC and every
-// modifier are shown after. House scale (Wes, Nov 19 2026): each tier is 1 lower than the SRD typicals
-// (Very Easy 4, Easy 9, Medium 14, Hard 19, Very Hard 24, Nearly Impossible 29). Thresholds also still
-// label the old 5/10/15/20/25/30 values with the same words, so nights 1–7 keep their published wording.
-export const DC_WORDS = [[4, 'Very Easy'], [9, 'Easy'], [14, 'Medium'], [19, 'Hard'], [24, 'Very Hard'], [29, 'Nearly Impossible']];
+// modifier are shown after. House scale (Wes, Nov 23 2026, 6:39 PM PT): Easy 6 / Medium 11 / Hard 16 from
+// Night 38 on. Very Easy 4 / Very Hard 24 / Nearly Impossible 29 are unchanged. Thresholds also still
+// label the v2 9/14/19 and v1 10/15/20 values with the same words, so nights 1–37 keep their published wording.
+export const DC_WORDS = [[4, 'Very Easy'], [6, 'Easy'], [11, 'Medium'], [16, 'Hard'], [24, 'Very Hard'], [29, 'Nearly Impossible']];
 export const difficultyWord = dc => DC_WORDS.reduce((w, [d, name]) => (dc >= d ? name : w), 'Very Easy');
 export function skillCheck(g, cid, skill, dc, { adv = false, dis = false, guidance = false, why = '' } = {}) {
   const c = chr(g, cid); const s = deriveSheet(c); const sk = s.skills[skill] || { v: s.mods[skill], parts: [{ src: skill.toUpperCase(), v: s.mods[skill] }], prof: false };
