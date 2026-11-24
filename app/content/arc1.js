@@ -682,5 +682,27 @@ export const NIGHTS = [
     freeDc: 14, absentText: 'Stands by the pump, keeps his head down, and lets the others do the talking. No roll.',
     after: { effects: [] },
     next: 'Thimbleby is already about its morning, and the satchel is still only half-read.' },
+
+  // Night 45 (opened as a1n32): a room at the inn. Boobington got word of the clerk; Yäest found the carter already in the yard and the outskirts clear; the satchel is still half-read. Pump Stall still open (catalog already live). GM-authored Nov 24 2026.
+  { n: 32, id: 'a1n32', adventure: 'a1', title: 'The Claim at the Table', place: 'Thimbleby \u00b7 the inn', bg: 'city', time: 'Mid-morning', shop: 'thimbleby',
+    prose: [
+      'They have a room and a table at the inn, paid in coin, as travelers on the March road. An hour has gone by. Boobington got a short word at the stall: a list-coat clerk on a horse passed through yesterday with a hired rider and a satchel, asking after a wagon on this road, and he has not come back. Nobody here loved him, and nobody is eager to go looking. Y\u00e4est took the outskirts and found no one watching the road, and no useful loot in the ditches, but the carter is already here: Bess at the trough, the wagon with the canvas in the inn yard, looking like nothing in particular.',
+      'The satchel is still only half a story, the names still unclear. The Pump Stall is still open if anyone needs more. They can sit with the claim now that they have a table, ask the carter what he means to do in Thimbleby, or listen for anyone asking after that clerk.',
+    ],
+    quote: { who: 'the keep, setting a pot back on the hook', text: '\u201cThe yard is for horses. The table is for people who have already paid.\u201d' },
+    moves: [
+      { id: 'satchel', label: 'Sit with the satchel at the table and try to make the names come clear', tags: ['notice'], check: { skill: 'investigation', dc: 14 }, hint: 'The sheaf has been opened twice and is still only a claim about a wagon on this road. A table and an hour of better light may be enough for the hand to yield the names.',
+        success: { text: 'In better light the sheaf is a claim file, not a grain ledger: a route and a request to stop the wagon and look under the canvas. The names are not written out in full, but the hand has been closing on this party since the gate.', effects: [{ flag: 'claim_read', flagText: 'the party read the clerk\'s satchel at the inn: a claim file aimed at stopping the wagon and looking under the canvas, the hand closing since the gate' }, { xp: 25, who: 'self', why: 'read the claim in the satchel at the inn' }] },
+        failure: { text: 'Even at a table, the hand is a mess of official loops and dust. It is still a claim about a wagon on this road, and the names still will not come clear.', effects: [] } },
+      { id: 'carter', label: 'Ask the carter, now that Bess is in the yard, what he means to do in Thimbleby', tags: ['talk'], check: { skill: 'persuasion', dc: 14 }, hint: 'He said he would go on to the village and not make a speech of the fight. A short, ordinary question may tell you whether he still means to keep it that way.',
+        success: { text: 'The carter will keep his head down. He has a delivery and a trough, and he will not make a speech of the road, or of any official man on a horse. He means to do his work and leave when Bess has had her drink.', effects: [{ flag: 'carter_quiet_thimbleby', flagText: 'the carter, already in the inn yard, will keep his head down, do his delivery, and not make a speech of the road or of official men' }, { xp: 25, who: 'self', why: 'asked the carter what he means to do in Thimbleby' }] },
+        failure: { text: 'The carter is busy with Bess and the canvas. He has little to add beyond what he already said on the road, and he is not in a hurry to stand in the yard and talk.', effects: [] } },
+      { id: 'listen', label: 'Listen in the inn and the yard for anyone asking after a list-coat clerk', tags: ['notice'], check: { skill: 'perception', dc: 14 }, hint: 'A clerk passed through yesterday and has not come back. If anyone in Thimbleby is already looking, the inn and the yard would be the first places to hear it.',
+        success: { text: 'No one is asking after a list-coat clerk this morning. The talk is bread, the trough, and a cart due later in the week. If official men are coming, they are not here yet.', effects: [{ flag: 'no_clerk_inquiry_yet', flagText: 'no one in the inn or the yard is asking after the list-coat clerk this morning; if official men are coming, they are not here yet' }, { xp: 25, who: 'self', why: 'listened in the inn and the yard for anyone asking after the clerk' }] },
+        failure: { text: 'The inn is a clatter of late breakfast and yard work. You cannot honestly say whether anyone has asked after an official man, or whether they would have said it where you could hear.', effects: [] } },
+    ],
+    freeDc: 14, absentText: 'Sits at the table, keeps his head down, and lets the others do the asking. No roll.',
+    after: { effects: [] },
+    next: 'They have a room in Thimbleby, a word about the clerk, and a claim that is still only half-read.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);
