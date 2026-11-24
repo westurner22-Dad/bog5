@@ -11,7 +11,7 @@ import * as G from './gear.js';
 import * as F5 from './phase5.js';
 import * as PA from './portrait-art.js';
 import { partySupplies, suppliesOf } from '../engine/src/shop.js';
-import { normalizeDraft, draftAction } from './draft.js';
+import { normalizeDraft, draftAction, FREE_TEXT_MAX, capFreeText } from './draft.js';
 import { spellModel } from '../engine/src/rules/spellEffects.js';
 import { RULES_V2_NIGHT, castRounds, castTimeLabel } from '../engine/src/combat.js';
 import { actionSpells, bonusSpells, smiteSpells, bonusFeatures, actionFeatures, canSacredWeapon } from '../engine/src/orders.js';
@@ -116,7 +116,7 @@ function movesCard(sc, st) {
      <div class="note">\u2713 Locked at ${timeLA(T.mine.at)}. ${canEdit ? 'You can change it until the table locks.' : 'The table has locked.'}</div>${canEdit ? '<div class="row" style="margin-top:9px"><button class="btn ghost" data-t="unlock" style="flex:1;color:var(--wine);border-color:var(--wine)">Change my move</button></div>' : ''}</div>`; }
   const ok = d.kind === 'move' ? !!d.moveId : d.kind === 'free' ? (d.text || '').trim().length >= 3 : false;
   return `<div class="card"><h2>Your move, ${esc(first(me.name))}</h2><div class="meta" style="margin-top:6px">Pick one, or do something else. You can change it until the table locks.</div>${sc.moves.map(mv).join('')}
-   <div style="margin-top:12px" class="sc meta"><b style="color:var(--wine)">Or: I do something else</b></div><textarea rows="2" data-f="text" placeholder="Describe what you try. The GM calls the check\u2026" ${canEdit ? '' : 'disabled'}>${esc(d.text)}</textarea>
+   <div style="margin-top:12px" class="sc meta"><b style="color:var(--wine)">Or: I do something else</b></div><textarea rows="2" data-f="text" maxlength="${FREE_TEXT_MAX}" placeholder="Describe what you try. The GM calls the check\u2026" ${canEdit ? '' : 'disabled'}>${esc(d.text)}</textarea>
    <div class="row" style="margin-top:9px"><div class="seg" style="flex:1"><span class="${d.sayMode !== 'whisper' ? 'on' : ''}" data-t="saymode" data-v="say">I say\u2026</span><span class="${d.sayMode === 'whisper' ? 'on' : ''}" data-t="saymode" data-v="whisper">Whisper to party</span></div></div>
    <textarea rows="2" style="margin-top:7px" data-f="say" placeholder="Optional in-character line" ${canEdit ? '' : 'disabled'}>${esc(d.say)}</textarea><div class="note">Optional. The GM may award Heroic Inspiration for a great one.</div>
    <div class="row" style="margin-top:11px"><button class="btn" data-t="lock" style="flex:1" ${ok && canEdit ? '' : 'disabled'}>Lock my move</button></div></div>`;
@@ -130,7 +130,7 @@ function partyCard(st) {
     const tag = state === 'locked' ? '<span class="tag g">\u2713 locked</span>' : state === 'thinking' ? '<span class="tag">thinking</span>' : '<span class="tag">waiting</span>';
     let what;
     if (!a || (!a.kind && !a.orders)) what = `<span class="meta">${state ? 'Still deciding\u2026' : 'Hasn\u2019t picked yet.'}</span>`;
-    else if (sc.battle && a.orders && c && s) { const L = orderLines(a.orders, s, c); what = L.filter(([k, v]) => !(k === 'Standing order' && /^(none|no standing order)$/i.test(v))).map(([k, v]) => `<b>${esc(k)}:</b> ${v}`).join(' \u00b7 '); }
+    else if (sc.battle && a.orders && c && s) { const L = orderLines(a.orders, s, c, { text: a.text }); what = L.filter(([k, v]) => !(k === 'Standing order' && /^(none|no standing order)$/i.test(v))).map(([k, v]) => `<b>${esc(k)}:</b> ${v}`).join(' \u00b7 '); }
     else if (a.kind === 'move') what = `<b>${esc(sc.moves.find(m => m.id === a.moveId)?.label || a.moveId)}</b>`;
     else if (a.kind === 'free') { const t = String(a.text || ''); what = `<b>Something else:</b> \u201c${esc(t.length > 160 ? t.slice(0, 157) + '\u2026' : t)}\u201d`; }
     else what = '<span class="meta">Still deciding\u2026</span>';
@@ -184,7 +184,7 @@ function battleView(st) {
 }
 function ordersCard(st) {
   const me = T.me; const c = ch(me.cid); const s = sheetOf(me.cid); const o = T.orders; const r = o.thisRound; const view = T.game.view; const canEdit = st.open;
-  if (T.mine?.locked && !T.editing) return `<div class="card" id="orders"><h2>Your ${fightWord()} orders</h2><ul class="list">${orderLines(T.mine.orders, s, c).map(([k, v]) => `<li>${k}<span class="r">${v}</span></li>`).join('')}</ul><div class="note">\u2713 Locked at ${timeLA(T.mine.at)}. ${canEdit ? 'You can change them until the table locks.' : ''}</div>${canEdit ? '<div class="row" style="margin-top:9px"><button class="btn ghost" data-t="unlock" style="flex:1;color:var(--wine);border-color:var(--wine)">Change my orders</button></div>' : ''}</div>`;
+  if (T.mine?.locked && !T.editing) return `<div class="card" id="orders"><h2>Your ${fightWord()} orders</h2><ul class="list">${orderLines(T.mine.orders, s, c, { text: T.mine.text }).map(([k, v]) => `<li>${k}<span class="r">${v}</span></li>`).join('')}</ul><div class="note">\u2713 Locked at ${timeLA(T.mine.at)}. ${canEdit ? 'You can change them until the table locks.' : ''}</div>${canEdit ? '<div class="row" style="margin-top:9px"><button class="btn ghost" data-t="unlock" style="flex:1;color:var(--wine);border-color:var(--wine)">Change my orders</button></div>' : ''}</div>`;
   const foes = view.combatants.filter(x => x.side !== 'pc' && x.kind !== 'pc' && x.hp > 0);
   const chip = (grp, v, label, on) => `<button class="chip ${on ? 'on' : ''}" data-t="ord" data-k="${grp}" data-v="${esc(v)}" ${canEdit ? '' : 'disabled'}>${label}</button>`;
   const act = r.action || {}; const v2 = isV2(); const spells = actionSpells(c, s, { v2, castRounds }); const casting = v2 ? castingOf(c) : null; const conc = v2 && c.conc && !c.conc.casting ? c.conc : null;
@@ -205,6 +205,7 @@ function ordersCard(st) {
    ${canSacredWeapon(c, s) || o.sacredWeapon ? `<div class="chips" style="margin-top:8px">${chip('sacred', o.sacredWeapon ? '0' : '1', `Sacred Weapon ${o.sacredWeapon ? 'ON' : 'off'} <small>(Channel Divinity${s.resources.channel_divinity ? `, ${s.resources.channel_divinity.left} left` : ''})</small>`, !!o.sacredWeapon)}</div>` : ''}
    ${bonusOrdersHtml(c, s, o, r, chip, conc, v2, spellChip, me)}
    <div class="sc meta" style="margin-top:10px;color:var(--wine);font-weight:700">Standing order</div>${pre.map(p => `<button class="move ${o.preset === p.id ? 'sel' : ''}" data-t="preset" data-v="${p.id}" style="margin:5px 0" ${canEdit ? '' : 'disabled'}><div class="ic">${svgI(p.id === 'none' ? 'sword' : 'party')}</div><div style="flex:1"><div class="t">${esc(p.t)}</div><div class="meta">${esc(p.d)}</div></div><div class="check"></div></button>`).join('')}
+   ${writeInBox(T.draft, canEdit)}
    <textarea rows="2" style="margin-top:7px" data-f="say" placeholder="Optional war cry (I say\u2026)" ${canEdit ? '' : 'disabled'}>${esc(T.draft.say)}</textarea>
    <div class="note">The engine plays one round, then stops for new orders, or earlier if an ally drops to 0 or a new enemy appears. A boss phase change or broken concentration is only a notice. If you miss the cutoff, you fight on your stance (<b>${STANCE_TXT[stanceOf(OWNER)]}</b>; change it on the Hero tab).</div>
    <div class="row" style="margin-top:10px"><button class="btn" data-t="lockorders" style="flex:1" ${canEdit ? '' : 'disabled'}>Lock orders</button></div></div>`;
@@ -246,11 +247,26 @@ function bonusOrdersHtml(c, s, o, r, chip, conc, v2, spellChip, me) {
   }
   return bonusBlocks.join('');
 }
-function orderLines(o, s, c) { const r = o?.thisRound || {}; const a = r.action || {}; const tname = t => ({ nearest: 'nearest foe', weakest: 'weakest foe', boss: 'the boss', ally_lowest: 'most hurt ally', self: 'myself' }[t] || T.game.view.combatants.find(x => x.uid === t)?.name || T.players.find(p => p.cid === t)?.name || t);
+function writeInBox(d, canEdit) {
+  const text = d?.text || '';
+  const mapped = text.trim() ? N.mapCombatWriteIn(text) : null;
+  const slotNote = !mapped ? 'If you fill this in, it replaces your Action this turn, unless you clearly describe a move or a bonus action instead.'
+    : mapped.slot === 'bonus' ? 'This replaces your bonus action this turn. Your Action still stands.'
+    : mapped.slot === 'move' ? 'This replaces your move this turn. Your Action still stands.'
+    : 'This replaces your Action this turn.';
+  return `<div style="margin-top:10px" class="sc meta"><b style="color:var(--wine)">Or: I do something else</b></div>
+   <textarea rows="2" data-f="text" maxlength="${FREE_TEXT_MAX}" placeholder="Grapple, shove, use the terrain or an item\u2026 The GM rules it at resolve." ${canEdit ? '' : 'disabled'}>${esc(text)}</textarea>
+   <div class="note" id="writein-note">${esc(slotNote)} ${text.length ? `${text.length}/${FREE_TEXT_MAX}` : `Short, up to ${FREE_TEXT_MAX} characters.`} The GM maps it to the closest legal action and, if a check is needed, calls Easy, Medium or Hard.</div>`;
+}
+function writeInLine(text) { const t = String(text || '').trim(); return t ? `\u201c${esc(t.length > 160 ? t.slice(0, 157) + '\u2026' : t)}\u201d` : null; }
+function orderLines(o, s, c, extra = {}) { const r = o?.thisRound || {}; const a = r.action || {}; const tname = t => ({ nearest: 'nearest foe', weakest: 'weakest foe', boss: 'the boss', ally_lowest: 'most hurt ally', self: 'myself' }[t] || T.game.view.combatants.find(x => x.uid === t)?.name || T.players.find(p => p.cid === t)?.name || t);
   const pre = presets(c, s).find(p => p.id === o?.preset);
   const btxt = bonusLine(r.bonus, t => esc(tname(t === T.me?.cid ? 'self' : t)));
   const stxt = smiteLine(o?.smite);
-  return [['Move', r.move === 'hold' ? 'hold position' : Array.isArray(r.move) ? `to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in as needed'], ['Action', `${a.do === 'cast' ? `<i>${esc(SRD.spells[a.spell]?.name)}</i>` : a.do === 'continue_cast' ? 'keep casting' : esc(a.do)}${tgtList(a) ? ' \u2192 ' + tgtList(a).map(t => esc(tname(t === T.me?.cid ? 'self' : t))).join(', ') : a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + esc(tname(a.target)) : ''}`], ...(btxt ? [['Bonus action', btxt]] : []), ...(stxt ? [['Smite', esc(stxt)]] : []), ...(o?.actionSurge ? [['Action Surge', 'on']] : []), ...(o?.sacredWeapon ? [['Sacred Weapon', 'on']] : []), ...(r.keep === false ? [['Concentration', 'let it end']] : []), ['Standing order', esc(pre?.t || 'none')]]; }
+  const wmap = extra.text?.trim() ? N.mapCombatWriteIn(extra.text) : null;
+  const wtxt = writeInLine(extra.text);
+  const wnote = wmap?.slot === 'bonus' ? ' <small>(replaces bonus action)</small>' : wmap?.slot === 'move' ? ' <small>(replaces move)</small>' : wmap ? ' <small>(replaces Action)</small>' : '';
+  return [['Move', r.move === 'hold' ? 'hold position' : Array.isArray(r.move) ? `to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in as needed'], ['Action', `${a.do === 'cast' ? `<i>${esc(SRD.spells[a.spell]?.name)}</i>` : a.do === 'continue_cast' ? 'keep casting' : esc(a.do)}${tgtList(a) ? ' \u2192 ' + tgtList(a).map(t => esc(tname(t === T.me?.cid ? 'self' : t))).join(', ') : a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + esc(tname(a.target)) : ''}`], ...(btxt ? [['Bonus action', btxt]] : []), ...(stxt ? [['Smite', esc(stxt)]] : []), ...(o?.actionSurge ? [['Action Surge', 'on']] : []), ...(o?.sacredWeapon ? [['Sacred Weapon', 'on']] : []), ...(r.keep === false ? [['Concentration', 'let it end']] : []), ...(wtxt ? [['Something else', wtxt + wnote]] : []), ['Standing order', esc(pre?.t || 'none')]]; }
 
 // ---------- resolution ----------
 function entryCard(e, r) {
@@ -288,7 +304,7 @@ function resolutionView(k) {
   const changes = r.sheetChanges.length ? `<h2 style="margin-top:12px">Sheet changes</h2><ul class="list">${r.sheetChanges.map(c => `<li>${AV(pidOfCid(c.cid))}<span style="flex:1;min-width:0">${esc(first(c.name))} \u00b7 ${esc(c.what)}</span><span class="r ${/^\u2212|^-|\u2192 \d/.test(c.delta) && !/^\+/.test(c.delta) ? 'warn' : ''}" style="${/^\+|gained/.test(c.delta) ? 'color:#2f6a2c' : ''}">${esc(c.delta)}</span></li>`).join('')}</ul>` : '<div class="note">No sheet changes tonight.</div>';
   const flags = r.entries.flatMap(e => (e.effects || []).filter(x => x.cid === 'story')).map(x => x.what.replace(/^hook: /, ''));
   const ord = r.entries.filter(e => e.kind === 'orders' || (e.kind === 'absent' && r.battle && !r.battle.started));
-  const ordersIn = ord.length ? `<div class="card"><h2>Orders in</h2><ul class="list">${ord.map(e => `<li>${AV(e.pid)}<div style="flex:1;min-width:0"><b>${esc(first(e.name))}</b><div class="meta">${e.kind === 'absent' ? `absent \u00b7 fought on <b>${STANCE_TXT[e.stance || stanceOf(e.pid)]}</b> stance` : orderText(e)}</div>${e.say ? `<div class="meta"><b style="color:#7d1d2e">I say:</b> \u201c${esc(e.say)}\u201d</div>` : ''}</div></li>`).join('')}</ul></div>` : '';
+  const ordersIn = ord.length ? `<div class="card"><h2>Orders in</h2><ul class="list">${ord.map(e => `<li>${AV(e.pid)}<div style="flex:1;min-width:0"><b>${esc(first(e.name))}</b><div class="meta">${e.kind === 'absent' ? `absent \u00b7 fought on <b>${STANCE_TXT[e.stance || stanceOf(e.pid)]}</b> stance` : orderText(e)}</div>${e.check ? `<div class="meta">${esc(e.check.label || e.check.skill)} ${e.check.nat} = ${e.check.total} vs DC ${e.check.dc}. ${e.check.ok ? 'Success.' : 'Failure.'}</div>` : ''}${e.say ? `<div class="meta"><b style="color:#7d1d2e">I say:</b> \u201c${esc(e.say)}\u201d</div>` : ''}</div></li>`).join('')}</ul></div>` : '';
   return head + r.entries.map(e => entryCard(e, r)).join('') + ordersIn + battleCard(r) + lootResult(r) + narr + changes + (flags.length ? `<h2 style="margin-top:12px">New in the story</h2><ul class="list">${flags.map(f => `<li>\u2726 ${esc(f)}</li>`).join('')}</ul>` : '') +
     `<div class="row" style="margin-top:10px"><button class="btn ghost sm" data-t="recap" data-v="${k}" style="width:auto">Recap</button><div class="sp"></div>${k < T.n ? `<button class="btn sm" data-t="go" data-v="table" style="width:auto">Tonight\u2019s scene \u2192</button>` : ''}</div></div>`;
 }
@@ -305,7 +321,7 @@ function lootResult(r) {
   return out.length ? `<div class="card" id="lootres"><h2>Between scenes: gear, loot, levels, rest</h2><ul class="list">${out.join('')}</ul></div>` : '';
 }
 function orderText(e) { const o = e.orders || {}; const r = o.thisRound || {}; const a = r.action || {}; const tn = t => ({ nearest: 'nearest foe', weakest: 'weakest foe', boss: 'the boss', ally_lowest: 'most hurt ally', self: 'self' }[t] || t);
-  return esc([r.move === 'hold' ? 'hold' : Array.isArray(r.move) ? `move to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in', a.do === 'cast' ? `${SRD.spells[a.spell]?.name || a.spell} \u2192 ${tgtList(a) ? tgtList(a).map(t => N.shortName(T.players.find(p => p.cid === t)?.name || tn(t))).join(', ') : tn(a.target)}` : a.do === 'continue_cast' ? 'keep casting' : `${a.do || 'attack'}${a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + tn(a.target) : ''}`, bonusLine(r.bonus, t => tn(t)), smiteLine(o.smite), r.keep === false ? 'let concentration end' : null, o.actionSurge ? 'Action Surge' : null, o.sacredWeapon ? 'Sacred Weapon' : null, o.preset && o.preset !== 'none' ? `standing order: ${({ guard: 'Dodge when hurt', healer: 'Healer first', medic: 'No one bleeds out' })[o.preset] || o.preset}` : null].filter(Boolean).join(' \u00b7 ')); }
+  return esc([r.move === 'hold' ? 'hold' : Array.isArray(r.move) ? `move to ${'ABCDEFGHIJ'[r.move[0]]}${r.move[1] + 1}` : 'close in', a.do === 'cast' ? `${SRD.spells[a.spell]?.name || a.spell} \u2192 ${tgtList(a) ? tgtList(a).map(t => N.shortName(T.players.find(p => p.cid === t)?.name || tn(t))).join(', ') : tn(a.target)}` : a.do === 'continue_cast' ? 'keep casting' : `${a.do || 'attack'}${a.target && !['dodge', 'dash'].includes(a.do) ? ' \u2192 ' + tn(a.target) : ''}`, bonusLine(r.bonus, t => tn(t)), smiteLine(o.smite), r.keep === false ? 'let concentration end' : null, o.actionSurge ? 'Action Surge' : null, o.sacredWeapon ? 'Sacred Weapon' : null, e.text ? 'something else: \u201c' + e.text + '\u201d' : null, o.preset && o.preset !== 'none' ? `standing order: ${({ guard: 'Dodge when hurt', healer: 'Healer first', medic: 'No one bleeds out' })[o.preset] || o.preset}` : null].filter(Boolean).join(' \u00b7 ')); }
 async function verify(k) { const r = T.results[k], sc = T.scenes[k]; if (!r || !sc) return; (T.verify = T.verify || {})[k] = { seed: N.verifyCommit(r.seed, sc.commit), dc: sc.dcCommit ? N.commit(r.salt + '|' + JSON.stringify(r.dcs)) === sc.dcCommit : null }; }
 
 // ---------- recap / chronicle ----------
@@ -391,7 +407,7 @@ async function saveDraft(locked) { const d = T.draft = normalizeDraft(T.draft); 
   await store.putAction(T.n, a); T.mine = await store.myAction(T.n); T.locks = await store.locks(T.n); }
 async function saveOrders(locked) { const o = T.orders; const pre = presets(ch(T.me.cid), sheetOf(T.me.cid)).find(p => p.id === o.preset);
   const orders = { thisRound: { ...o.thisRound, move: o.thisRound.move ?? undefined }, standing: pre?.rule || [], preset: o.preset, actionSurge: !!o.actionSurge, ...(o.smite ? { smite: o.smite } : {}), ...(o.sacredWeapon ? { sacredWeapon: true } : {}) };
-  const d = T.draft = normalizeDraft(T.draft); await store.putAction(T.n, { kind: 'orders', orders, say: (d.say || '').trim(), locked, ...extras() }); T.mine = await store.myAction(T.n); T.locks = await store.locks(T.n); }
+  const d = T.draft = normalizeDraft(T.draft); await store.putAction(T.n, { kind: 'orders', orders, say: (d.say || '').trim(), ...( (d.text || '').trim() ? { text: (d.text || '').trim() } : {} ), locked, ...extras() }); T.mine = await store.myAction(T.n); T.locks = await store.locks(T.n); }
 async function onClick(e) {
   const b = e.target.closest('[data-t]'); if (!b || b.disabled) return; const t = b.dataset.t, v = b.dataset.v, k = b.dataset.k;
   try {
@@ -432,7 +448,9 @@ async function onClick(e) {
   render();
 }
 let inputTimer = null;
-function onInput(e) { const f = e.target.dataset?.f; if (!f) return; if (f === 'report') { T.reportText = e.target.value; return; } if (f === 'ask') { T.askText = e.target.value; T.askDone = null; return; } if (f === 'attach') { T.reportAttach = e.target.checked; return; } T.draft = normalizeDraft(T.draft); if (f === 'text') { T.draft.text = e.target.value; T.draft.kind = e.target.value.trim() ? 'free' : (T.draft.moveId ? 'move' : null); if (T.draft.kind === 'free') T.draft.moveId = null; } else T.draft[f] = e.target.value;
+function onInput(e) { const f = e.target.dataset?.f; if (!f) return; if (f === 'report') { T.reportText = e.target.value; return; } if (f === 'ask') { T.askText = e.target.value; T.askDone = null; return; } if (f === 'attach') { T.reportAttach = e.target.checked; return; } T.draft = normalizeDraft(T.draft); if (f === 'text') { T.draft.text = capFreeText(e.target.value); if (e.target.value !== T.draft.text) e.target.value = T.draft.text;
+    if (T.scene?.battle) { const note = e.target.parentNode?.querySelector?.('#writein-note') || e.target.nextElementSibling; if (note && note.classList.contains('note')) { const mapped = T.draft.text.trim() ? N.mapCombatWriteIn(T.draft.text) : null; note.textContent = (!mapped ? 'If you fill this in, it replaces your Action this turn, unless you clearly describe a move or a bonus action instead.' : mapped.slot === 'bonus' ? 'This replaces your bonus action this turn. Your Action still stands.' : mapped.slot === 'move' ? 'This replaces your move this turn. Your Action still stands.' : 'This replaces your Action this turn.') + ' ' + (T.draft.text.length ? `${T.draft.text.length}/${FREE_TEXT_MAX}` : `Short, up to ${FREE_TEXT_MAX} characters.`) + ' The GM maps it to the closest legal action and, if a check is needed, calls Easy, Medium or Hard.'; } }
+    else { T.draft.kind = T.draft.text.trim() ? 'free' : (T.draft.moveId ? 'move' : null); if (T.draft.kind === 'free') T.draft.moveId = null; } } else T.draft[f] = e.target.value;
   const btn = document.querySelector('[data-t="lock"]'); if (btn) btn.disabled = !(T.draft.kind === 'move' ? T.draft.moveId : T.draft.kind === 'free' && (T.draft.text || '').trim().length >= 3);
   document.querySelectorAll('[data-t="move"]').forEach(m => m.classList.toggle('sel', T.draft.kind === 'move' && m.dataset.v === T.draft.moveId)); }
 export async function boot(o) {

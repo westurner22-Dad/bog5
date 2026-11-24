@@ -51,6 +51,50 @@ export function mapFreeText(text) {
   const t = String(text || '').toLowerCase(); for (const [re, skill] of MAP) if (re.test(t)) return { skill, why: `matched "${t.match(re)[0]}"` };
   return { skill: null, why: 'no keyword: the GM picks the check (or rules it needs no roll)' };
 }
+const NO_CHECK = new Set(['dodge', 'help', 'dash', 'disengage', 'attack', 'potion']);
+// Battle-orders "something else": closest legal 5e action + which slot it uses. Default slot is the Action.
+export function mapCombatWriteIn(text) {
+  const raw = String(text || ''); const t = raw.toLowerCase();
+  let slot = 'action';
+  if (/\bas (a |my )?bonus( action)?\b/.test(t) || /\bbonus action\b/.test(t) || /\bdrink (a |my )?(potion|vial)\b/.test(t)) slot = 'bonus';
+  else if (/\bas (a |my )?move\b/.test(t) || /^(i )?(move|reposition|close in|hold (position|here)|stay (put|here))\b/.test(t)) slot = 'move';
+  const acts = [
+    [/grappl|wrestl|grab (him|her|them|it|the)|hold (him|her|them) (down|still)/, 'grapple', 'athletics'],
+    [/shove|push (him|her|them|it|the)|knock (him|her|them) (down|prone|over)|\btrip\b/, 'shove', 'athletics'],
+    [/\bhide\b|sneak (behind|away|into)/, 'hide', 'stealth'],
+    [/\bhelp\b|distract|aid (him|her|them|an ally)/, 'help', null],
+    [/\bdodge\b|\bduck\b/, 'dodge', null],
+    [/\bdash\b|\bsprint\b/, 'dash', null],
+    [/\bdisengage\b|back (away|off)|\bwithdraw\b/, 'disengage', null],
+    [/drink (a |my )?potion|use (a |my )?potion/, 'potion', null],
+    [/\battack\b|\bswing\b|\bstab\b|\bstrike\b|\bshoot\b/, 'attack', null],
+  ];
+  for (const [re, doId, skill] of acts) if (re.test(t)) {
+    const m = mapFreeText(raw);
+    return { slot, do: doId, skill: skill || m.skill, why: `mapped to ${doId} ("${t.match(re)[0]}")`, needsCheck: !NO_CHECK.has(doId) };
+  }
+  const m = mapFreeText(raw);
+  return { slot, do: 'check', skill: m.skill, why: m.why, needsCheck: true };
+}
+export function writeInNeedsCheck(d) { return d && !NO_CHECK.has(d.do || 'check'); }
+// Apply a ruled write-in onto a copy of orders. Unruled checks leave the locked Action in place.
+export function applyCombatWriteIn(orders, entry) {
+  const text = String(entry?.text || '').trim(); if (!text) return orders;
+  const mapped = entry.writeIn || entry.mapped || mapCombatWriteIn(text);
+  const slot = mapped.slot || 'action'; const d = mapped.do || 'check';
+  if (writeInNeedsCheck(mapped) && (!entry.check?.skill || entry.check.dc == null)) return { ...orders, writeInUnruled: true };
+  const r = { ...(orders.thisRound || {}) };
+  const prev = r.action || {};
+  const ally = d === 'help' || prev.target === 'ally_lowest' || prev.target === 'self';
+  const act = { do: d, target: ally && d === 'help' ? (prev.target === 'self' ? 'self' : (prev.target || 'ally_lowest')) : (prev.target || 'nearest'),
+    ...(writeInNeedsCheck(mapped) ? { skill: entry.check.skill, dc: entry.check.dc, word: entry.dcCall?.word, text } : {}) };
+  if (slot === 'bonus') r.bonus = act;
+  else if (slot === 'move') {
+    const hold = /hold|stay (put|here)|don'?t move|do not move/.test(text.toLowerCase());
+    r.move = hold ? 'hold' : (r.move ?? null);
+  } else r.action = act;
+  return { ...orders, thisRound: r };
+}
 const ABN = { str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' };
 export const checkLabel = skill => ABN[skill] || (SKILLS[skill] ? skill.split('_').map(w => w === 'of' ? w : w[0].toUpperCase() + w.slice(1)).join(' ') : skill);
 
@@ -93,7 +137,7 @@ export function setDcCall(entry, word, why, skill, ver = DC_SCALE_CURRENT) {
 }
 export function checkDcCalls(entries, ver = DC_SCALE_CURRENT) {
   const table = dcScale(ver); const label = scaleLabel(ver); const errs = [];
-  for (const e of entries.filter(x => x.kind === 'free' && x.check)) {
+  for (const e of entries.filter(x => x.check && (x.kind === 'free' || (x.kind === 'orders' && x.text)))) {
     const c = e.dcCall; const nm = e.name || e.pid;
     if (!c) { errs.push(`${nm}: free-text check has no logged DC call`); continue; }
     if (table[c.word] !== c.dc || (e.check.dc != null && e.check.dc !== c.dc)) errs.push(`${nm}: DC ${e.check.dc} is off the fixed scale (${label})`);
@@ -116,7 +160,19 @@ export function planNight(scene, actions, players, stances = {}) {
 function planOne(scene, a, p, stance) {
   {
     if (!a || !a.locked) return { pid: p.pid, cid: p.cid, kind: 'absent', stance, text: scene.absentText || 'Tags along with the party, keeps out of trouble, and is good company on the road. No roll.' };
-    if (scene.battle || a.orders) return { pid: p.pid, cid: p.cid, kind: 'orders', orders: a.orders || {}, say: a.say || '', stance };
+    if (scene.battle || a.orders) {
+      const text = String(a.text || '').trim();
+      const e = { pid: p.pid, cid: p.cid, kind: 'orders', orders: a.orders || {}, say: a.say || '', stance };
+      if (text) {
+        const m = mapCombatWriteIn(text); const table = dcScale(scaleOf(scene)); const word = scene.freeDc != null ? (A.difficultyWord(scene.freeDc) || 'Medium') : 'Medium';
+        e.text = text; e.label = 'Something else'; e.mapped = m; e.writeIn = { slot: m.slot, do: m.do };
+        if (m.needsCheck) {
+          e.check = m.skill ? { skill: m.skill, dc: table[word] } : null;
+          e.dcCall = m.skill ? { word, dc: table[word], why: `default ${word}: ${m.why}` } : null;
+        }
+      }
+      return e;
+    }
     if (a.kind === 'move') { const mv = scene.moves.find(m => m.id === a.moveId); if (!mv) throw new Error(`${p.pid}: unknown move ${a.moveId}`);
       return { pid: p.pid, cid: p.cid, kind: 'move', moveId: mv.id, label: mv.label, say: a.say || '', check: mv.check ? { ...mv.check } : null, assist: mv.assist || null, success: mv.success, failure: mv.failure, stance }; }
     const m = mapFreeText(a.text); const table = dcScale(scaleOf(scene)); const word = scene.freeDc != null ? (A.difficultyWord(scene.freeDc) || 'Medium') : 'Medium';
@@ -167,7 +223,7 @@ export function resolveNight(g, scene, plan, { seed, now = Date.now(), early = f
   // 1. assists first (Help gives advantage to the named ally's check)
   const advFor = new Set(plan.entries.filter(e => e.kind !== 'absent' && e.assist).map(e => e.assist));
   for (const e of plan.entries) {
-    const c0 = g.state.chars[e.cid]; const row = { pid: e.pid, cid: e.cid, name: c0.name, kind: e.kind, label: e.label || null, text: e.text || null, say: e.say || '', mapped: e.mapped || null, ...(e.dcCall ? { dcCall: e.dcCall } : {}), ...(e.kind === 'orders' ? { orders: e.orders } : {}), ...(e.kind === 'absent' ? { stance: e.stance } : {}) };
+    const c0 = g.state.chars[e.cid]; const row = { pid: e.pid, cid: e.cid, name: c0.name, kind: e.kind, label: e.label || null, text: e.text || null, say: e.say || '', mapped: e.mapped || null, ...(e.dcCall ? { dcCall: e.dcCall } : {}), ...(e.writeIn ? { writeIn: e.writeIn } : {}), ...(e.kind === 'orders' ? { orders: e.orders } : {}), ...(e.kind === 'absent' ? { stance: e.stance } : {}) };
     if (e.kind === 'move' || e.kind === 'free') {
       if (e.check) { const adv = !!e.check.adv || advFor.has(e.cid) || advFor.has(e.pid); const r = A.skillCheck(g, e.cid, e.check.skill, e.check.dc, { adv, why: e.label || e.text });
         row.check = { skill: e.check.skill, label: checkLabel(e.check.skill), word: r.word, dc: r.dc, nat: r.nat, faces: r.faces, mode: r.mode, parts: r.parts, total: r.total, ok: r.ok, adv };
@@ -180,8 +236,12 @@ export function resolveNight(g, scene, plan, { seed, now = Date.now(), early = f
   // 2. battle: orders for one round (or the rest of the current round); absentees fight on their preset stance (Cautious default)
   let battle = null;
   if (g.state.encounter && ['active', 'awaiting_orders', 'paused'].includes(g.state.encounter.status)) {
-    const orders = {}; for (const e of plan.entries) orders[e.cid] = e.kind === 'orders' ? { ...e.orders, stance: e.stance } : { absent: true, stance: e.stance };
+    const orders = {}; for (const e of plan.entries) orders[e.cid] = e.kind === 'orders' ? applyCombatWriteIn({ ...e.orders, stance: e.stance }, e) : { absent: true, stance: e.stance };
     const i0 = g.log.length; const r = resolveBattle(g, orders, { maxRounds: 1 }); battle = battleSummary(g, i0, r);
+    for (const ev of g.log.slice(i0)) if (ev.t === 'turn' && ev.writeInCheck) {
+      const row = entries.find(x => x.cid === ev.who || ev.who === x.cid);
+      if (row) { row.check = ev.writeInCheck; row.outcome = ev.writeInCheck.ok ? 'Success.' : 'Failure.'; }
+    }
   }
   // 3. scripted aftermath (start a battle, award milestone XP)
   const afterFx = []; for (const ef of scene.after?.effects || []) for (const cid of [g.state.party.order[0]]) applyEffect(g, cid, ef, afterFx);

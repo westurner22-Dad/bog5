@@ -581,7 +581,8 @@ export function takeTurn(g, uid, orders) {
     // advance pointer
     const e2 = enc(g); let t = e2.turn + 1, r = e2.round; if (t >= e2.order.length) { t = 0; r++; }
     g.set(['encounter', 'turn'], t); g.set(['encounter', 'round'], r);
-    g._T = null; return g.end({ triggers: g.triggers });
+    const extra = { triggers: g.triggers, ...(T.writeInCheck ? { writeInCheck: T.writeInCheck } : {}) };
+    g._T = null; return g.end(extra);
   } catch (err) { g._T = null; g.abort(); throw err; }
 }
 function tickEffects(g, c) {
@@ -669,6 +670,8 @@ function pcTurn(g, T, c, o) {
       want = T.mode === 'ranged' ? Math.min(o.ranged.range, 60) : o.melee ? o.melee.reach : 5; if (act.rangedOnly && T.mode !== 'ranged') target = D(g, c, target) <= 5 ? target : null; } }
   if (act.do === 'cast') { const sp = SRD.spells[act.spell]; const mdl = sp && spellModel(act.spell); const ally = ['heal', 'buff', 'cure'].includes(mdl?.kind); target = ally ? pickAlly(g, c, act.target) : pickTarget(g, c, act.target); const rng = parseInt(sp?.range) || (/touch/i.test(sp?.range || '') ? 5 : /self/i.test(sp?.range || '') ? 15 : 60); want = Math.min(rng, ally ? rng : 60); if (rulesV2(g) && act.spell === 'true_strike') want = trueStrikeReach(g, c); }
   if (['help', 'stabilize', 'lay_on_hands', 'healing_hands', 'potion'].includes(act.do)) { target = act.do === 'potion' ? pickAlly(g, c, act.target || 'self') : pickAlly(g, c, act.target); want = 5; }
+  if (['grapple', 'shove'].includes(act.do)) { target = pickTarget(g, c, act.target); want = 5; }
+  if (act.do === 'check' && act.target && !['dodge', 'dash'].includes(act.target)) { const ally = act.target === 'self' || act.target === 'ally_lowest' || (act.target && alliesOf(g, c).some(a => a.uid === act.target || a.cid === act.target)); target = ally ? pickAlly(g, c, act.target) : pickTarget(g, c, act.target); }
   if (T.dash) budget *= 2; if (plan.move === 'hold' || act.do === 'dodge' || T.steady) budget = 0;
   if (Array.isArray(plan.move)) moveToward(g, T, c, { pos: plan.move, size: 1 }, 0, budget); else if (target && target.uid !== c.uid && budget > 0) moveToward(g, T, c, target, want, budget);
   c = C(g, c.uid); if (!conscious(g, c)) return;
@@ -699,6 +702,7 @@ function doAction(g, T, c, act, target) {
       if (kitIdx >= 0) { const it = c0.inventory[kitIdx]; g.set(['chars', c.cid, 'inventory', kitIdx, 'charges'], (it.charges ?? 10) - 1); g.set(['chars', target.cid, 'death', 'stable'], true); say(g, `${c.name} stabilizes ${target.name} with a Healer's Kit.`); return; }
       const r = d20Test(g, c, 'check', { why: 'Medicine DC 10' }); const tot = r.nat + s.skills.medicine.v + r.bonus; if (tot >= 10) { g.set(['chars', target.cid, 'death', 'stable'], true); say(g, `${c.name} stabilizes ${target.name} (Medicine ${tot}).`); } else say(g, `${c.name} fails to stabilize ${target.name} (Medicine ${tot}).`); return; }
     case 'potion': return usePotionInCombat(g, T, c, act, target);
+    case 'check': case 'grapple': case 'shove': case 'hide': return writeInAction(g, T, c, act, target);
     case 'preserve_life': { if (!(c0.cls === 'cleric' && c0.subclass === 'life' && s.resources.channel_divinity?.left > 0)) { trig(g, 'order_impossible', `${c.name} can't use Preserve Life`); return; } g.set(['chars', c.cid, 'resSpent', 'channel_divinity'], (c0.resSpent.channel_divinity || 0) + 1);
       let pool = 5 * c0.level; const hurt = alliesOf(g, c).filter(a => !isDead(g, a) && D(g, c, a) <= 30 && hpOf(g, a) < maxHp(g, a) / 2).sort((x, y) => hpOf(g, x) - hpOf(g, y));
       say(g, `${c.name} channels Preserve Life (${pool} HP).`); for (const a of hurt) { const cap = Math.floor(maxHp(g, a) / 2) - hpOf(g, a); const h = Math.min(cap, pool); if (h > 0) { heal(g, a, h, 'Preserve Life'); pool -= h; } } return; }
@@ -773,6 +777,26 @@ function bonusAction(g, T, c, b) {
     const rng = parseInt(sp.range) || 60; if (D(g, c, t) > rng) { trig(g, 'order_impossible', `${c.name}: ${sp.name} out of range`); return; }
     const fe = b.spell === 'hunters_mark' && s.resources.favored_enemy?.left > 0; if (fe) { g.set(['chars', c.cid, 'resSpent', 'favored_enemy'], (c0.resSpent.favored_enemy || 0) + 1); const r = castSpell(g, T, c, b.spell, 1, [t], { markTarget: t, freeCast: true }); if (r.ok) T.bonusUsed = true; return; }
     const L = sp.level ? pickSlot(g, c, b.level || sp.level) : 0; const r = castSpell(g, T, c, b.spell, L, [t], { markTarget: t }); if (r.ok) { T.bonusUsed = true; if (b.spell === 'spiritual_weapon') T.castSW = true; } else trig(g, 'order_impossible', `${c.name}: ${sp.name} — ${r.why}`); return; }
+}
+function writeInAction(g, T, c, act, target) {
+  const skill = act.skill; const dc = act.dc; const s = sheet(g, c);
+  if (!skill || dc == null) { say(g, `${c.name}'s write-in was not ruled, so the locked Action stands.`); return; }
+  if (['grapple', 'shove'].includes(act.do)) {
+    if (!target || !up(g, target) || D(g, c, target) > 5) { say(g, `${c.name} can't reach a target to ${act.do}.`); trig(g, 'order_impossible', `${c.name} can't reach to ${act.do}`); return; }
+  }
+  const sk = s.skills[skill] || { v: s.mods[skill] || 0, parts: [{ src: skill, v: s.mods[skill] || 0 }] };
+  const r = d20Test(g, c, 'check', { why: `${skill.replace(/_/g, ' ')} vs DC ${dc}` });
+  const total = r.nat + sk.v + r.bonus;
+  const ok = total >= dc;
+  const parts = [...(sk.parts || []), ...r.parts];
+  const word = act.word || (dc <= 6 ? 'Easy' : dc <= 11 ? 'Medium' : 'Hard');
+  const label = skill.split('_').map(w => w === 'of' ? w : w[0].toUpperCase() + w.slice(1)).join(' ');
+  say(g, `${c.name} — ${label} (${word}): d20 ${r.nat}${r.mode && r.mode !== 'normal' ? ' ' + r.mode : ''}${parts.filter(p => p.src !== skill && p.v).map(p => ` ${p.v >= 0 ? '+' : ''}${p.v} ${p.src}`).join('')} ${sk.v >= 0 ? '+' : ''}${sk.v} ${label} = ${total} vs DC ${dc} → ${ok ? 'success' : 'failure'}.`);
+  T.writeInCheck = { skill, label, word, dc, nat: r.nat, faces: r.faces, mode: r.mode, parts: [{ src: label, v: sk.v }, ...r.parts], total, ok };
+  if (!ok) return;
+  if (act.do === 'grapple') { addCond(g, target, { id: 'grappled', src: c.uid }); say(g, `${c.name} grapples ${target.name}.`); }
+  if (act.do === 'shove') { addCond(g, target, { id: 'prone' }); say(g, `${c.name} shoves ${target.name} Prone.`); }
+  if (act.do === 'hide') { addEff(g, c, { id: 'hidden', src: c.uid, rounds: 10 }); say(g, `${c.name} hides.`); }
 }
 function usePotionInCombat(g, T, c, act, target) {
   const c0 = ch(g, c); target = target || c; const idx = c0.inventory.findIndex(i => (act.item ? i.uid === act.item || i.id === act.item : /^potion_of_healing/.test(i.id)) && i.qty > 0);

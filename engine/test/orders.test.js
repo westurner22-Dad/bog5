@@ -1,5 +1,6 @@
 import { test } from 'node:test'; import assert from 'node:assert/strict';
-import { deriveSheet } from '../src/index.js';
+import { deriveSheet, rebuild } from '../src/index.js';
+import * as N from '../src/night.js';
 import { attack, castSpell, takeTurn, resolveBattle, combatant } from '../src/combat.js';
 import { spellModel } from '../src/rules/spellEffects.js';
 import { actionSpells, bonusSpells, smiteSpells, bonusFeatures, actionFeatures, canSacredWeapon } from '../src/orders.js';
@@ -106,4 +107,73 @@ test('a bonus-action Shield of Faith uses the bonus, so a smite will not go off 
   assert.ok(g.state.chars.biggus.effects.some(e => e.id === 'shield_of_faith'));
   assert.equal(g.state.chars.biggus.resSpent.free_smite || 0, free0);
   assert.equal((g.state.chars.biggus.slotsSpent[0] || 0) - (slots0[0] || 0), 1);
+});
+
+
+test('combat write-ins map to a slot and a legal 5e action', () => {
+  assert.deepEqual(N.mapCombatWriteIn('I shove the clerk into the ditch').do, 'shove');
+  assert.equal(N.mapCombatWriteIn('I shove the clerk into the ditch').skill, 'athletics');
+  assert.equal(N.mapCombatWriteIn('I shove the clerk into the ditch').slot, 'action');
+  assert.equal(N.mapCombatWriteIn('I grapple the rider').do, 'grapple');
+  assert.equal(N.mapCombatWriteIn('I hide in the weeds').do, 'hide');
+  assert.equal(N.mapCombatWriteIn('I take the Dodge action').do, 'dodge');
+  assert.equal(N.mapCombatWriteIn('I help Gorlock').do, 'help');
+  assert.equal(N.mapCombatWriteIn('I drink a potion as a bonus action').slot, 'bonus');
+  assert.equal(N.mapCombatWriteIn('I drink a potion as a bonus action').do, 'potion');
+  assert.equal(N.mapCombatWriteIn('As a move I hold position').slot, 'move');
+  assert.equal(N.mapCombatWriteIn('I climb the wagon').do, 'check');
+  assert.equal(N.mapCombatWriteIn('I climb the wagon').skill, 'athletics');
+});
+
+test('planNight on a battle keeps orders and attaches a write-in with a default v3 DC', () => {
+  const scene = { n: 40, id: 'a1n27', battle: true, freeDc: 14, dcScale: 3, moves: [] };
+  const players = [{ pid: 'p1', cid: 'biggus', name: 'Biggus' }];
+  const plan = N.planNight(scene, { p1: { locked: true, kind: 'orders', orders: { thisRound: { action: { do: 'attack', target: 'nearest' } } }, text: 'I shove the clerk prone' } }, players);
+  const e = plan.entries[0];
+  assert.equal(e.kind, 'orders');
+  assert.equal(e.orders.thisRound.action.do, 'attack', 'locked Action is kept on the plan; apply happens at resolve');
+  assert.equal(e.text, 'I shove the clerk prone');
+  assert.equal(e.writeIn.do, 'shove');
+  assert.equal(e.check.skill, 'athletics');
+  assert.equal(e.check.dc, 11);
+  assert.equal(e.dcCall.word, 'Medium');
+  assert.deepEqual(N.checkDcCalls(plan.entries, 3), []);
+  const plain = N.planNight(scene, { p1: { locked: true, kind: 'orders', orders: { thisRound: { action: { do: 'attack', target: 'nearest' } } } } }, players);
+  assert.ok(!plain.entries[0].text && !plain.entries[0].check);
+});
+
+test('a shove write-in replaces the Attack, rolls on the called DC, and can knock the target Prone', () => {
+  const d = new Rigged(); const g = party('shove', d); duel(g, 'biggus', 'ogre');
+  g.state.encounter.order = ['biggus', 'f1']; g.state.encounter.turn = 0;
+  g.initial = JSON.parse(JSON.stringify(g.state)); g.log = [];
+  const scene = { n: 99, id: 't', battle: true, freeDc: 14, dcScale: 3, moves: [], after: { effects: [] } };
+  const seed = 'shove-seed';
+  N.openNight(g, scene, { seed, dateISO: '2026-11-24' });
+  g.dice = d; d.q = []; d.push(18, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+  const players = [{ pid: 'p1', cid: 'biggus', name: 'Biggus Dickus' }];
+  const plan = N.planNight(scene, { p1: { locked: true, kind: 'orders', orders: { thisRound: { action: { do: 'attack', target: 'nearest' } }, smite: { when: 'never' } }, text: 'I shove him to the ground' } }, players);
+  const r = N.resolveNight(g, scene, plan, { seed });
+  const row = r.entries[0];
+  assert.equal(row.writeIn.do, 'shove');
+  assert.ok(row.check, 'check is recorded on the result for verify and nat-20 payoffs');
+  assert.equal(row.check.skill, 'athletics');
+  assert.equal(row.check.dc, 11);
+  assert.equal(row.check.nat, 18);
+  assert.ok(row.check.ok);
+  assert.ok(C(g, 'f1').conditions?.some(c => c.id === 'prone'), 'successful shove knocks the target Prone');
+  assert.ok((r.battle.lines || []).some(l => /shoves/i.test(l) || /Athletics/i.test(l)));
+  const replayed = rebuild(g.log, g.initial);
+  assert.deepEqual(replayed, g.state);
+});
+
+test('a bonus-action write-in leaves the Attack in place; Dodge write-in needs no DC call', () => {
+  const attack = { thisRound: { action: { do: 'attack', target: 'nearest' } } };
+  const bonus = N.applyCombatWriteIn(attack, { text: 'I drink a potion as a bonus action', writeIn: { slot: 'bonus', do: 'potion' }, mapped: { slot: 'bonus', do: 'potion' } });
+  assert.equal(bonus.thisRound.action.do, 'attack');
+  assert.equal(bonus.thisRound.bonus.do, 'potion');
+  const dodge = N.applyCombatWriteIn(attack, { text: 'I dodge', writeIn: { slot: 'action', do: 'dodge' }, mapped: { slot: 'action', do: 'dodge', needsCheck: false } });
+  assert.equal(dodge.thisRound.action.do, 'dodge');
+  const unruled = N.applyCombatWriteIn(attack, { text: 'I flip the satchel into the ditch', mapped: { slot: 'action', do: 'check', needsCheck: true } });
+  assert.equal(unruled.thisRound.action.do, 'attack');
+  assert.ok(unruled.writeInUnruled);
 });

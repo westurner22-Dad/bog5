@@ -15,7 +15,10 @@
 //   narrate <n> --file narration.txt        validate narration against the engine; stores it only if it passes
 //   publish <n>                             post result + narration + revealed seed + public game state
 //   verify <n>                              check the published seed and DC hashes, the free-text DC calls, and replay the log
-//   call <n> <pid> <Easy|Medium|Hard> "why" [--skill s]   P3-1: set a free-text DC on that night's scale (v3: 6/11/16 from Night 38; nights 8–37 stay 9/14/19; nights 1–7 stay 10/15/20), logged with a reason
+//   call <n> <pid> <Easy|Medium|Hard> "why" [--skill s] [--do action] [--slot action|move|bonus]
+//                                           P3-1: set a free-text (or battle write-in) DC on that night's scale
+//                                           (v3: 6/11/16 from Night 38; nights 8–37 stay 9/14/19; nights 1–7 stay 10/15/20),
+//                                           logged with a reason. --do/--slot override the auto-mapped 5e action on a battle write-in.
 //   award <n> [--hoard 0-4] [--coin cp] [--items a,b] --why "..."   GM loot, applied in tonight's batch (Need/Greed or stash)
 //   lootmode <n> needgreed|party            how tonight's batch splits items (coin always splits evenly)
 //   link <uid> <pid> | unlink <uid>         P3-4: map a Google account (Firebase uid) to a seat
@@ -128,7 +131,7 @@ const C = {
     if (prev) { for (const e of plan.entries) { const o = prev.entries.find(x => x.pid === e.pid); if (o?.dcCall?.by === 'gm' && e.kind === 'free' && o.text === e.text) { e.dcCall = o.dcCall; e.check = o.check; } } // keep GM calls on re-plan
       for (const k of ['awards', 'lootMode']) if (prev[k]) plan[k] = prev[k]; }
     writeJ(`plan-${n}.json`, plan);
-    for (const e of plan.entries) say(`  ${e.pid} ${e.kind.padEnd(6)} ${e.kind === 'move' ? `${e.label} → ${e.check.skill} DC ${e.check.dc}` : e.kind === 'free' ? `"${e.text}" → ${e.check ? e.check.skill + ' DC ' + e.check.dc : 'NO CHECK (GM decides)'} (${e.mapped.why})` : e.kind === 'orders' ? 'battle orders' : `absent (${e.stance})`}`);
+    for (const e of plan.entries) say(`  ${e.pid} ${e.kind.padEnd(6)} ${e.kind === 'move' ? `${e.label} → ${e.check.skill} DC ${e.check.dc}` : e.kind === 'free' ? `"${e.text}" → ${e.check ? e.check.skill + ' DC ' + e.check.dc : 'NO CHECK (GM decides)'} (${e.mapped.why})` : e.kind === 'orders' ? (e.text ? `battle orders + something else: "${e.text}" → ${e.writeIn?.do || e.mapped?.do || 'check'}${e.check ? ' ' + e.check.skill + ' DC ' + e.check.dc : e.mapped?.needsCheck ? ' (needs GM call)' : ''} (${e.mapped?.why || ''})` : 'battle orders') : `absent (${e.stance})`}`);
     for (const e of plan.entries) { if (e.dcCall) say(`  ${e.pid} DC call ${e.dcCall.word} (${e.dcCall.dc}): ${e.dcCall.why}${e.dcCall.by === 'gm' ? '' : '  ← default; gm call to change'}`);
       if (e.cart?.length) say(`  ${e.pid} cart: ${e.cart.map(l => l.op + ' ' + (l.key || l.uid || l.lid)).join(', ')}`); if (e.loot) say(`  ${e.pid} loot: ${Object.entries(e.loot).map(([k, v]) => k + ' ' + v).join(', ')}`);
       if (e.levelUp) say(`  ${e.pid} level-up picks: ${JSON.stringify(e.levelUp)}`); if (e.rest) say(`  ${e.pid} rest: ${JSON.stringify(e.rest)}`); if (e.prepare) say(`  ${e.pid} prepare after the rest: ${e.prepare.list.join(', ')}`); if (e.casts?.length) say(`  ${e.pid} casts: ${e.casts.map(c => c.spell).join(', ')}`); }
@@ -167,16 +170,19 @@ const C = {
     const sc = await store.scene(n), r = await store.result(n); const okSeed = N.verifyCommit(r.seed, sc.commit); const okDc = N.commit(r.salt + '|' + JSON.stringify(r.dcs)) === sc.dcCommit;
     const g = loadG(); const replay = JSON.stringify(rebuild(g.log, g.initial)) === JSON.stringify(g.state);
     const ver = r.dcScale || N.scaleOf(sc);
-    const dcErr = N.checkDcCalls(r.entries.filter(e => e.kind === 'free').map(e => ({ kind: 'free', check: e.check ? { dc: e.check.dc, skill: e.check.skill } : null, dcCall: e.dcCall })), ver);
+    const dcErr = N.checkDcCalls(r.entries.filter(e => e.check && (e.kind === 'free' || (e.kind === 'orders' && e.text))).map(e => ({ kind: e.kind, text: e.text, check: e.check ? { dc: e.check.dc, skill: e.check.skill } : null, dcCall: e.dcCall })), ver);
     const okFree = !dcErr.length; const nFree = r.entries.filter(e => e.dcCall).length;
     say(`seed matches published hash: ${okSeed}\nmove DCs match published hash: ${okDc}\nfree-text DC calls on scale v${ver} (${N.scaleLabel(ver)}) with reasons (${nFree}): ${okFree}${okFree ? '' : ' (' + dcErr.join('; ') + ')'}\nevent log replays to the same state: ${replay}`);
     if (!(okSeed && okDc && okFree && replay)) process.exitCode = 3;
   },
   async call() { // gm call <n> <pid> <Easy|Medium|Hard> "reason" [--skill s]
     const [pid, word, why] = argv.slice(2); const plan = readJ(`plan-${n}.json`); const e = plan.entries.find(x => x.pid === pid);
-    if (!e || e.kind !== 'free') throw new Error(`${pid} has no free-text action in plan ${n}`);
+    if (!e || (e.kind !== 'free' && !(e.kind === 'orders' && e.text))) throw new Error(`${pid} has no free-text action in plan ${n}`);
+    const doId = opt('do'); const slot = opt('slot');
+    if (doId || slot) e.writeIn = { ...(e.writeIn || e.mapped || {}), ...(doId ? { do: doId } : {}), ...(slot ? { slot } : {}) };
+    if (doId && ['dodge', 'help', 'dash', 'disengage', 'attack', 'potion'].includes(doId)) { delete e.check; delete e.dcCall; writeJ(`plan-${n}.json`, plan); return say(`${pid}: "${e.text}" → ${doId}${slot ? ' (' + slot + ')' : ''} · no check`); }
     N.setDcCall(e, word, why, opt('skill') || undefined, await nightScale(n)); e.dcCall.by = 'gm'; e.dcCall.at = NOW; writeJ(`plan-${n}.json`, plan);
-    say(`${pid}: "${e.text}" → ${e.check.skill} ${e.dcCall.word} (DC ${e.dcCall.dc}) · ${e.dcCall.why}`);
+    say(`${pid}: "${e.text}" → ${e.writeIn?.do || e.mapped?.do || 'check'} ${e.check.skill} ${e.dcCall.word} (DC ${e.dcCall.dc}) · ${e.dcCall.why}`);
   },
   async award() {
     const plan = readJ(`plan-${n}.json`); const spec = {}; if (opt('hoard')) spec.hoard = opt('hoard'); if (opt('coin')) spec.coin = +opt('coin'); if (opt('items')) spec.items = opt('items').split(',').map(k => k.trim()).filter(Boolean).map(k => k.endsWith('?') ? { ...SH.instOf(k.slice(0, -1)).inst, unid: true } : SH.instOf(k).inst);
