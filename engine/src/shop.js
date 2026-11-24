@@ -34,6 +34,9 @@ export const SHOPS = {
   frontier: { id: 'frontier', name: 'Mother of Grudges\u2019 Bridge Stall', place: 'The Border March', blurb: 'She takes coin. She prefers grudges.', buys: true,
     stock: ['rations', 'waterskin', 'torch', 'arrows x20', 'bolts x20', 'sling_bullets x20', 'rope', 'tinderbox', 'bedroll', 'healers_kit', 'potion_of_healing', 'holy_water', 'antitoxin', 'dagger', 'spear', 'javelin', 'handaxe', 'shortbow', 'light_crossbow', 'leather_armor', 'hide_armor', 'scale_mail', 'shield'],
     limits: { potion_of_healing: 2, holy_water: 2, scale_mail: 1, hide_armor: 1, antitoxin: 2 } },
+  thimbleby: { id: 'thimbleby', name: 'The Pump Stall', place: 'Thimbleby \u00b7 the square', blurb: 'A front room on the square that sells what a village sells. Rations first, talk later.', buys: true,
+    stock: ['rations', 'waterskin', 'torch', 'arrows x20', 'bolts x20', 'sling_bullets x20', 'rope', 'tinderbox', 'bedroll', 'healers_kit', 'potion_of_healing', 'holy_water', 'dagger', 'spear', 'javelin', 'handaxe', 'shortbow', 'leather_armor', 'shield'],
+    limits: { potion_of_healing: 2, holy_water: 1 } },
 };
 export const DISCOUNT = 0.9; // the Agent at Court reward: 10% off at the capital's guild stalls (decision D4-2)
 const tabOf = d => d.kind === 'armor' || d.kind === 'shield' ? (d.plus ? 'magic' : 'armor') : d.kind === 'weapon' ? (d.plus ? 'magic' : 'weapons') : d.kind === 'scroll' || /^potion/.test(d.id) || d.kind === 'consumable' ? 'potions' : isMagic(d) ? 'magic' : 'supplies';

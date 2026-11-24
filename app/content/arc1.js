@@ -660,5 +660,27 @@ export const NIGHTS = [
     freeDc: 14, absentText: 'Walks the last few hours with the others, keeps his head down, and lets Thimbleby come to him. No roll.',
     after: { effects: [] },
     next: 'Thimbleby is ahead, the satchel is only half-read, and morning is already on the road.' },
+
+  // Night 44 (opened as a1n31): arrival in Thimbleby. No agreed cover story; Yäest saw a clear road and woodsmoke; the satchel is still only a claim about a wagon, names unclear; Yäest is out of rations. Pump Stall shop for resupply. GM-authored Nov 24 2026.
+  { n: 31, id: 'a1n31', adventure: 'a1', title: 'The Pump Stall', place: 'Thimbleby \u00b7 the square', bg: 'city', time: 'Morning', shop: 'thimbleby',
+    prose: [
+      'They walk into Thimbleby as they are. No one agreed on an ordinary line for the door, and if anyone asks, the rest of the story will have to be invented here. Y\u00e4est had the last hours of road: ordinary morning traffic, a cart, a walker, and woodsmoke already in sight, with no one turning up the trail they left. The satchel has been opened twice and is still only half a story: a claim about a wagon on this road, in a messy official hand, with the names still unclear.',
+      'The square is a pump, a stall, and an inn that smells like breakfast. The Pump Stall sells what a village sells, and Y\u00e4est is out of rations. They can buy food and skins, ask quietly about a list-coat clerk or a claim like this, or take a look at the square before anyone takes an interest in them.',
+    ],
+    quote: { who: 'the woman at the Pump Stall, already counting a stack of ration wraps', text: '\u201cIf you are hungry, say so. If you are here to talk, wait until I have sold the bread.\u201d' },
+    moves: [
+      { id: 'ask', label: 'Ask quietly about a list-coat clerk, or a claim like this one', tags: ['talk'], check: { skill: 'persuasion', dc: 14 }, hint: 'They walked in with no agreed story. A short, careful question may still get an answer without making the square listen.',
+        success: { text: 'Someone at the stall or the pump will talk, if you keep it short. A list-coat clerk on a horse passed through yesterday with a hired rider and a satchel, asking after a wagon on the March road, and he has not come back. Nobody here loved him, and nobody is eager to go looking.', effects: [{ flag: 'thimbleby_clerk_word', flagText: 'someone in Thimbleby said a list-coat clerk with a hired rider and a satchel passed through yesterday, asking after a wagon, and has not come back' }, { xp: 25, who: 'self', why: 'asked quietly in Thimbleby about the clerk and the claim' }] },
+        failure: { text: 'The square is already busy, or the question comes out less careful than you meant. You get a shrug and a look, and no one is in a hurry to talk about official men on horses.', effects: [] } },
+      { id: 'look', label: 'Look the square and the inn over before anyone looks back', tags: ['notice'], check: { skill: 'perception', dc: 14 }, hint: 'It is morning in a small village. A careful look might say who is watching the road, and whether the carter has already arrived.',
+        success: { text: 'The carter is already here: Bess is at the trough, and the wagon with the canvas is in the inn yard, looking like nothing in particular. The square is local faces and a couple of travelers. No one is watching the road as if they expected you, not yet.', effects: [{ flag: 'carter_in_thimbleby', flagText: 'the carter is already in Thimbleby, Bess at the trough and the wagon in the inn yard' }, { xp: 25, who: 'self', why: 'looked over the square and the inn in Thimbleby' }] },
+        failure: { text: 'The pump, the stall, and the inn yard are a clutter of morning work. You cannot honestly add much to what you already know about the place.', effects: [] } },
+      { id: 'room', label: 'Take a room and a meal at the inn', tags: ['talk'], check: { skill: 'persuasion', dc: 14 }, hint: 'Breakfast is already on, and a room would put four travelers off the square. It is an ordinary request, if you can keep it ordinary.',
+        success: { text: 'The inn has a room and a table, paid in coin, and no one asks for a longer story than travelers on the March road. You can sit down, eat, and let the square go on without you for an hour.', effects: [{ flag: 'thimbleby_room', flagText: 'the party took a room and a meal at the inn in Thimbleby, as travelers on the March road' }, { xp: 25, who: 'self', why: 'took a room and a meal at the inn' }] },
+        failure: { text: 'The inn is full, or the price is worse than it should be, or the keep has already heard enough from the road this morning. You can still eat standing at the stall, but a room is not on offer.', effects: [] } },
+    ],
+    freeDc: 14, absentText: 'Stands by the pump, keeps his head down, and lets the others do the talking. No roll.',
+    after: { effects: [] },
+    next: 'Thimbleby is already about its morning, and the satchel is still only half-read.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);
