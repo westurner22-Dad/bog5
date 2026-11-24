@@ -594,5 +594,27 @@ export const NIGHTS = [
     moves: [], freeDc: 14, absentText: 'Fights on their preset stance.',
     after: { effects: [] },
     next: 'The fight on the March road goes on. Orders for the next round are due after this one resolves.' },
+
+  // Night 41 (opened as a1n28): after the road fight. The clerk and rider are down, the satchel is in the road, Yäest is hurt, the carter is still here, Thimbleby is still a few hours on. GM-authored Nov 23 2026.
+  { n: 28, id: 'a1n28', adventure: 'a1', title: 'The Satchel in the Road', place: 'The Border March \u00b7 the road toward Thimbleby', bg: 'forest', time: 'Morning',
+    prose: [
+      'The List-Coat Clerk is down in the road at 4, 8, and the Hired Rider is down in the weeds. Gorlock is still in the clerk\'s face. Biggus is on the road at 5, 6, Boobington is still in the wagon, and Y\u00e4est is in the weeds at 6, 7, still hurt. The satchel has fallen with the clerk. Bess has not gone anywhere, and the village is still a few hours on.',
+      'The purse is already split. The papers have not been read. The road still looks like a fight happened on it. The carter has seen the whole of it.',
+    ],
+    quote: { who: 'the carter, holding Bess still', text: '\u201cI am still going to the village. I did not ask for this in front of her.\u201d' },
+    moves: [
+      { id: 'satchel', label: 'Open the satchel and read the claim', tags: ['notice'], check: { skill: 'investigation', dc: 14 }, hint: 'The sheaf is in the road with the clerk. He wanted names. The papers may say whose, and why.',
+        success: { text: 'The satchel is a claim file, not a grain ledger: a sheaf with a route and a request to stop the wagon and look under the canvas. The names are not written out in full, but the hand has been closing on this party since the gate.', effects: [{ flag: 'claim_read', flagText: 'the party read the clerk\'s satchel: a claim file aimed at stopping the wagon and looking under the canvas, the hand closing since the gate' }, { xp: 25, who: 'self', why: 'read the claim in the satchel' }] },
+        failure: { text: 'The sheaf is a mess of official hand and dust. You can tell it is a claim, and that it is about a wagon on this road, but the names and the rest of it will not come clear here.', effects: [] } },
+      { id: 'carter', label: 'Settle the carter so he will still go on to Thimbleby', tags: ['talk'], check: { skill: 'persuasion', dc: 14 }, hint: 'He is still going to the village. He did not ask for a fight in front of Bess, and he does not sound like a man who will lie about what he saw.',
+        success: { text: 'The carter will not pretend it did not happen, but he will still go on to Thimbleby with canvas and empty crates, and he will not make a speech of it when he gets there.', effects: [{ flag: 'carter_goes_on', flagText: 'the carter will still go on to Thimbleby and will not make a speech of the fight when he gets there' }, { xp: 25, who: 'self', why: 'settled the carter after the fight' }] },
+        failure: { text: 'The carter hears you out and keeps the fewest words he has left. He is going to the village. If anyone asks what happened on the road, they can ask him, and he still does not sound like a man who will lie well.', effects: [] } },
+      { id: 'road', label: 'Get the bodies off the road and into the weeds', tags: ['work'], check: { skill: 'survival', dc: 14 }, hint: 'The March road will belong to other travelers before the village. Blood and two men in the ruts will not look like nothing in particular.',
+        success: { text: 'You get the clerk and the rider into the weeds, kick dust over the worst of the road, and leave the ruts looking like a road again. It will not fool a close look, but it will not stop the next wagon either.', effects: [{ flag: 'road_cleared', flagText: 'the party dragged the clerk and the rider into the weeds and kicked the road back into looking like a road' }, { xp: 25, who: 'self', why: 'got the bodies off the March road' }] },
+        failure: { text: 'It is heavier work than it looks, and the road still shows it. The bodies are only partly off the ruts, and anyone coming on toward Thimbleby would see that a fight happened here.', effects: [] } },
+    ],
+    freeDc: 14, absentText: 'Stays where he stood when the clerk fell, and lets the others decide what to do with the satchel and the road. No roll.',
+    after: { effects: [] },
+    next: 'The satchel is in the road, the carter is still here, and Thimbleby is still a few hours on.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);

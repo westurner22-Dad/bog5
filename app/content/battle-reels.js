@@ -11,6 +11,14 @@ export const REELS = [
     poster: 'assets/videos/dylan-fight.jpg',
     credit: 'Music: Heavy Battle 1 by MintoDog (CC0, OpenGameArt.org)',
   },
+  {
+    nights: [40],
+    scenes: ['a1n27'],
+    title: 'Battle reel: The Claim on the Road',
+    src: 'assets/videos/claim-fight.mp4',
+    poster: 'assets/videos/claim-fight.jpg',
+    credit: 'Music: Heavy Battle 1 by MintoDog (CC0, OpenGameArt.org)',
+  },
 ];
 
 export function reelFor(night, sceneId) {
