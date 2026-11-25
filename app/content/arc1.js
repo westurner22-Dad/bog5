@@ -726,5 +726,27 @@ export const NIGHTS = [
     freeDc: 14, absentText: 'Stays by the inn door, keeps his head down, and lets the others do the looking. No roll.',
     after: { effects: [] },
     next: 'The claim is read, the wagon is still in the yard, and official men are not here yet.' },
+
+  // Night 47 (opened as a1n34): the canvas was empty crates packed to look like a load; the claim was about the party; a chalk hold-mark in the same official hand flagged the wagon. The carter is leaving and, on a natural 20, will take anyone who wants a seat as far as the next hamlet; official riders usually come with the afternoon post. Pump Stall still open. GM-authored Nov 25 2026.
+  { n: 34, id: 'a1n34', adventure: 'a1', title: 'The Afternoon Post', place: 'Thimbleby \u00b7 the road out', bg: 'city', time: 'Midday', shop: 'thimbleby',
+    prose: [
+      'Y\u00e4est looked under the canvas. Crates, empty, or as good as empty, packed to look like a load. The claim was never about grain. It was a reason to stop this wagon and get a look at who was walking with it. Under those crates, on a slat, a chalk hold-mark in the same messy official hand as the satchel. This wagon was already flagged on the claim route. Gorlock kept the yard while he looked.',
+      'The carter is leaving. He will take anyone who wants a seat as far as the next hamlet, and he says official riders, when they come this way, usually come with the afternoon post, not this late morning. The Pump Stall is still open. They can ride out with Bess, stay and watch the road for that post, or deal with the hold-mark before the wagon is gone.',
+    ],
+    quote: { who: 'the carter, already taking up the reins', text: '\u201cIf you want a seat, say so. I am not waiting on the afternoon.\u201d' },
+    moves: [
+      { id: 'ride', label: 'Take the carter\'s offer and ride with Bess as far as the next hamlet', tags: ['talk'], check: { skill: 'persuasion', dc: 14 }, hint: 'He will take anyone who wants a seat, and official riders usually come with the afternoon post. A short, ordinary way onto the wagon may get you off the square before then.',
+        success: { text: 'You settle onto the wagon as travelers on the March road. Bess takes the ruts out of Thimbleby, and the square is behind you before the afternoon post has any reason to look for you here.', effects: [{ flag: 'party_rides_out', flagText: 'the party took the carter\'s offer and rode with Bess as far as the next hamlet, leaving Thimbleby before the afternoon post' }, { xp: 25, who: 'self', why: 'rode out of Thimbleby with the carter before the afternoon post' }] },
+        failure: { text: 'The seats are awkward, or the leaving looks more hurried than it should, or the carter is already rolling and there is no clean way on. You are still in Thimbleby when the wagon goes.', effects: [] } },
+      { id: 'watch', label: 'Stay and watch the road for the afternoon post', tags: ['notice'], check: { skill: 'perception', dc: 14 }, hint: 'He said official riders usually come with the afternoon post. If they are coming for a missing clerk, or for this wagon, the road into Thimbleby is the place to see them early.',
+        success: { text: 'Midday traffic is still ordinary: a cart, a walker, no list-coat and no hired rider. The afternoon is when he said they come, and the road is still clear for now.', effects: [{ flag: 'road_clear_midday', flagText: 'the road into Thimbleby was still ordinary at midday, with no official party in sight; the afternoon post has not come yet' }, { xp: 25, who: 'self', why: 'watched the road into Thimbleby for the afternoon post' }] },
+        failure: { text: 'Heat and a stand of trees eat the view, and the road is just a road when you have it again. You cannot honestly say whether the afternoon post is early, or late, or not coming at all.', effects: [] } },
+      { id: 'mark', label: 'Cover or wipe the chalk hold-mark before the wagon is gone', tags: ['work'], check: { skill: 'sleight_of_hand', dc: 14 }, hint: 'The slat under the canvas has a chalk hold-mark in the same official hand as the satchel. If the wagon is leaving, a quick hand might make that slat look like any other crate.',
+        success: { text: 'The mark comes off, or is covered well enough that a glance under the canvas would find only empty crates. The slat looks like any other slat.', effects: [{ flag: 'hold_mark_covered', flagText: 'the chalk hold-mark under the canvas was covered or wiped so a glance would find only empty crates' }, { xp: 25, who: 'self', why: 'covered the official hold-mark on the wagon' }] },
+        failure: { text: 'The chalk smears and still reads as a mark, or the carter is already moving and you cannot get a clean hand on the slat. The hold-mark is still there.', effects: [] } },
+    ],
+    freeDc: 14, absentText: 'Stays by the inn door, keeps his head down, and lets the others decide whether to ride or wait. No roll.',
+    after: { effects: [] },
+    next: 'The carter is leaving, a seat is on offer, and the afternoon post is still ahead.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);
