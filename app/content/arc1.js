@@ -704,5 +704,27 @@ export const NIGHTS = [
     freeDc: 14, absentText: 'Sits at the table, keeps his head down, and lets the others do the asking. No roll.',
     after: { effects: [] },
     next: 'They have a room in Thimbleby, a word about the clerk, and a claim that is still only half-read.' },
+
+  // Night 46 (opened as a1n33): the claim is read. It is a file to stop the wagon and look under the canvas, the hand closing on the party since the gate. Clerks come through for claims; no one is asking after the missing clerk yet. The carter is still in the yard and did not say more. Pump Stall still open. GM-authored Nov 24 2026.
+  { n: 33, id: 'a1n33', adventure: 'a1', title: 'The Wagon in the Yard', place: 'Thimbleby \u00b7 the inn yard', bg: 'city', time: 'Late morning', shop: 'thimbleby',
+    prose: [
+      'They have read the satchel. It is a claim file, not a grain ledger: a route and a request to stop the wagon and look under the canvas. The names are not written out in full, but the hand has been closing on this party since the gate. Boobington got the same shape of it from the inn: clerks and hired riders come through when there is a claim on a wagon, wanting papers and a look under the canvas, and no one is asking after the missing list-coat clerk this morning. If official men are coming, they are not here yet.',
+      'The carter is still in the yard with Bess and the canvas. He had little to add beyond what he already said on the road. The Pump Stall is still open. They can look under the canvas themselves, try to get the carter moving again before anyone official arrives, or watch the road into the village.',
+    ],
+    quote: { who: 'the carter, one hand on Bess\u2019s bridle', text: '\u201cI am doing my work. That is still the whole of it.\u201d' },
+    moves: [
+      { id: 'canvas', label: 'Look under the canvas in the inn yard, now that you know what the claim asked for', tags: ['notice'], check: { skill: 'investigation', dc: 14 }, hint: 'The sheaf asked for a look under the canvas of this wagon. The carter is busy, and official men are not here yet. A careful look might say whether this was ever about cargo.',
+        success: { text: 'The canvas comes up enough to see. Crates, empty, or as good as empty, packed to look like a load. The claim was never about grain. It was a reason to stop this wagon and get a look at who was walking with it.', effects: [{ flag: 'canvas_looked', flagText: 'the party looked under the canvas in the inn yard: empty crates packed to look like a load, and the claim was a reason to stop the wagon and look at who was walking with it' }, { xp: 25, who: 'self', why: 'looked under the canvas in the inn yard' }] },
+        failure: { text: 'The carter is close, or the canvas is tied down tighter than it looks, or the yard has too many eyes. You cannot honestly add what is under there, not from this look.', effects: [] } },
+      { id: 'moveon', label: 'Get the carter moving again before anyone official arrives', tags: ['talk'], check: { skill: 'persuasion', dc: 14 }, hint: 'He said he would do his work and not make a speech of the road. Official men are not here yet. A short, ordinary push may get Bess back on the ruts before they are.',
+        success: { text: 'The carter clicks Bess on. He has done enough in this yard, and he will take the wagon back to the road before anyone official has a reason to stop it here. He still will not make a speech of what happened on the March road.', effects: [{ flag: 'carter_leaves_thimbleby', flagText: 'the carter took Bess and the wagon back to the road, leaving Thimbleby before official men arrived, still not making a speech of the March road' }, { xp: 25, who: 'self', why: 'got the carter moving again before official men arrived' }] },
+        failure: { text: 'The carter is not done with the trough, or the delivery, or both. Bess stays where she is, and the wagon stays in the yard a while longer.', effects: [] } },
+      { id: 'watch', label: 'Watch the road into the village for official men', tags: ['notice'], check: { skill: 'perception', dc: 14 }, hint: 'A clerk passed yesterday and has not come back. If another official party is coming, the road into Thimbleby is the place to see it early.',
+        success: { text: 'The road into Thimbleby is ordinary late-morning traffic: a cart, a walker, no list-coat and no hired rider. If official men are coming for the missing clerk, or for this wagon, they are not on this road yet.', effects: [{ flag: 'road_clear_midday', flagText: 'the road into Thimbleby was still ordinary late-morning traffic, with no official party in sight' }, { xp: 25, who: 'self', why: 'watched the road into Thimbleby for official men' }] },
+        failure: { text: 'A rise and a stand of trees eat the view, and the road is just a road when you have it again. You cannot honestly say who else is on it this late in the morning.', effects: [] } },
+    ],
+    freeDc: 14, absentText: 'Stays by the inn door, keeps his head down, and lets the others do the looking. No roll.',
+    after: { effects: [] },
+    next: 'The claim is read, the wagon is still in the yard, and official men are not here yet.' },
 ];
 export const night = n => NIGHTS.find(x => x.n === n);
