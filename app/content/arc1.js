@@ -1,4 +1,5 @@
 // BoG V · Arc 1 · Adventure 1 "The Forge and the Coin" · opening nights, as data the nightly loop plays.
+import { GULPWELL_FIGHT } from './gulpwell.js';
 // Every check is SRD 5.2.1 (skill + DC); the player sees the difficulty word before rolling and the exact DC after.
 // Effects are engine events (xp, coin in cp, item, flag, inspiration, damage). King Elon stays offstage (C4).
 const party = { who: 'party' };
@@ -767,8 +768,8 @@ export const NIGHTS = [
         failure: { text: 'The inner rooms are a blur of doors and clerks from here. You cannot, from the threshold, add more than what you already know: the urn is in Gulpwell\u2019s office, somewhere behind those doors.', effects: [] } },
     ],
     freeDc: 14, absentText: 'Stands on the hall steps, keeps his head down, and lets the others work the threshold. No roll.',
-    after: { effects: [] },
-    next: 'Harold is still in Gulpwell\u2019s office. The next work is to be at that door.' },
+    after: { effects: [], startBattle: GULPWELL_FIGHT },
+    next: 'Gulpwell is on his feet in the office, and Harold is still in the cabinet. Battle orders come next.' },
 
 ];
 export const night = n => NIGHTS.find(x => x.n === n);

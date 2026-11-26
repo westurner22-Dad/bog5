@@ -10,7 +10,7 @@ export const GULPWELL = {
   // Native SRD: AC 15, 52 HP, CR 2, 450 XP, Initiative +3, Multiattack 2, Scimitar +5 1d6+3, Pistol +5 1d10+3.
   // As a Night 20+ boss: AC 13, attacks +3. HP left at 52 so a level-3 party can finish in a night or two.
   maxHp: 52,
-  defeatText: 'Gulpwell goes down hard against his own ledger table, and the official stamp rolls under a chair.',
+  defeatText: 'Gulpwell goes down hard against his own ledger table, and the official ledger slides under a chair.',
 };
 
 export const TALLY_BRISK = {
@@ -49,8 +49,9 @@ export const GULPWELL_SCENE = {
   time: 'Afternoon',
   battle: true,
   prose: [
-    "The office at the back of the counting hall is smaller than the title on the door. A heavy ledger table, a barred cabinet, and a window that looks onto the square. Commissar Gulpwell is on his feet with the official stamp in one hand and a short blade in the other. Comptroller Tally Brisk stands between the party and the cabinet, ink on her fingers, already reaching for the bell.",
-    "Harold's urn is in that cabinet, tagged for the melt. There is no more talking this into place. Set battle orders: where you move, what you do, and a standing order for when things go wrong. One round plays tonight, then the table stops for new orders.",
+    "The front door is open, the desk is behind them, and they are in Gulpwell\u2019s office. Gorlock\u2019s warcry emptied the hall; Tally Brisk never reached the bell, and no one is coming to help. Boobington came in by a quieter way and is in a place from which he can cover the others. Y\u00e4est is in the room with them, even if the anthem did not carry. Harold\u2019s urn is in the barred cabinet, tagged for the melt.",
+    "The office is smaller than the title on the door: a heavy ledger table, the cabinet, a window on the square. Commissar Gulpwell (52 HP, AC 13, attacks +3) is on his feet with a short blade in his hand. Comptroller Tally Brisk (27 HP, AC 10, attacks +2) stands between the party and the cabinet, ink on her fingers; she will try to get out if she is badly hurt. Gorlock has Heroic Inspiration.",
+    "Positions: Biggus at 2, 6; Gorlock at 2, 7; Boobington at 3, 5; Y\u00e4est at 3, 8. Gulpwell is at 8, 6. Tally is at 10, 5. Initiative is Y\u00e4est 26, Boobington 22, Tally Brisk 20, Gulpwell 15, Gorlock 14, and Biggus 4. Y\u00e4est is up first. Set battle orders: where you move, what you do, and a standing order for when things go wrong. One round plays tonight, then the table stops for new orders.",
   ],
   quote: { who: 'Commissar Gulpwell', text: '\u201cThat plate is condemned, and you are not on the list.\u201d' },
   moves: [],
