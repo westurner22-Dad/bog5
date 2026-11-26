@@ -112,21 +112,7 @@ function missionsCard() {
   const main = board.main || MAIN_QUEST;
   const mainBlock = `<div class="item" style="align-items:flex-start"><div style="flex:1;min-width:0"><div class="nm">${esc(main.title)} <span class="tag m">Main</span>${main.status === 'done' ? ' <span class="tag g">Done</span>' : ''}</div><div class="meta">${esc(main.pitch)}</div></div></div>`;
   const sides = (board.active || []).map(q => `<div class="item" style="align-items:flex-start"><div style="flex:1;min-width:0"><div class="nm">${esc(q.title)} <span class="tag">Side</span> <span class="tag m">In progress</span></div><div class="meta">${esc(q.pitch || '')}${q.reward ? ` \u00b7 ${esc(q.reward)}` : ''}</div></div></div>`).join('');
-  return `<div class="card" id="missions"><h2>Current Missions</h2>${mainBlock}${sides || '<div class="note">No side jobs on the books right now.</div>'}</div>`;
-}
-function guildBoardCard(st) {
-  const story = T.game?.state?.story || {};
-  const board = currentMissions(story, T.scene || {});
-  if (!board.showBoard) return '';
-  const canEdit = !!(st && st.open);
-  const atCap = board.atCap;
-  const jobs = (board.available || []).map(q => {
-    const text = q.writeIn || `We take the job: ${q.title}.`;
-    const selected = T.draft?.kind === 'free' && (T.draft.text || '').trim() === text.trim();
-    return `<button class="move ${selected ? 'sel' : ''}" data-t="suggest" data-v="${esc(q.id)}" ${canEdit && !atCap ? '' : 'disabled'}><div class="ic">${svgI('talk')}</div><div style="flex:1"><div class="t">${esc(q.title)}<small>${esc(q.hook || q.pitch)}</small></div><div class="d"><span class="tag">${esc(q.nights === 1 ? '1 night' : q.nights + ' nights')}</span><span class="tag g">${esc(q.reward || '')}</span></div></div><div class="check"></div></button>`;
-  }).join('');
-  const capNote = atCap ? `The party already has ${board.cap} side jobs going. Finish one before taking another. The cap is counted from jobs already started (existing quest flags); tapping a notice will not save a new field.` : `Up to ${board.cap} side jobs at a time. Tap a job to put it in the write-in box below \u2014 then lock it or edit it. The GM slots it in as a short night.`;
-  return `<div class="card" id="guildboard"><h2>Teslandia mission board</h2><div class="meta" style="margin-top:4px">Short jobs posted at the Teslandia guild hall in the capital. Wrap in one or two nights. This board is only here, not in other towns.</div>${jobs || '<div class="note">No notices posted here tonight.</div>'}<div class="note">${esc(capNote)}</div></div>`;
+  return `<div class="card" id="missions"><h2>Current Missions</h2>${mainBlock}${sides}</div>`;
 }
 function moveLabelOf(action, sc) {
   if (!action) return '';
@@ -181,8 +167,9 @@ function tableView() {
   if (sc.status === 'resolved' && T.results[T.n]) return resolutionView(T.n) + F5.askCard();
   if (sc.battle) return prev + F5.levelBanner() + battleView(st) + F5.restCard() + F5.askCard();
   const shopTeaser = sc.shop && st.open && T.me ? `<button class="card ribbon" data-t="go" data-v="gear"><span>\u{1F6D2} <b>${esc(SHOPS[sc.shop]?.name || 'The shop')}</b> is open tonight${T.cart?.length ? ` \u00b7 ${T.cart.length} in your cart` : ''}</span><span>Gear \u2192</span></button>` : '';
-  // Order: table narrative > Current Missions > guild board > map (battles only) > action box.
-  return prev + F5.levelBanner() + sceneCard(sc) + G.lootCard() + missionsCard() + guildBoardCard(st) + movesCard(sc, st) + partyCard(st) + F5.restCard() + shopTeaser + lockCard(st) + F5.askCard();
+  // Order: table narrative > Current Missions (main + active story.quests only) > map (battles only) > action box.
+  // The Teslandia job board is not on the Table; it lives under the guild shop on the Gear tab.
+  return prev + F5.levelBanner() + sceneCard(sc) + G.lootCard() + missionsCard() + movesCard(sc, st) + partyCard(st) + F5.restCard() + shopTeaser + lockCard(st) + F5.askCard();
 }
 
 // ---------- battle ----------
@@ -465,7 +452,7 @@ async function onClick(e) {
       case 'sheet': T.view = 'sheet'; T.k = v; T._top = true; break;
       case 'move': T.draft = normalizeDraft({ ...T.draft, kind: 'move', moveId: v }); await saveDraft(false); break;
       case 'suggest': { const text = pickWriteIn(v, T.game?.state?.story || {}, T.scene || {}); if (!text) break;
-        T.draft = normalizeDraft({ ...T.draft, kind: 'free', moveId: null, text }); await saveDraft(false); break; }
+        T.draft = normalizeDraft({ ...T.draft, kind: 'free', moveId: null, text }); await saveDraft(false); if (T.view === 'gear') T.view = 'table'; break; }
       case 'saymode': T.draft = normalizeDraft({ ...T.draft, sayMode: v }); break;
       case 'lock': await saveDraft(true); T.editing = false; break;
       case 'unlock': T.editing = true; if (T.scene.battle) { T.orders = structuredClone(T.mine.orders); } else T.draft = normalizeDraft({ ...T.draft, ...T.mine }); await (T.scene.battle ? saveOrders(false) : saveDraft(false)); break;

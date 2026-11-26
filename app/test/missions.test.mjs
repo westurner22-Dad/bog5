@@ -5,7 +5,7 @@ import { planNight, applyDcScale, DC_SCALE_CURRENT } from '../../engine/src/nigh
 import {
   BOARD_QUESTS, BOARD_SCENES, MAIN_QUEST, SIDE_QUEST_CAP, TOWN_LOOT,
   currentMissions, suggestedIdeas, pickWriteIn, ruledCheckLine, recapScope,
-  inSettlement, atGuildHall, startedSideCount,
+  inSettlement, atGuildHall, atGuildShop, GUILD_SHOP_ID, startedSideCount,
 } from '../content/missions.js';
 import { GULPWELL_SCENE, GULPWELL, TALLY_BRISK, GULPWELL_XP } from '../content/gulpwell.js';
 
@@ -92,33 +92,43 @@ test('ruled check line shows skill + difficulty word + DC for write-ins', () => 
 });
 
 
-test('mission board and unpicked board jobs show only at the Teslandia guild hall, never in Thimbleby', () => {
-  assert.equal(atGuildHall(hall), false);
-  assert.equal(atGuildHall({ place: 'Thimbleby \u00b7 the square', shop: 'thimbleby', bg: 'city' }), false);
-  assert.equal(atGuildHall({ place: 'The Leaking Tankard II \u00b7 the capital', shop: 'tankard' }), false);
-  assert.equal(atGuildHall({ place: 'The capital \u00b7 the palace steps', shop: 'capital' }), false);
-  assert.equal(atGuildHall({ place: 'Teslandia \u00b7 the capital', shop: 'capital' }), false);
-  assert.equal(atGuildHall({ place: 'The Guildhall Bazaar', shop: 'capital' }), false);
-  assert.equal(atGuildHall({ place: 'Teslandia \u00b7 the guild hall' }), true);
-  assert.equal(atGuildHall({ place: 'The capital \u00b7 the Guild Hall' }), true);
-  assert.equal(atGuildHall({ place: 'The capital', guildHall: true }), true);
-  assert.equal(atGuildHall({ place: 'Thimbleby \u00b7 the guild annex', guildHall: true }), false);
+test('unpicked board jobs are available only at the Teslandia guild shop (id capital), never in Thimbleby', () => {
+  assert.equal(GUILD_SHOP_ID, 'capital');
+  assert.equal(SHOPS.capital.name, 'The Guildhall Bazaar');
+  assert.equal(atGuildShop(hall), false);
+  assert.equal(atGuildShop({ shop: 'thimbleby', place: 'Thimbleby \u00b7 the square' }), false);
+  assert.equal(atGuildShop({ shop: 'tankard', place: 'The Leaking Tankard II \u00b7 the capital' }), false);
+  assert.equal(atGuildShop({ place: 'Teslandia \u00b7 the guild hall' }), false, 'place alone is not enough');
+  assert.equal(atGuildShop({ shop: 'capital', place: 'The capital \u00b7 the palace steps' }), true);
+  assert.equal(atGuildShop({ shop: GUILD_SHOP_ID }), true);
 
-  const story = { flags: { thimbleby_room: true, gulpwell_gate: true }, quests: { spy: { status: 'done' } } };
+  const story = { flags: { thimbleby_room: true, gulpwell_gate: true, relic_hook: true }, quests: { spy: { status: 'done' } } };
   const inThimbleby = currentMissions(story, hall);
   assert.equal(inThimbleby.showBoard, false);
   assert.deepEqual(inThimbleby.available.map(q => q.id), []);
   assert.deepEqual(inThimbleby.active, []);
+  assert.ok(!inThimbleby.active.some(q => q.id === 'relic'), 'available longform quests stay off Current Missions until started');
   const ideas = suggestedIdeas(story, hall);
   assert.ok(ideas.length >= 2 && ideas.length <= 3);
   assert.ok(ideas.every(i => i.mission === 'Main quest'));
-  assert.ok(!ideas.some(i => /Office Hours|Melt Day|Short Weights|Hold-Marks|Pump Dispute|Lame Horse|Dusk Stamp|Day-Book|We take the job/i.test(i.label + i.text + i.mission)));
+  assert.ok(!ideas.some(i => /Office Hours|Melt Day|Short Weights|Hold-Marks|Pump Dispute|Lame Horse|Dusk Stamp|Day-Book|We take the job|Coin of the World Maker|Agent at Court/i.test(i.label + i.text + i.mission)));
+
+  const atShop = currentMissions(story, { shop: 'capital', place: 'Teslandia \u00b7 the capital' });
+  assert.equal(atShop.showBoard, true);
+  assert.ok(atShop.available.length >= 6);
 
   const started = currentMissions({ quests: { late_hours: { status: 'started' }, spy: { status: 'done' } } }, hall);
   assert.equal(started.showBoard, false);
   assert.equal(started.available.length, 0);
   assert.equal(started.active.length, 1);
   assert.equal(started.active[0].id, 'late_hours');
+});
+
+test('table.js source no longer renders a mission board on the Table screen', async () => {
+  const src = await import('node:fs/promises').then(fs => fs.readFile(new URL('../table.js', import.meta.url), 'utf8'));
+  assert.equal(src.includes('guildBoardCard'), false);
+  assert.equal(src.includes('id="guildboard"'), false);
+  assert.match(src, /lives under the guild shop on the Gear tab/);
 });
 
 test('Fenwick and Tollford shops exist in the catalog with real stock', () => {

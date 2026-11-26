@@ -3,6 +3,7 @@
 import { questBoard } from './sidequests.js';
 
 export const SIDE_QUEST_CAP = 2;
+export const GUILD_SHOP_ID = 'capital'; // The Guildhall Bazaar, Teslandia · the capital
 export const MAIN_QUEST_ID = 'harold_urn';
 // Done only when a future resolve sets this flag. The older harold_urn flag is lore, not "recovered".
 export const MAIN_QUEST_DONE = 'urn_recovered';
@@ -122,6 +123,11 @@ export function atGuildHall(scene = {}) {
   return /guild\s*hall|guildhall/.test(p);
 }
 
+// The job list is only under the Teslandia guild shop catalog (shop id capital), never by place alone.
+export function atGuildShop(scene = {}) {
+  return scene.shop === GUILD_SHOP_ID;
+}
+
 export function mainQuestStatus(story = {}) {
   const f = story.flags || {};
   return f[MAIN_QUEST_DONE] ? 'done' : 'started';
@@ -137,7 +143,7 @@ export function startedSideCount(story = {}) {
 export function boardQuestStatus(q, story = {}, scene = {}) {
   const st = story.quests?.[q.id]?.status;
   if (st) return st;
-  const open = (q.needs === 'guild_hall' || q.needs === 'settlement') ? atGuildHall(scene) : (q.needs || []).every(k => story.flags?.[k]);
+  const open = (q.needs === 'guild_hall' || q.needs === 'settlement') ? atGuildShop(scene) : (q.needs || []).every(k => story.flags?.[k]);
   return open ? 'available' : 'locked';
 }
 
@@ -147,7 +153,7 @@ export function listedBoardQuests(story = {}, scene = {}) {
 
 export function currentMissions(story = {}, scene = {}) {
   const main = { ...MAIN_QUEST, status: mainQuestStatus(story) };
-  const longform = questBoard(story).filter(q => q.status === 'started' || q.status === 'available').map(q => ({
+  const longform = questBoard(story).filter(q => q.status === 'started').map(q => ({
     id: q.id, kind: 'side', title: q.title, pitch: q.pitch, reward: q.reward, status: q.status,
     writeIn: `We take the job: ${q.title}.`,
   }));
@@ -156,7 +162,7 @@ export function currentMissions(story = {}, scene = {}) {
   const started = sides.filter(q => q.status === 'started');
   const available = board.filter(q => q.status === 'available');
   const cap = SIDE_QUEST_CAP;
-  return { main, active: started, available: atGuildHall(scene) ? available : [], cap, atCap: started.length >= cap, startedCount: started.length, showBoard: atGuildHall(scene) };
+  return { main, active: started, available: atGuildShop(scene) ? available : [], cap, atCap: started.length >= cap, startedCount: started.length, showBoard: atGuildShop(scene) };
 }
 
 export function ideaById(id, story = {}, scene = {}) {

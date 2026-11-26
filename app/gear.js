@@ -8,6 +8,7 @@ import { Game } from '../engine/src/game.js';
 import { deriveSheet } from '../engine/src/character.js';
 import { itemDef, sellValue } from '../engine/src/rules/items.js';
 import { questBoard } from './content/sidequests.js';
+import { currentMissions, pickWriteIn, GUILD_SHOP_ID } from './content/missions.js';
 import * as I from './issues.js';
 
 let X; // context from table.js: { T, esc, AV, first, now, canAct, sgn, store, OWNER }
@@ -115,19 +116,34 @@ export function lootCard({ compact = false } = {}) {
    ${pend.map(rowP).join('')}${mode === 'party' ? stash.map(rowS).join('') : ''}${compact ? '' : ''}</div>`;
 }
 // ---------- quest board
-export function questCard() {
-  const s0 = st(); if (!s0) return ''; const qs = questBoard(s0.story || {}).filter(q => q.status !== 'locked'); if (!qs.length) return '';
-  const tag = q => q.status === 'done' ? '<span class="tag g">Done</span>' : q.status === 'started' ? '<span class="tag m">In progress</span>' : '<span class="tag">Optional</span>';
-  return `<div class="card" id="quests"><h2>Side quests</h2>${qs.map(q => `<div class="item"><div class="thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h9l3 3v15H6z M9 9h6 M9 13h6 M9 17h3"/></svg></div><div style="flex:1"><div class="nm">${esc(q.title)} ${tag(q)}</div><div class="meta">${esc(q.pitch)}</div><div class="tags" style="margin-top:4px"><span class="tag g">${esc(q.reward)}</span></div></div></div>`).join('')}
-   <div class="note">Optional. Want one? Say so in your move (\u201cwe take the relic job\u201d) and the GM slots it in as a night between main scenes.</div></div>`;
+// The old table/Gear "Side quests" card (relic / spy list) is not rendered anywhere.
+// Jobs are only listed under the Teslandia guild shop catalog (shop id capital: The Guildhall Bazaar).
+export function questCard() { return ''; }
+
+export function guildShopBoardCard() {
+  const T = X.T; const sc = T.scene || {};
+  const board = currentMissions(T.game?.state?.story || {}, sc);
+  if (!board.showBoard || sc.shop !== GUILD_SHOP_ID) return '';
+  const canEdit = !!(sc.status === 'open' && X.canAct(sc, X.now()));
+  const atCap = board.atCap;
+  const jobs = (board.available || []).map(q => {
+    const text = q.writeIn || `We take the job: ${q.title}.`;
+    const selected = T.draft?.kind === 'free' && (T.draft.text || '').trim() === text.trim();
+    return `<button class="move ${selected ? 'sel' : ''}" data-t="suggest" data-v="${esc(q.id)}" ${canEdit && !atCap ? '' : 'disabled'}><div style="flex:1"><div class="t">${esc(q.title)}<small>${esc(q.hook || q.pitch)}</small></div><div class="d"><span class="tag">${esc(q.nights === 1 ? '1 night' : q.nights + ' nights')}</span><span class="tag g">${esc(q.reward || '')}</span></div></div><div class="check"></div></button>`;
+  }).join('');
+  const capNote = atCap
+    ? `The party already has ${board.cap} side jobs going. Finish one before taking another.`
+    : `Up to ${board.cap} side jobs at a time. Tap a job to put it in tonight's write-in box, then lock it or edit it.`;
+  return `<div class="card" id="guildboard"><h2>Teslandia mission board</h2><div class="meta" style="margin-top:4px">Short jobs posted at the Teslandia guild hall. Wrap in one or two nights. This board is only here, under the guild shop.</div>${jobs || '<div class="note">No notices posted here tonight.</div>'}<div class="note">${esc(capNote)}</div></div>`;
 }
+
 export function gearView() {
   if (!me()) return '<div class="card"><div class="note">You are watching. Gear is per hero.</div></div>';
   try {
     const c = st().chars[me().cid]; const s = deriveSheet(c); const P = sim();
-    return `<div class="stephead"><div class="eyebrow">${esc(X.T.scene?.shop ? (SH.SHOPS[X.T.scene.shop]?.place || SH.SHOPS[X.T.scene.shop]?.name || 'In town') : (X.T.scene?.place ? X.T.scene.place.split(' \u00b7 ')[0] + ' \u00b7 no shop open' : 'On the road'))}</div><div class="title">Gear</div></div>` + lootCard() + dollCard(c, s) + cartCard(P) + packCard(c, s) + shopCard(P);
+    return `<div class="stephead"><div class="eyebrow">${esc(X.T.scene?.shop ? (SH.SHOPS[X.T.scene.shop]?.place || SH.SHOPS[X.T.scene.shop]?.name || 'In town') : (X.T.scene?.place ? X.T.scene.place.split(' \u00b7 ')[0] + ' \u00b7 no shop open' : 'On the road'))}</div><div class="title">Gear</div></div>` + lootCard() + dollCard(c, s) + cartCard(P) + packCard(c, s) + shopCard(P) + guildShopBoardCard();
   } catch (e) {
-    return `<div class="stephead"><div class="title">Gear</div></div><div class="card"><h2>Gear</h2><div class="note">This tab failed to load. Your other tabs are still fine; try Gear again in a moment.</div></div>`;
+    return `<div class="stephead"><div class="title">Gear</div></div><div class="card"><h2>Gear</h2><div class="note">This tab failed to load. Your other tabs are still fine; try this tab again in a moment.</div></div>`;
   }
 }
 // ---------- issues
