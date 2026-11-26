@@ -749,5 +749,26 @@ export const NIGHTS = [
     after: { effects: [] },
     next: 'The counting hall is in front of them, and Harold is still in Gulpwell\u2019s office. Getting inside comes next.' },
 
+  { n: 35, id: 'a1n35', adventure: 'a1', title: 'The Threshold of the Hall', place: 'Thimbleby \u00b7 the counting hall', bg: 'city', time: 'Noon', shop: 'thimbleby',
+    prose: [
+      'Noon in Thimbleby, and they are at the counting hall. They already know the hours: Commissar Gulpwell is in his office when the hall is open, and often after; Comptroller Tally Brisk is at her desk the same hours, and she signs every page herself. Harold\u2019s urn is still in that office, pending melt-down, and it has not been moved to the furnace yet.',
+      'A quieter door has not presented itself. The public doors and the steps are still what they have. Horses are quietly stabled near the hall, ready for after the urn is recovered; nobody is riding out of town. The Pump Stall is still open on the square. The work now is to get inside, reach Gulpwell\u2019s office, and confirm the urn is still in the cabinet.',
+    ],
+    quote: { who: 'the same clerk, one tally later, from the top of the steps', text: '\u201cIf you have no form, you are still in the way. The Commissar\u2019s office is not a public desk.\u201d' },
+    moves: [
+      { id: 'moment', label: 'Time a moment to reach the inner offices', tags: ['notice'], check: { skill: 'insight', dc: 14 }, hint: 'You know when Gulpwell and Tally Brisk keep the office. Watching the clerks now may tell you when a path to the inner rooms is least watched.',
+        success: { text: 'You watch the midday traffic settle into its noon pattern. There is a short interval when the public line is heavy and the inner corridor is thin: Tally is at her ledger, and a person who already knows the way could move toward the Commissar\u2019s door without standing in anyone\u2019s official question.', effects: [{ flag: 'hall_moment', flagText: 'the party timed a short noon interval when the inner corridor to Gulpwell\u2019s office is thinly watched' }, { xp: 25, who: 'self', why: 'timed a moment to reach the inner offices' }] },
+        failure: { text: 'The hall keeps a steady press of clerks and errands, and you cannot pick a quieter interval from here. The inner corridor stays as watched as the rest of the noon work.', effects: [] } },
+      { id: 'wayin', label: 'Find a quieter way inside, closer to Gulpwell\u2019s office', tags: ['notice'], check: { skill: 'stealth', dc: 14 }, hint: 'The front is still for people with forms. A side door or a clerk\u2019s entrance might get you inside and nearer the inner offices.',
+        success: { text: 'You get in by a quieter way than the main line: a delivery door in the side yard, used at noon and not closely watched. It puts you inside the hall, in reach of the inner corridor, though the Commissar\u2019s door is still a few turns on.', effects: [{ flag: 'hall_way_in', flagText: 'the party found a quieter delivery entrance in the counting hall\u2019s side yard, which would get them inside the hall and closer to the inner offices, but not, by itself, into Gulpwell\u2019s office' }, { xp: 25, who: 'self', why: 'found a quieter way inside, closer to Gulpwell\u2019s office' }] },
+        failure: { text: 'Every door you try is still in someone\u2019s sight, or locked, or opens onto a clerk who would have a question. The front remains the entrance the hall wants people to use.', effects: [] } },
+      { id: 'cabinet', label: 'Mark the way to Gulpwell\u2019s office, and confirm the urn is still in the cabinet', tags: ['notice'], check: { skill: 'investigation', dc: 14 }, hint: 'From the steps, a window, or a look along the inner rooms, you may mark the path to the Commissar\u2019s door and whether Harold is still in the barred cabinet.',
+        success: { text: 'You mark the path: public hall, a short inner corridor, then the Commissar\u2019s door. Through a high window, or a clerk\u2019s passing talk, the barred cabinet is still in that office, and the brass urn is still inside it, tagged for the melt, and has not been moved.', effects: [{ flag: 'urn_in_cabinet', flagText: 'the party marked the path to Gulpwell\u2019s office and confirmed Harold\u2019s urn is still in the barred cabinet, tagged for the melt' }, { xp: 25, who: 'self', why: 'marked the way to Gulpwell\u2019s office and confirmed the urn is still in the cabinet' }] },
+        failure: { text: 'The inner rooms are a blur of doors and clerks from here. You cannot, from the threshold, add more than what you already know: the urn is in Gulpwell\u2019s office, somewhere behind those doors.', effects: [] } },
+    ],
+    freeDc: 14, absentText: 'Stands on the hall steps, keeps his head down, and lets the others work the threshold. No roll.',
+    after: { effects: [] },
+    next: 'Harold is still in Gulpwell\u2019s office. The next work is to be at that door.' },
+
 ];
 export const night = n => NIGHTS.find(x => x.n === n);
