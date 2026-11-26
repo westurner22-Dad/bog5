@@ -126,7 +126,7 @@ function guildBoardCard(st) {
     return `<button class="move ${selected ? 'sel' : ''}" data-t="suggest" data-v="${esc(q.id)}" ${canEdit && !atCap ? '' : 'disabled'}><div class="ic">${svgI('talk')}</div><div style="flex:1"><div class="t">${esc(q.title)}<small>${esc(q.hook || q.pitch)}</small></div><div class="d"><span class="tag">${esc(q.nights === 1 ? '1 night' : q.nights + ' nights')}</span><span class="tag g">${esc(q.reward || '')}</span></div></div><div class="check"></div></button>`;
   }).join('');
   const capNote = atCap ? `The party already has ${board.cap} side jobs going. Finish one before taking another. The cap is counted from jobs already started (existing quest flags); tapping a notice will not save a new field.` : `Up to ${board.cap} side jobs at a time. Tap a job to put it in the write-in box below \u2014 then lock it or edit it. The GM slots it in as a short night.`;
-  return `<div class="card" id="guildboard"><h2>Teslandia mission board</h2><div class="meta" style="margin-top:4px">The guild hall posts short jobs as far as the village boards. These stay in Thimbleby and wrap in one or two nights.</div>${jobs || '<div class="note">No notices posted here tonight.</div>'}<div class="note">${esc(capNote)}</div></div>`;
+  return `<div class="card" id="guildboard"><h2>Teslandia mission board</h2><div class="meta" style="margin-top:4px">Short jobs posted at the Teslandia guild hall in the capital. Wrap in one or two nights. This board is only here, not in other towns.</div>${jobs || '<div class="note">No notices posted here tonight.</div>'}<div class="note">${esc(capNote)}</div></div>`;
 }
 function moveLabelOf(action, sc) {
   if (!action) return '';

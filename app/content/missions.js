@@ -24,49 +24,49 @@ export const BOARD_QUESTS = [
     pitch: 'Learn when Gulpwell and Tally Brisk keep office hours, and where condemned plate is kept.',
     skill: 'persuasion', dc: 14, word: 'Medium', reward: '25 XP and a clear read on office hours',
     writeIn: "I'll buy a junior clerk a drink and learn when Gulpwell and Tally Brisk keep office hours, and where the urn is kept.",
-    needs: 'settlement', scenes: ['q_board_late_hours'] },
+    needs: 'guild_hall', scenes: ['q_board_late_hours'] },
   { id: 'melt_day', title: 'The Melt Day', nights: 2, place: 'Thimbleby \u00b7 the hall annex',
     hook: 'Someone in the annex keeps the furnace schedule for condemned plate.',
     pitch: 'Find out when the hall furnace is due to take the condemned plate \u2014 including Harold\'s urn.',
     skill: 'investigation', dc: 14, word: 'Medium', reward: '25 XP and the melt day',
     writeIn: "I'll ask around the annex and find out when the hall furnace is scheduled to melt the condemned plate.",
-    needs: 'settlement', scenes: ['q_board_melt_day'] },
+    needs: 'guild_hall', scenes: ['q_board_melt_day'] },
   { id: 'short_weights', title: 'Short Weights', nights: 1, place: 'Thimbleby \u00b7 the bakehouse',
     hook: 'The baker swears the hall\'s grain weights come up light.',
     pitch: 'Check the hall\'s grain weights against a honest measure and see who has been shorting the sacks.',
     skill: 'investigation', dc: 14, word: 'Medium', reward: '25 XP and 2 gp',
     writeIn: "I'll check the baker's complaint that the counting hall's grain weights come up light.",
-    needs: 'settlement', scenes: ['q_board_short_weights'] },
+    needs: 'guild_hall', scenes: ['q_board_short_weights'] },
   { id: 'hold_marks', title: 'False Hold-Marks', nights: 2, place: 'Thimbleby \u00b7 the inn yard',
     hook: 'Someone is chalking official-looking hold-marks on honest wagons in the yard.',
     pitch: 'Find who is forging the official chalk marks, without walking the party out of town.',
     skill: 'investigation', dc: 14, word: 'Medium', reward: '25 XP and a name',
     writeIn: "I'll look over the chalk hold-marks in the inn yard and find out who has been forging the official hand.",
-    needs: 'settlement', scenes: ['q_board_hold_marks'] },
+    needs: 'guild_hall', scenes: ['q_board_hold_marks'] },
   { id: 'pump_rights', title: 'The Pump Dispute', nights: 1, place: 'Thimbleby \u00b7 the square',
     hook: 'Two stalls claim the same hour at the village pump and are about to come to blows.',
     pitch: 'Settle the pump-hour dispute before someone tips a stall into the trough.',
     skill: 'persuasion', dc: 14, word: 'Medium', reward: '25 XP and a quieter square',
     writeIn: "I'll settle the dispute between the two stalls that both claim the same hour at the pump.",
-    needs: 'settlement', scenes: ['q_board_pump_rights'] },
+    needs: 'guild_hall', scenes: ['q_board_pump_rights'] },
   { id: 'lame_horse', title: 'A Lame Horse in the Yard', nights: 1, place: 'Thimbleby \u00b7 the inn yard',
     hook: 'A carter\'s horse went lame behind the inn and will not take the afternoon post.',
     pitch: 'See to the lame horse, and earn a favor that still keeps the party in Thimbleby.',
     skill: 'medicine', dc: 14, word: 'Medium', reward: '25 XP and a carter\'s favor',
     writeIn: "I'll see to the lame horse in the inn yard and get it standing if I can.",
-    needs: 'settlement', scenes: ['q_board_lame_horse'] },
+    needs: 'guild_hall', scenes: ['q_board_lame_horse'] },
   { id: 'night_stamp', title: 'The Dusk Stamp', nights: 1, place: 'Thimbleby \u00b7 the counting hall',
     hook: 'A traveler needs a counting-hall stamp before the doors close, and the clerks have already gone in.',
     pitch: 'Get a hall stamp for a traveler before dusk, by asking or by slipping in.',
     skill: 'persuasion', dc: 14, word: 'Medium', reward: '25 XP and 1 gp',
     writeIn: "I'll try to get a counting-hall stamp for the traveler who needs one before the doors close at dusk.",
-    needs: 'settlement', scenes: ['q_board_night_stamp'] },
+    needs: 'guild_hall', scenes: ['q_board_night_stamp'] },
   { id: 'day_book', title: 'The Walking Day-Book', nights: 2, place: 'Thimbleby \u00b7 the hall annex',
     hook: 'A clerk\'s day-book walked out of the annex and has not walked back.',
     pitch: 'Recover the missing day-book. It may still be in the square, or already in the wrong hands.',
     skill: 'investigation', dc: 14, word: 'Medium', reward: '25 XP and a look at a page',
     writeIn: "I'll look for the clerk's day-book that walked out of the hall annex.",
-    needs: 'settlement', scenes: ['q_board_day_book'] },
+    needs: 'guild_hall', scenes: ['q_board_day_book'] },
 ];
 
 function sceneTxt(q, part = 1) {
@@ -110,6 +110,18 @@ export function inSettlement(scene = {}) {
   return !!(scene.shop || /thimbleby|capital|tankard|guild|city|town|hamlet|fenwick|tollford|square|inn|bazaar/.test(p));
 }
 
+// The Teslandia mission board is only at the capital guild hall, never in Thimbleby or "any town".
+// Gate on the scene's place/title (or a content-only scene.guildHall flag). shop: 'capital' is the
+// Guildhall Bazaar and is not enough. Nothing is written to the save.
+export function atGuildHall(scene = {}) {
+  if (scene && scene.guildHall === true) {
+    return !/thimbleby/i.test(`${scene.place || ''} ${scene.title || ''}`);
+  }
+  const p = `${scene.place || ''} ${scene.title || ''}`.toLowerCase();
+  if (!p || /thimbleby/.test(p) || /bazaar/.test(p)) return false;
+  return /guild\s*hall|guildhall/.test(p);
+}
+
 export function mainQuestStatus(story = {}) {
   const f = story.flags || {};
   return f[MAIN_QUEST_DONE] ? 'done' : 'started';
@@ -125,7 +137,7 @@ export function startedSideCount(story = {}) {
 export function boardQuestStatus(q, story = {}, scene = {}) {
   const st = story.quests?.[q.id]?.status;
   if (st) return st;
-  const open = q.needs === 'settlement' ? inSettlement(scene) : (q.needs || []).every(k => story.flags?.[k]);
+  const open = (q.needs === 'guild_hall' || q.needs === 'settlement') ? atGuildHall(scene) : (q.needs || []).every(k => story.flags?.[k]);
   return open ? 'available' : 'locked';
 }
 
@@ -144,7 +156,7 @@ export function currentMissions(story = {}, scene = {}) {
   const started = sides.filter(q => q.status === 'started');
   const available = board.filter(q => q.status === 'available');
   const cap = SIDE_QUEST_CAP;
-  return { main, active: started, available, cap, atCap: started.length >= cap, startedCount: started.length, showBoard: inSettlement(scene) };
+  return { main, active: started, available: atGuildHall(scene) ? available : [], cap, atCap: started.length >= cap, startedCount: started.length, showBoard: atGuildHall(scene) };
 }
 
 export function ideaById(id, story = {}, scene = {}) {

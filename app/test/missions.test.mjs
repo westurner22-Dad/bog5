@@ -5,7 +5,7 @@ import { planNight, applyDcScale, DC_SCALE_CURRENT } from '../../engine/src/nigh
 import {
   BOARD_QUESTS, BOARD_SCENES, MAIN_QUEST, SIDE_QUEST_CAP, TOWN_LOOT,
   currentMissions, suggestedIdeas, pickWriteIn, ruledCheckLine, recapScope,
-  inSettlement, startedSideCount,
+  inSettlement, atGuildHall, startedSideCount,
 } from '../content/missions.js';
 import { GULPWELL_SCENE, GULPWELL, TALLY_BRISK, GULPWELL_XP } from '../content/gulpwell.js';
 
@@ -35,11 +35,15 @@ test('Teslandia board has 6-8 short side quests with hooks, DCs, rewards, and sc
     assert.ok([9, 14, 19].includes(q.dc), q.id + ' authored on the v2 scale');
     assert.ok(BOARD_SCENES.some(s => s.id === q.scenes[0]), q.id);
   }
-  const live = currentMissions({ flags: { thimbleby_room: true }, quests: { spy: { status: 'done' } } }, hall);
-  assert.equal(live.showBoard, true);
-  assert.ok(live.available.length >= 6);
-  assert.equal(live.atCap, false);
-  assert.equal(live.cap, SIDE_QUEST_CAP);
+  const hallM = currentMissions({ flags: { thimbleby_room: true }, quests: { spy: { status: 'done' } } }, hall);
+  assert.equal(hallM.showBoard, false, 'Night 47 in Thimbleby must not show the board');
+  assert.equal(hallM.available.length, 0);
+  assert.equal(hallM.atCap, false);
+  assert.equal(hallM.cap, SIDE_QUEST_CAP);
+  const guild = { place: 'Teslandia \u00b7 the guild hall', title: 'The Guild Hall', shop: 'capital' };
+  const atHall = currentMissions({ flags: {}, quests: { spy: { status: 'done' } } }, guild);
+  assert.equal(atHall.showBoard, true);
+  assert.ok(atHall.available.length >= 6);
 });
 
 test('active side-quest cap is 1-2 and is derived from existing story.quests, not a new field', () => {
@@ -87,6 +91,36 @@ test('ruled check line shows skill + difficulty word + DC for write-ins', () => 
   assert.equal(recapScope({ battle: { name: "Gulpwell's Office", round: 3, status: 'victory' } }), 'full');
 });
 
+
+test('mission board and unpicked board jobs show only at the Teslandia guild hall, never in Thimbleby', () => {
+  assert.equal(atGuildHall(hall), false);
+  assert.equal(atGuildHall({ place: 'Thimbleby \u00b7 the square', shop: 'thimbleby', bg: 'city' }), false);
+  assert.equal(atGuildHall({ place: 'The Leaking Tankard II \u00b7 the capital', shop: 'tankard' }), false);
+  assert.equal(atGuildHall({ place: 'The capital \u00b7 the palace steps', shop: 'capital' }), false);
+  assert.equal(atGuildHall({ place: 'Teslandia \u00b7 the capital', shop: 'capital' }), false);
+  assert.equal(atGuildHall({ place: 'The Guildhall Bazaar', shop: 'capital' }), false);
+  assert.equal(atGuildHall({ place: 'Teslandia \u00b7 the guild hall' }), true);
+  assert.equal(atGuildHall({ place: 'The capital \u00b7 the Guild Hall' }), true);
+  assert.equal(atGuildHall({ place: 'The capital', guildHall: true }), true);
+  assert.equal(atGuildHall({ place: 'Thimbleby \u00b7 the guild annex', guildHall: true }), false);
+
+  const story = { flags: { thimbleby_room: true, gulpwell_gate: true }, quests: { spy: { status: 'done' } } };
+  const inThimbleby = currentMissions(story, hall);
+  assert.equal(inThimbleby.showBoard, false);
+  assert.deepEqual(inThimbleby.available.map(q => q.id), []);
+  assert.deepEqual(inThimbleby.active, []);
+  const ideas = suggestedIdeas(story, hall);
+  assert.ok(ideas.length >= 2 && ideas.length <= 3);
+  assert.ok(ideas.every(i => i.mission === 'Main quest'));
+  assert.ok(!ideas.some(i => /Office Hours|Melt Day|Short Weights|Hold-Marks|Pump Dispute|Lame Horse|Dusk Stamp|Day-Book|We take the job/i.test(i.label + i.text + i.mission)));
+
+  const started = currentMissions({ quests: { late_hours: { status: 'started' }, spy: { status: 'done' } } }, hall);
+  assert.equal(started.showBoard, false);
+  assert.equal(started.available.length, 0);
+  assert.equal(started.active.length, 1);
+  assert.equal(started.active[0].id, 'late_hours');
+});
+
 test('Fenwick and Tollford shops exist in the catalog with real stock', () => {
   for (const id of ['fenwick', 'tollford', 'thimbleby']) {
     assert.ok(SHOPS[id], id);
@@ -108,4 +142,5 @@ test('Gulpwell and Tally Brisk stat blocks and boss scene are ready to open, not
   assert.ok(GULPWELL_SCENE.after.startBattle.foes.some(f => f.boss && f.uid === 'gulpwell'));
   assert.notEqual(hall.id, GULPWELL_SCENE.id);
   assert.ok(inSettlement(hall));
+  assert.equal(atGuildHall(hall), false);
 });
