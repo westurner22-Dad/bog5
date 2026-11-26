@@ -37,6 +37,13 @@ export const SHOPS = {
   thimbleby: { id: 'thimbleby', name: 'The Pump Stall', place: 'Thimbleby \u00b7 the square', blurb: 'A front room on the square that sells what a village sells. Rations first, talk later.', buys: true,
     stock: ['rations', 'waterskin', 'torch', 'arrows x20', 'bolts x20', 'sling_bullets x20', 'rope', 'tinderbox', 'bedroll', 'healers_kit', 'potion_of_healing', 'holy_water', 'dagger', 'spear', 'javelin', 'handaxe', 'shortbow', 'leather_armor', 'shield'],
     limits: { potion_of_healing: 2, holy_water: 1 } },
+  // Next towns after Thimbleby (ids exist in the catalog; do not open a night with these until Pages is cache-busted).
+  fenwick: { id: 'fenwick', name: 'The Green Sign', place: 'Fenwick \u00b7 the green', blurb: 'A shuttered shop on the green. She sells what the road still needs, and she counts the coin twice.', buys: true,
+    stock: ['rations', 'waterskin', 'torch', 'arrows x20', 'bolts x20', 'sling_bullets x20', 'rope', 'tinderbox', 'bedroll', 'healers_kit', 'potion_of_healing', 'holy_water', 'antitoxin', 'dagger', 'spear', 'javelin', 'handaxe', 'shortbow', 'light_crossbow', 'leather_armor', 'hide_armor', 'scale_mail', 'shield'],
+    limits: { potion_of_healing: 2, holy_water: 1, antitoxin: 1, scale_mail: 1, hide_armor: 1 } },
+  tollford: { id: 'tollford', name: 'The Post Shop', place: 'Tollford \u00b7 the post', blurb: 'A counter beside the official post. Rations, a scroll, and no patience for long stories.', buys: true,
+    stock: ['rations', 'waterskin', 'torch', 'arrows x20', 'bolts x20', 'sling_bullets x20', 'rope', 'tinderbox', 'bedroll', 'healers_kit', 'potion_of_healing', 'holy_water', 'dagger', 'spear', 'javelin', 'handaxe', 'shortbow', 'light_crossbow', 'leather_armor', 'shield', 'scroll:cure_wounds', 'scroll:healing_word'],
+    limits: { potion_of_healing: 2, holy_water: 1, 'scroll:cure_wounds': 1, 'scroll:healing_word': 1 } },
 };
 export const DISCOUNT = 0.9; // the Agent at Court reward: 10% off at the capital's guild stalls (decision D4-2)
 const tabOf = d => d.kind === 'armor' || d.kind === 'shield' ? (d.plus ? 'magic' : 'armor') : d.kind === 'weapon' ? (d.plus ? 'magic' : 'weapons') : d.kind === 'scroll' || /^potion/.test(d.id) || d.kind === 'consumable' ? 'potions' : isMagic(d) ? 'magic' : 'supplies';

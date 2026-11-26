@@ -1,5 +1,7 @@
 // Optional recap battle reels. Static app content, keyed by campaign night and/or scene id.
 // Nothing here is written to Firebase or the save. Recaps without a matching entry look as they always did.
+// Wes, Nov 25 2026 4:42 PM PT: new reels are ONLY for boss fights (Gulpwell and later named bosses).
+// Existing recaps (Night 33 Dylan, Night 40 Claim) keep the reels already shipped. Do not attach a reel after an ordinary skirmish.
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 export const REELS = [

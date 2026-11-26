@@ -15,6 +15,8 @@
 //   narrate <n> --file narration.txt        validate narration against the engine; stores it only if it passes
 //   publish <n>                             post result + narration + revealed seed + public game state
 //   verify <n>                              check the published seed and DC hashes, the free-text DC calls, and replay the log
+//   rulings <n> --file rulings.json        apply skill + Easy|Medium|Hard (+ optional xp/flags/awards) to the plan
+//                                           so the GM only writes prose. Then: resolve, draft, narrate, publish, verify.
 //   call <n> <pid> <Easy|Medium|Hard> "why" [--skill s] [--do action] [--slot action|move|bonus]
 //                                           P3-1: set a free-text (or battle write-in) DC on that night's scale
 //                                           (v3: 6/11/16 from Night 38; nights 8–37 stay 9/14/19; nights 1–7 stay 10/15/20),
@@ -45,6 +47,9 @@ import { NIGHTS as TEST_NIGHTS, ADVENTURE as TEST_ADV } from '../content/testadv
 import { levelUpPlan, validateLevelUp } from '../../engine/src/levelup.js';
 import * as PA from '../portrait-art.js';
 import { SCENES as SIDE, QUESTS, questBoard } from '../content/sidequests.js';
+import { BOARD_SCENES, listedBoardQuests, recapScope } from '../content/missions.js';
+import { GULPWELL_SCENE } from '../content/gulpwell.js';
+import { applyRulings } from '../../engine/src/rulings.js';
 import * as I from '../issues.js';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2); const opt = (k, d) => { const i = argv.indexOf('--' + k); return i >= 0 ? argv[i + 1] : d; };
@@ -80,7 +85,7 @@ class DryRunPaths { constructor(inner) { this.inner = inner; this.over = new Map
 const P0 = adminPaths(); const P = DRY ? new DryRunPaths(P0) : P0; if (DRY) say(`[dry-run] ${cmd || ''} on --target ${TARGET}: reads are real, nothing is written`); const store = new Bog5Store(P, { gm: true, owner: 'gm', now: () => NOW });
 // night n's content: the main arc by number, or a side-quest scene chosen at open (--scene id, remembered per night)
 const content = k => { const f = `scene-${k}.txt`; const id = opt('scene') || (fexists(f) ? fread(f).trim() : null);
-  if (id) { const q = SIDE.find(x => x.id === id) || NIGHTS.find(x => x.id === id); if (!q) throw new Error(`no scene ${id}`); return { ...q, n: k }; }
+  if (id) { const q = SIDE.find(x => x.id === id) || BOARD_SCENES.find(x => x.id === id) || (id === GULPWELL_SCENE.id ? GULPWELL_SCENE : null) || NIGHTS.find(x => x.id === id); if (!q) throw new Error(`no scene ${id}`); return { ...q, n: k }; }
   const sc = NIGHTS.find(x => x.n === k); if (!sc) throw new Error(`no content for night ${k}`); return sc; };
 const players = async () => { const c = await store.campaign(); return Object.entries(c.players || {}).map(([pid, p]) => ({ pid, name: p.hero || p.name, cid: p.cid, player: p.name })); };
 const loadG = () => N.loadGame(readJ('game.json')); const saveG = g => writeJ('game.json', N.saveGame(g), 0o600);
@@ -146,7 +151,9 @@ const C = {
     saveG(g); writeJ(`result-${n}.json`, r); say(`resolved night ${n}: ${r.entries.filter(e => e.check).length} checks${r.battle ? `, battle ${r.battle.status} (round ${r.battle.round})` : ''}. Next: draft / narrate / publish.`);
   },
   async draft() {
-    const r = readJ(`result-${n}.json`); const out = [];
+    const r = readJ(`result-${n}.json`); const scope = recapScope(r);
+    say(`Recap length: ${scope === 'short' ? 'SHORT (quiet night — travel, shop, or rest). A few flowing paragraphs.' : 'FULL (a big moment, a fight, or a natural 20 / 1). Tell the whole beat.'}`);
+    const out = [];
     // Phase 5 note 1: the skeleton reads in the cozy house voice (phase0/VOICE.md). Hero sentences carry no success/failure
     // words of their own (the outcome text does), so the narration validator judges exactly what the engine decided.
     const sn = N.shortName; const LEAD = [n => `${n} takes a breath and has a go.`, n => `Then it is ${n}\u2019s turn.`, n => `${n} rolls up a sleeve.`, n => `${n} gives it a try, in their own good time.`];
@@ -194,7 +201,27 @@ const C = {
   async link() { const [uid, pid] = argv.slice(1); const camp = await store.campaign(); if (!uid || !camp.players?.[pid]) throw new Error('gm link <firebase uid> <pid of a seat>');
     await P.set(['members', uid], { pid, role: 'player', linkedAt: NOW }); say(`linked ${uid} → seat ${pid} (${camp.players[pid].name})`); },
   async unlink() { const uid = argv[1]; await P.remove(['members', uid]); say(`unlinked ${uid}`); },
-  async quests() { const g = loadG(); for (const q of questBoard(g.state.story || {})) say(`  ${q.status.padEnd(9)} ${q.title} · ${q.giver}${q.nextScene ? ` · next: gm open <n> --scene ${q.nextScene}` : ''}\n            reward: ${q.reward}`); },
+  async quests() { const g = loadG(); const camp = await store.campaign().catch(() => ({})); const sc = camp?.currentNight ? await store.scene(camp.currentNight).catch(() => ({})) : {};
+    say('Main quest: recover Harold\'s urn from Gulpwell\'s office at the counting hall in Thimbleby.');
+    for (const q of questBoard(g.state.story || {})) say(`  ${q.status.padEnd(9)} ${q.title} · ${q.giver}${q.nextScene ? ` · next: gm open <n> --scene ${q.nextScene}` : ''}\n            reward: ${q.reward}`);
+    say('Teslandia board (1–2 nights, cap 2 active):');
+    for (const q of listedBoardQuests(g.state.story || {}, sc || {})) say(`  ${q.status.padEnd(9)} ${q.title} · ${q.nights} night${q.nights > 1 ? 's' : ''} · ${q.skill} ${q.word}${q.status !== 'locked' && q.scenes?.[0] ? ` · gm open <n> --scene ${q.scenes[0]}` : ''}\n            ${q.hook}`); },
+  async rulings() {
+    const file = opt('file'); if (!file) throw new Error('gm rulings <n> --file rulings.json');
+    if (!fexists(`plan-${n}.json`)) await C.plan();
+    const plan = readJ(`plan-${n}.json`);
+    const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const next = applyRulings(plan, raw);
+    writeJ(`plan-${n}.json`, next);
+    for (const e of next.entries) {
+      if (e.dcCall) say(`  ${e.pid} ${e.dcCall.word} DC ${e.dcCall.dc} ${e.check?.skill || ''} — ${e.dcCall.why}`);
+      const xp = (e.success?.effects || []).find(x => x.xp)?.xp;
+      if (xp) say(`  ${e.pid} success XP ${xp}`);
+    }
+    if (next.awards?.length) say(`  awards: ${next.awards.length}`);
+    if (next.clockHours) say(`  clockHours ${next.clockHours} (apply after verify with a logged travel ruling, as before)`);
+    say(`rulings applied to ${path.relative(process.cwd(), wpath(`plan-${n}.json`))}. Next: gm resolve ${n} (when Wes says the table is locked), then draft / narrate / publish / verify.`);
+  },
   async issues() {
     const all = (await store.listIssues()).map(I.readIssue); const groups = { needs: 'Needs Wes', open: 'Open', done: 'Done' };
     for (const [k, label] of Object.entries(groups)) { const xs = all.filter(i => I.bucket(i) === k || (k === 'open' && ['decided', 'built'].includes(i.status))).filter((i, _, a) => k !== 'needs' || i.status === 'options'); if (!xs.length || (k === 'done' && !argv.includes('--all'))) continue;

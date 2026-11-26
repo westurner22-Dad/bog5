@@ -16,6 +16,7 @@ import { spellModel } from '../engine/src/rules/spellEffects.js';
 import { RULES_V2_NIGHT, castRounds, castTimeLabel } from '../engine/src/combat.js';
 import { actionSpells, bonusSpells, smiteSpells, bonusFeatures, actionFeatures, canSacredWeapon } from '../engine/src/orders.js';
 import { reelFor, reelHtml } from './content/battle-reels.js';
+import { currentMissions, suggestedIdeas, pickWriteIn, ruledCheckLine, MAIN_QUEST } from './content/missions.js';
 import { mapHtml as spriteMap, initStripHtml, foeLabel } from './content/battle-sprites.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -105,18 +106,54 @@ function lockCard(st) {
    <div class="note" style="color:#a88f62">${missing.length ? `If someone misses the cutoff, their preset stance is used (${missing.map(r => `${esc(first(r.name))}: ${STANCE_TXT[stanceOf(r.pid)]}`).join(', ')}).` : 'Everyone is in. The GM can resolve early.'}</div>
    <div class="hash">Dice for tonight: sha256 <b>${esc(T.scene.commit.slice(0, 4))}\u2026${esc(T.scene.commit.slice(-4))}</b> posted \u2713 \u00b7 seed revealed with the results</div></div>`;
 }
+function missionsCard() {
+  const story = T.game?.state?.story || {};
+  const board = currentMissions(story, T.scene || {});
+  const main = board.main || MAIN_QUEST;
+  const mainBlock = `<div class="item" style="align-items:flex-start"><div style="flex:1;min-width:0"><div class="nm">${esc(main.title)} <span class="tag m">Main</span>${main.status === 'done' ? ' <span class="tag g">Done</span>' : ''}</div><div class="meta">${esc(main.pitch)}</div></div></div>`;
+  const sides = (board.active || []).map(q => `<div class="item" style="align-items:flex-start"><div style="flex:1;min-width:0"><div class="nm">${esc(q.title)} <span class="tag">Side</span> <span class="tag m">In progress</span></div><div class="meta">${esc(q.pitch || '')}${q.reward ? ` \u00b7 ${esc(q.reward)}` : ''}</div></div></div>`).join('');
+  return `<div class="card" id="missions"><h2>Current Missions</h2>${mainBlock}${sides || '<div class="note">No side jobs on the books right now.</div>'}</div>`;
+}
+function guildBoardCard(st) {
+  const story = T.game?.state?.story || {};
+  const board = currentMissions(story, T.scene || {});
+  if (!board.showBoard) return '';
+  const canEdit = !!(st && st.open);
+  const atCap = board.atCap;
+  const jobs = (board.available || []).map(q => {
+    const text = q.writeIn || `We take the job: ${q.title}.`;
+    const selected = T.draft?.kind === 'free' && (T.draft.text || '').trim() === text.trim();
+    return `<button class="move ${selected ? 'sel' : ''}" data-t="suggest" data-v="${esc(q.id)}" ${canEdit && !atCap ? '' : 'disabled'}><div class="ic">${svgI('talk')}</div><div style="flex:1"><div class="t">${esc(q.title)}<small>${esc(q.hook || q.pitch)}</small></div><div class="d"><span class="tag">${esc(q.nights === 1 ? '1 night' : q.nights + ' nights')}</span><span class="tag g">${esc(q.reward || '')}</span></div></div><div class="check"></div></button>`;
+  }).join('');
+  const capNote = atCap ? `The party already has ${board.cap} side jobs going. Finish one before taking another. The cap is counted from jobs already started (existing quest flags); tapping a notice will not save a new field.` : `Up to ${board.cap} side jobs at a time. Tap a job to put it in the write-in box below \u2014 then lock it or edit it. The GM slots it in as a short night.`;
+  return `<div class="card" id="guildboard"><h2>Teslandia mission board</h2><div class="meta" style="margin-top:4px">The guild hall posts short jobs as far as the village boards. These stay in Thimbleby and wrap in one or two nights.</div>${jobs || '<div class="note">No notices posted here tonight.</div>'}<div class="note">${esc(capNote)}</div></div>`;
+}
+function moveLabelOf(action, sc) {
+  if (!action) return '';
+  if (action.kind === 'move') return (sc?.moves || []).find(m => m.id === action.moveId)?.label || action.label || action.moveId || 'a saved move';
+  const t = String(action.text || ''); return t ? `\u201c${t}\u201d` : 'something else';
+}
 function movesCard(sc, st) {
   const me = T.me; if (!me) return '<div class="card"><div class="note">You are watching. Add <b>?player=p1</b> (etc.) to play.</div></div>';
-  const s = sheetOf(me.cid); const d = T.draft; const locked = T.mine?.locked; const canEdit = st.open;
-  const mod = m => { if (!m.skill) return ''; const k = m.skillKey; const v = k && s.skills[k] ? s.skills[k].v : k && s.mods[k] != null ? s.mods[k] : null; return v == null ? esc(m.skill) : `${esc(m.skill)} ${sgn(v)}`; };
-  const wordCls = w => ({ 'Very Easy': 'g', Easy: 'g', Medium: '', Hard: 'w', 'Very Hard': 'w', 'Nearly Impossible': 'w' }[w] ?? '');
-  const mv = m => `<button class="move ${d.kind === 'move' && d.moveId === m.id ? 'sel' : ''}" data-t="move" data-v="${m.id}" ${canEdit ? '' : 'disabled'}><div class="ic">${svgI(m.tags?.[0])}</div><div style="flex:1"><div class="t">${esc(m.label)}${m.hint ? `<small>${esc(m.hint)}</small>` : ''}</div><div class="d"><span class="tag">${mod(m)}</span><span class="tag ${wordCls(m.word)}">${esc(m.word)}</span>${(m.tags || []).includes('risky') ? '<span class="tag m">risky</span>' : ''}</div></div><div class="check"></div></button>`;
-  if (locked && !T.editing) { const what = T.mine.kind === 'move' ? sc.moves.find(m => m.id === T.mine.moveId)?.label : `\u201c${T.mine.text}\u201d`;
-    return `<div class="card"><h2>Your move, ${esc(first(me.name))}</h2><div class="move sel" style="cursor:default"><div class="ic">${svgI('risky')}</div><div style="flex:1"><div class="t">${esc(what)}</div>${T.mine.say ? `<div class="meta" style="margin-top:4px"><b style="color:var(--wine)">${T.mine.sayMode === 'whisper' ? 'Whisper' : 'I say'}:</b> \u201c${esc(T.mine.say)}\u201d</div>` : ''}</div><div class="check"></div></div>
+  const d = T.draft; const locked = T.mine?.locked; const canEdit = st.open;
+  const story = T.game?.state?.story || {};
+  const ideas = suggestedIdeas(story, sc);
+  if (locked && !T.editing) {
+    const what = moveLabelOf(T.mine, sc);
+    return `<div class="card" id="moves"><h2>Your move, ${esc(first(me.name))}</h2><div class="move sel" style="cursor:default"><div class="ic">${svgI('risky')}</div><div style="flex:1"><div class="t">${esc(what)}</div>${T.mine.say ? `<div class="meta" style="margin-top:4px"><b style="color:var(--wine)">${T.mine.sayMode === 'whisper' ? 'Whisper' : 'I say'}:</b> \u201c${esc(T.mine.say)}\u201d</div>` : ''}</div><div class="check"></div></div>
      <div class="note">\u2713 Locked at ${timeLA(T.mine.at)}. ${canEdit ? 'You can change it until the table locks.' : 'The table has locked.'}</div>${canEdit ? '<div class="row" style="margin-top:9px"><button class="btn ghost" data-t="unlock" style="flex:1;color:var(--wine);border-color:var(--wine)">Change my move</button></div>' : ''}</div>`; }
   const ok = d.kind === 'move' ? !!d.moveId : d.kind === 'free' ? (d.text || '').trim().length >= 3 : false;
-  return `<div class="card"><h2>Your move, ${esc(first(me.name))}</h2><div class="meta" style="margin-top:6px">Pick one, or do something else. You can change it until the table locks.</div>${sc.moves.map(mv).join('')}
-   <div style="margin-top:12px" class="sc meta"><b style="color:var(--wine)">Or: I do something else</b></div><textarea rows="2" data-f="text" maxlength="${FREE_TEXT_MAX}" placeholder="Describe what you try. The GM calls the check\u2026" ${canEdit ? '' : 'disabled'}>${esc(d.text)}</textarea>
+  const legacy = d.kind === 'move' && d.moveId ? `<div class="note">A saved suggested move is still on your sheet: <b>${esc(moveLabelOf(d, sc))}</b>. It will lock and resolve as before. Typing in the box, or tapping an idea, replaces it.</div>` : '';
+  const ideaBtns = ideas.map(m => {
+    const selected = d.kind === 'free' && (d.text || '').trim() === String(m.text || '').trim();
+    return `<button class="move ${selected ? 'sel' : ''}" data-t="suggest" data-v="${esc(m.id)}" ${canEdit ? '' : 'disabled'}><div class="ic">${svgI('talk')}</div><div style="flex:1"><div class="t">${esc(m.label)}${m.hint ? `<small>${esc(m.hint)}</small>` : ''}</div><div class="d"><span class="tag">${esc(m.mission)}</span></div></div><div class="check"></div></button>`;
+  }).join('');
+  return `<div class="card" id="moves"><h2>What do you do tonight, ${esc(first(me.name))}?</h2>
+   <div class="meta" style="margin-top:6px">Write what you try. Tap an idea to fill the box, then lock it or edit it. The GM calls the skill and the DC (Easy 6, Medium 11, or Hard 16) at resolve.</div>
+   ${legacy}
+   <textarea rows="3" data-f="text" maxlength="${FREE_TEXT_MAX}" placeholder="Describe what you try tonight\u2026" ${canEdit ? '' : 'disabled'}>${esc(d.text)}</textarea>
+   <div class="note">${(d.text || '').length ? `${d.text.length}/${FREE_TEXT_MAX}` : `Short, up to ${FREE_TEXT_MAX} characters.`} This is how you act.</div>
+   ${ideas.length ? `<div style="margin-top:12px" class="sc meta"><b style="color:var(--wine)">Ideas</b> <span class="meta">tied to the missions above. Tap one to fill the box.</span></div>${ideaBtns}` : ''}
    <div class="row" style="margin-top:9px"><div class="seg" style="flex:1"><span class="${d.sayMode !== 'whisper' ? 'on' : ''}" data-t="saymode" data-v="say">I say\u2026</span><span class="${d.sayMode === 'whisper' ? 'on' : ''}" data-t="saymode" data-v="whisper">Whisper to party</span></div></div>
    <textarea rows="2" style="margin-top:7px" data-f="say" placeholder="Optional in-character line" ${canEdit ? '' : 'disabled'}>${esc(d.say)}</textarea><div class="note">Optional. The GM may award Heroic Inspiration for a great one.</div>
    <div class="row" style="margin-top:11px"><button class="btn" data-t="lock" style="flex:1" ${ok && canEdit ? '' : 'disabled'}>Lock my move</button></div></div>`;
@@ -131,7 +168,7 @@ function partyCard(st) {
     let what;
     if (!a || (!a.kind && !a.orders)) what = `<span class="meta">${state ? 'Still deciding\u2026' : 'Hasn\u2019t picked yet.'}</span>`;
     else if (sc.battle && a.orders && c && s) { const L = orderLines(a.orders, s, c, { text: a.text }); what = L.filter(([k, v]) => !(k === 'Standing order' && /^(none|no standing order)$/i.test(v))).map(([k, v]) => `<b>${esc(k)}:</b> ${v}`).join(' \u00b7 '); }
-    else if (a.kind === 'move') what = `<b>${esc(sc.moves.find(m => m.id === a.moveId)?.label || a.moveId)}</b>`;
+    else if (a.kind === 'move') what = `<b>${esc(moveLabelOf(a, sc))}</b>`;
     else if (a.kind === 'free') { const t = String(a.text || ''); what = `<b>Something else:</b> \u201c${esc(t.length > 160 ? t.slice(0, 157) + '\u2026' : t)}\u201d`; }
     else what = '<span class="meta">Still deciding\u2026</span>';
     const say = a?.say ? `<div class="meta" style="margin-top:3px"><b style="color:var(--wine)">${a.sayMode === 'whisper' ? 'Whispers to the party' : 'Says'}:</b> \u201c${esc(a.say)}\u201d</div>` : '';
@@ -144,7 +181,8 @@ function tableView() {
   if (sc.status === 'resolved' && T.results[T.n]) return resolutionView(T.n) + F5.askCard();
   if (sc.battle) return prev + F5.levelBanner() + battleView(st) + F5.restCard() + F5.askCard();
   const shopTeaser = sc.shop && st.open && T.me ? `<button class="card ribbon" data-t="go" data-v="gear"><span>\u{1F6D2} <b>${esc(SHOPS[sc.shop]?.name || 'The shop')}</b> is open tonight${T.cart?.length ? ` \u00b7 ${T.cart.length} in your cart` : ''}</span><span>Gear \u2192</span></button>` : '';
-  return prev + F5.levelBanner() + sceneCard(sc) + G.lootCard() + movesCard(sc, st) + partyCard(st) + F5.restCard() + shopTeaser + lockCard(st) + F5.askCard() + G.questCard();
+  // Order: table narrative > Current Missions > guild board > map (battles only) > action box.
+  return prev + F5.levelBanner() + sceneCard(sc) + G.lootCard() + missionsCard() + guildBoardCard(st) + movesCard(sc, st) + partyCard(st) + F5.restCard() + shopTeaser + lockCard(st) + F5.askCard();
 }
 
 // ---------- battle ----------
@@ -180,7 +218,8 @@ function battleView(st) {
      <ul class="list" style="margin-top:9px;color:#efe0bb"><li>Stopped at<span class="r">Round ${enc.round}</span></li><li>Resumes<span class="r">Night ${T.n} \u00b7 orders due ${N.fmtLA(sc.cutoffMs)}</span></li><li>Tonight\u2019s dice<span class="r" style="font-family:monospace;color:#f0d58a">sha256 ${esc(sc.commit.slice(0, 4))}\u2026${esc(sc.commit.slice(-4))} \u2713 posted</span></li></ul>
      <div class="note" style="color:#a88f62">Saved exactly as it stood: positions, HP, initiative, whose turn, concentration and conditions. Nobody rests overnight: real-world time is not an in-game rest.</div></div>` : '';
   const mapCard = `<div class="card dark" style="padding:10px 7px 10px"><h2 style="padding:0 6px">${esc(enc?.name || sc.title)} \u00b7 Round ${enc?.round || 1}</h2><div style="padding:0 6px">${initStrip(view)}</div>${mapHtml(view, { dest: Array.isArray(T.orders?.thisRound?.move) ? T.orders.thisRound.move : null, clickable: T.pickCell })}<div style="padding:0 6px">${legend(view)}</div></div>`;
-  return sceneCard({ ...sc, prose: sc.prose.slice(0, 1) }) + pausedCard + mapCard + (me ? ordersCard(st) : '') + partyCard(st) + lockCard(st);
+  // Order: table narrative > Current Missions > map > action box (orders).
+  return sceneCard({ ...sc, prose: sc.prose.slice(0, 1) }) + missionsCard() + pausedCard + mapCard + (me ? ordersCard(st) : '') + partyCard(st) + lockCard(st);
 }
 function ordersCard(st) {
   const me = T.me; const c = ch(me.cid); const s = sheetOf(me.cid); const o = T.orders; const r = o.thisRound; const view = T.game.view; const canEdit = st.open;
@@ -332,8 +371,11 @@ function recapView(k) {
   const xpAvg = Math.round(T.players.reduce((s, p) => s + (ch(p.cid)?.xp || 0), 0) / Math.max(1, T.players.length)); const lvAvg = Math.min(...T.players.map(p => ch(p.cid)?.level || 3)); const nx = XP_NEXT[lvAvg] || 14000;
   const nextSc = T.scenes[k + 1];
   const reel = reelHtml(reelFor(k, T.scenes[k]?.id || r.sceneId || r.scene));
+  const checks = r.entries.filter(e => e.check);
+  const checkList = checks.length ? `<div class="card"><h2>Ruled checks</h2><ul class="list">${checks.map(e => { const line = ruledCheckLine(e); const how = e.kind === 'free' || e.kind === 'orders' && e.text ? 'write-in' : (e.kind === 'move' ? 'suggested move' : e.kind); return `<li>${AV(e.pid)}<div style="flex:1;min-width:0"><b>${esc(first(e.name))}</b> \u00b7 ${esc(how)}<div class="meta">${line ? esc(line) : esc((e.check.label || e.check.skill || '') + ' DC ' + e.check.dc)}</div></div><span class="r">${e.check.ok ? 'Success' : 'Failure'}</span></li>`; }).join('')}</ul><div class="note">Write-ins are called on the night\u2019s scale: Easy 6, Medium 11, or Hard 16 from Night 38 on.</div></div>` : '';
   return `${reel}<div class="card"><div class="eyebrow">Chronicle \u00b7 Night ${k}</div><div class="title">${esc(r.title)}</div>${(r.narration || '').split(/\n\s*\n/).slice(0, 2).map(p => `<p class="prose">${md(p)}</p>`).join('')}</div>
-   ${best.length ? `<div class="card dark"><h2>Dice of the night</h2>${best.map(e => `<div class="row" style="margin-top:9px;gap:12px">${D20(e.check.nat, e.check.nat === 20 ? '#b8862a' : e.check.nat === 1 ? '#7a1a1f' : '#2c6a8a')}<div><b style="font:700 14px Cinzel,serif;color:#f0d58a">${esc(first(e.name))} \u00b7 ${esc(e.label || 'something else')}</b><div class="meta" style="color:#cdb27a">${e.check.nat} ${e.check.parts.map(p => `${sgn(p.v).replace('+', '+ ').replace('\u2212', '\u2212 ')} ${esc(p.src)}`).join(' ')} = ${e.check.total} vs DC ${e.check.dc}. ${e.check.ok ? 'Success.' : 'Failure.'}</div></div></div>`).join('')}</div>` : ''}
+   ${checkList}
+   ${best.length ? `<div class="card dark"><h2>Dice of the night</h2>${best.map(e => `<div class="row" style="margin-top:9px;gap:12px">${D20(e.check.nat, e.check.nat === 20 ? '#b8862a' : e.check.nat === 1 ? '#7a1a1f' : '#2c6a8a')}<div><b style="font:700 14px Cinzel,serif;color:#f0d58a">${esc(first(e.name))} \u00b7 ${esc(e.label || 'something else')}</b><div class="meta" style="color:#cdb27a">${ruledCheckLine(e) ? esc(ruledCheckLine(e)) + ' \u00b7 ' : ''}${e.check.nat} ${e.check.parts.map(p => `${sgn(p.v).replace('+', '+ ').replace('\u2212', '\u2212 ')} ${esc(p.src)}`).join(' ')} = ${e.check.total} vs DC ${e.check.dc}. ${e.check.ok ? 'Success.' : 'Failure.'}</div></div></div>`).join('')}</div>` : ''}
    ${r.battle && !r.battle.started ? `<div class="card dark"><h2>The fight</h2><div class="meta" style="color:#cdb27a;margin-top:6px">${esc(r.battle.name)} \u00b7 through round ${r.battle.round} \u00b7 ${r.battle.unfinished ? `saved, resumes Night ${k + 1}` : esc(r.battle.status)}${r.battle.stop ? ` \u00b7 stopped: ${esc(r.battle.stop.text)}` : ''}</div></div>` : ''}
    <div class="card"><h2>The heroes</h2><ul class="list">${T.players.map(p => { const c = ch(p.cid); const s = sheetOf(p.cid); const e = r.entries.find(x => x.pid === p.pid);
      return `<li>${AV(p.pid)}<div style="flex:1;min-width:0"><b>${esc(p.name)}</b><div class="meta">HP ${c.hp.cur}/${s.hpMax}${c.inspiration ? ' \u00b7 Heroic Inspiration \u2726' : ''}${e?.kind === 'absent' ? ` \u00b7 absent (${STANCE_TXT[e.stance || stanceOf(p.pid)]})` : ''}${r.sheetChanges.filter(x => x.cid === p.cid && x.what !== 'XP').map(x => ` \u00b7 ${esc(x.what)} ${esc(x.delta)}`).join('')}</div></div><span class="r" style="color:#2f6a2c">${esc(xpBy(p.cid))}</span></li>`; }).join('')}</ul>
@@ -360,7 +402,9 @@ function recapPopupHtml(k, r) {
   const reel = reelHtml(reelFor(k, T.scenes?.[k]?.id || r.sceneId || r.scene));
   const front = reqs.length ? `<div class="card"><h2>Ask the GM \u00b7 Night ${k}</h2><ul class="list">${reqs.map(x => `<li>${AV(x.pid)}<div style="flex:1;min-width:0"><b>${esc(first(x.name))}</b> <span class="tag">${esc(x.kind)}</span><div class="meta">\u201c${esc(x.text)}\u201d</div><div class="meta"><b style="color:#7d1d2e">Ruled:</b> ${esc(x.ruling)}</div>${x.result ? `<div class="meta">${esc(x.result)}</div>` : ''}</div></li>`).join('')}</ul></div>` : '';
   const narr = `<div class="card"><h2>The GM narrates</h2>${(r.narration || '').split(/\n\s*\n/).map(p => `<p class="prose" style="font-size:15.5px">${md(p)}</p>`).join('')}</div>`;
-  return `<div class="recappop-in"><div class="card dark"><div class="eyebrow" style="color:#cdb27a">Night ${k} \u00b7 the recap</div><div class="title" style="color:#f0d58a">${esc(r.title || '')}</div></div>${reel}${front}${narr}<button class="btn gold back" data-recapclose="1">Back to the table</button></div>`;
+  const checks = (r.entries || []).filter(e => e.check && (e.kind === 'free' || (e.kind === 'orders' && e.text) || e.dcCall));
+  const ruled = checks.length ? `<div class="card"><h2>Write-in checks</h2><ul class="list">${checks.map(e => `<li>${AV(e.pid)}<div style="flex:1;min-width:0"><b>${esc(first(e.name))}</b><div class="meta">${esc(ruledCheckLine(e) || ((e.check.skill || '') + ' DC ' + e.check.dc))}</div></div></li>`).join('')}</ul></div>` : '';
+  return `<div class="recappop-in"><div class="card dark"><div class="eyebrow" style="color:#cdb27a">Night ${k} \u00b7 the recap</div><div class="title" style="color:#f0d58a">${esc(r.title || '')}</div></div>${reel}${front}${narr}${ruled}<button class="btn gold back" data-recapclose="1">Back to the table</button></div>`;
 }
 async function maybeRecapPopup() {
   if (T.view !== 'table' || !T.n || q.get('norecap')) return; const k = T.scene?.status === 'resolved' ? T.n : T.n - 1; if (k < 1 || seenNights().includes(k)) return;
@@ -420,6 +464,8 @@ async function onClick(e) {
       case 'recap': T.view = 'recap'; T.k = +v; await resultOf(T.k); if (T.k + 1 <= T.n) T.scenes[T.k + 1] = T.scenes[T.k + 1] || await store.scene(T.k + 1); T._top = true; break;
       case 'sheet': T.view = 'sheet'; T.k = v; T._top = true; break;
       case 'move': T.draft = normalizeDraft({ ...T.draft, kind: 'move', moveId: v }); await saveDraft(false); break;
+      case 'suggest': { const text = pickWriteIn(v, T.game?.state?.story || {}, T.scene || {}); if (!text) break;
+        T.draft = normalizeDraft({ ...T.draft, kind: 'free', moveId: null, text }); await saveDraft(false); break; }
       case 'saymode': T.draft = normalizeDraft({ ...T.draft, sayMode: v }); break;
       case 'lock': await saveDraft(true); T.editing = false; break;
       case 'unlock': T.editing = true; if (T.scene.battle) { T.orders = structuredClone(T.mine.orders); } else T.draft = normalizeDraft({ ...T.draft, ...T.mine }); await (T.scene.battle ? saveOrders(false) : saveDraft(false)); break;
@@ -452,7 +498,8 @@ function onInput(e) { const f = e.target.dataset?.f; if (!f) return; if (f === '
     if (T.scene?.battle) { const note = e.target.parentNode?.querySelector?.('#writein-note') || e.target.nextElementSibling; if (note && note.classList.contains('note')) { const mapped = T.draft.text.trim() ? N.mapCombatWriteIn(T.draft.text) : null; note.textContent = (!mapped ? 'If you fill this in, it replaces your Action this turn, unless you clearly describe a move or a bonus action instead.' : mapped.slot === 'bonus' ? 'This replaces your bonus action this turn. Your Action still stands.' : mapped.slot === 'move' ? 'This replaces your move this turn. Your Action still stands.' : 'This replaces your Action this turn.') + ' ' + (T.draft.text.length ? `${T.draft.text.length}/${FREE_TEXT_MAX}` : `Short, up to ${FREE_TEXT_MAX} characters.`) + ' The GM maps it to the closest legal action and, if a check is needed, calls Easy, Medium or Hard.'; } }
     else { T.draft.kind = T.draft.text.trim() ? 'free' : (T.draft.moveId ? 'move' : null); if (T.draft.kind === 'free') T.draft.moveId = null; } } else T.draft[f] = e.target.value;
   const btn = document.querySelector('[data-t="lock"]'); if (btn) btn.disabled = !(T.draft.kind === 'move' ? T.draft.moveId : T.draft.kind === 'free' && (T.draft.text || '').trim().length >= 3);
-  document.querySelectorAll('[data-t="move"]').forEach(m => m.classList.toggle('sel', T.draft.kind === 'move' && m.dataset.v === T.draft.moveId)); }
+  document.querySelectorAll('[data-t="move"]').forEach(m => m.classList.toggle('sel', T.draft.kind === 'move' && m.dataset.v === T.draft.moveId));
+  document.querySelectorAll('[data-t="suggest"]').forEach(m => { const txt = pickWriteIn(m.dataset.v, T.game?.state?.story || {}, T.scene || {}); m.classList.toggle('sel', T.draft.kind === 'free' && txt && (T.draft.text || '').trim() === txt.trim()); }); }
 export async function boot(o) {
   ({ store, renderSheet, OWNER } = o); ctx = { now: o.now };
   G.init({ T, esc, AV, first, now, canAct: N.canAct, store, OWNER }); F5.init({ T, esc, AV, first, now, canAct: N.canAct, store, OWNER });
