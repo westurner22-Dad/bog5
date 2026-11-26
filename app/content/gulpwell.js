@@ -64,6 +64,36 @@ export const GULPWELL_SCENE = {
   next: 'The square, with the urn, and the question of how far official memory reaches.',
 };
 
+export const GULPWELL_VICTORY = {
+  effects: [
+    { cid: 'story', flag: 'urn_recovered', text: "Harold's urn is in the party's hands, taken from Gulpwell's cabinet before the melt." },
+    { cid: 'party', xp: 0, why: 'victory XP comes from the foes' },
+  ],
+};
+
+export const GULPWELL_R2_SCENE = {
+  id: 'a1_gulpwell_2',
+  n: null,
+  title: "Gulpwell's Office (cont.)",
+  place: 'Thimbleby \u00b7 the counting hall',
+  bg: 'city',
+  time: 'Afternoon',
+  battle: true,
+  prose: [
+    "Round 1 is down, and the fight in Gulpwell\u2019s office is still on. Y\u00e4est asked Harold\u2019s urn the best way to free him; his Religion was a 3 plus 1 plus 1, a 4 against DC 11, and the cabinet gave him nothing he could use. The urn is still in the barred cabinet, tagged for the melt. Boobington put a Fire Bolt into Gulpwell, a 15 plus 4, a 19 against AC 13, 5 fire. Tally Brisk came in to 7, 4 and missed Y\u00e4est with the Hand Crossbow, a 1 plus 2, a 3 against AC 14. Gulpwell came in to 5, 6 and fired the pistol twice at Y\u00e4est: a 10 plus 3, a 13 against AC 14, a miss, then an 18 plus 3, a 21 against AC 14, 11 piercing. Y\u00e4est is at 10 of 21 HP. Gorlock closed to 4, 5 and hit Gulpwell with the scimitar, an 18 plus 5, a 23 against AC 13, 6 slashing. Gulpwell is at 41 of 52 HP. Biggus moved to 4, 7 and cast Bless on himself, Gorlock, and Boobington. Y\u00e4est is not in that blessing. Tally has not fled, and she is still at 27 of 27 HP. The hall is still empty; no one is coming to help.",
+    "Positions: Biggus at 4, 7, unhurt, AC 19. Gorlock at 4, 5, unhurt, AC 15, Heroic Inspiration still in hand. Boobington at 3, 5, unhurt, AC 14. Y\u00e4est at 3, 8, at 10 of 21 HP, AC 14. Gulpwell (41 HP, AC 13, attacks +3) is at 5, 6. Tally Brisk (27 HP, AC 10, attacks +2) is at 7, 4; she will try to get out if she is badly hurt. Bless is up on Biggus, Gorlock, and Boobington. Initiative is unchanged: Y\u00e4est 26, Boobington 22, Tally Brisk 20, Gulpwell 15, Gorlock 14, and Biggus 4. Y\u00e4est is up first.",
+    "Round 2 is next. Set battle orders: where you move, what you do, and a standing order for when things go wrong. One round plays tonight, then the table stops for new orders.",
+  ],
+  quote: { who: 'Commissar Gulpwell', text: '\u201cThat plate is still condemned, and you are not on the list.\u201d' },
+  moves: [],
+  freeDc: 14,
+  absentText: 'Fights on their preset stance.',
+  after: { victory: GULPWELL_VICTORY },
+  next: "The fight in Gulpwell\u2019s office goes on. Orders for the next round are due after this one resolves.",
+};
+
+export const GULPWELL_SCENES = [GULPWELL_SCENE, GULPWELL_R2_SCENE];
+
 export function gulpwellStartBattle(partyPos) {
   return { ...GULPWELL_FIGHT, partyPos: partyPos || GULPWELL_FIGHT.partyPos };
 }

@@ -48,7 +48,7 @@ import { levelUpPlan, validateLevelUp } from '../../engine/src/levelup.js';
 import * as PA from '../portrait-art.js';
 import { SCENES as SIDE, QUESTS, questBoard } from '../content/sidequests.js';
 import { BOARD_SCENES, listedBoardQuests, recapScope } from '../content/missions.js';
-import { GULPWELL_SCENE } from '../content/gulpwell.js';
+import { GULPWELL_SCENES } from '../content/gulpwell.js';
 import { applyRulings } from '../../engine/src/rulings.js';
 import * as I from '../issues.js';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -85,7 +85,7 @@ class DryRunPaths { constructor(inner) { this.inner = inner; this.over = new Map
 const P0 = adminPaths(); const P = DRY ? new DryRunPaths(P0) : P0; if (DRY) say(`[dry-run] ${cmd || ''} on --target ${TARGET}: reads are real, nothing is written`); const store = new Bog5Store(P, { gm: true, owner: 'gm', now: () => NOW });
 // night n's content: the main arc by number, or a side-quest scene chosen at open (--scene id, remembered per night)
 const content = k => { const f = `scene-${k}.txt`; const id = opt('scene') || (fexists(f) ? fread(f).trim() : null);
-  if (id) { const q = SIDE.find(x => x.id === id) || BOARD_SCENES.find(x => x.id === id) || (id === GULPWELL_SCENE.id ? GULPWELL_SCENE : null) || NIGHTS.find(x => x.id === id); if (!q) throw new Error(`no scene ${id}`); return { ...q, n: k }; }
+  if (id) { const q = SIDE.find(x => x.id === id) || BOARD_SCENES.find(x => x.id === id) || GULPWELL_SCENES.find(x => x.id === id) || NIGHTS.find(x => x.id === id); if (!q) throw new Error(`no scene ${id}`); return { ...q, n: k }; }
   const sc = NIGHTS.find(x => x.n === k); if (!sc) throw new Error(`no content for night ${k}`); return sc; };
 const players = async () => { const c = await store.campaign(); return Object.entries(c.players || {}).map(([pid, p]) => ({ pid, name: p.hero || p.name, cid: p.cid, player: p.name })); };
 const loadG = () => N.loadGame(readJ('game.json')); const saveG = g => writeJ('game.json', N.saveGame(g), 0o600);
