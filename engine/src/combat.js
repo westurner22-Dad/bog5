@@ -351,6 +351,44 @@ function inDirectorFight(g) {
 //   item 6: Heat Metal: the creature touching the object always takes the fire damage; its CON save only decides whether it drops the
 //           object. If it keeps hold, it has Disadvantage on attacks until the start of the caster's next turn. A bonus action on each
 //           later turn burns it again while it still holds the object (the caster's "keep it going" order).
+// Attack-kind `then` riders (Ice Knife's 5-ft DEX burst, etc.) were not applied through Night 50.
+// Log replay of those nights is patch-based and stays valid either way. New casts apply the rider from Night 51 on.
+export const SPELL_THEN_NIGHT = 51;
+const spellThenOn = g => ((g.state.meta?.night) || 0) >= SPELL_THEN_NIGHT;
+
+function applySaveBurst(g, T, { center, radius = 5, save, dc, dice, type, half = false, why, evoker = false, cantrip = false }) {
+  const origin = center && C(g, center.uid); if (!origin) return;
+  const targets = Object.values(enc(g).combatants).filter(x => up(g, x) && (x.uid === origin.uid || D(g, origin, x) <= radius));
+  const dmg = g.roll(dice, {}, `${why} damage`).total;
+  for (const tt of targets) {
+    const r = saveRoll(g, tt, save, dc, why);
+    let v = r.ok ? (half || (evoker && cantrip) ? Math.floor(dmg / 2) : 0) : dmg;
+    if (save === 'dex' && tt.kind === 'pc' && ((ch(g, tt).cls === 'rogue' && ch(g, tt).level >= 7) || (ch(g, tt).cls === 'monk' && ch(g, tt).level >= 7)) && half && conscious(g, tt)) v = r.ok ? 0 : Math.floor(dmg / 2);
+    say(g, `${tt.name} ${r.ok ? 'saves' : 'fails'} (${r.total} vs DC ${dc}): ${v} ${type}.`);
+    if (v) applyDamage(g, T, tt, v, type, { magical: true });
+  }
+}
+
+function applyScriptedSaveBurst(g, T, sb) {
+  const why = sb.why || (sb.spell ? `${(SRD.spells[sb.spell] || {}).name || sb.spell} burst` : 'save burst');
+  const caster = sb.dcFrom ? C(g, sb.dcFrom) : null;
+  const dc = sb.dc ?? (caster ? spellMod(g, caster, sb.spell || 'ice_knife').dc : null);
+  if (dc == null) { say(g, `${why}: no save DC.`); return; }
+  const dice = sb.dice || '2d6', type = sb.type || 'cold', save = sb.save || 'dex', half = !!sb.half;
+  if (sb.uids) {
+    const dmg = g.roll(dice, {}, `${why} damage`).total;
+    for (const uid of sb.uids) {
+      const tt = C(g, uid); if (!tt || !up(g, tt)) continue;
+      const r = saveRoll(g, tt, save, dc, why);
+      let v = r.ok ? (half ? Math.floor(dmg / 2) : 0) : dmg;
+      say(g, `${tt.name} ${r.ok ? 'saves' : 'fails'} (${r.total} vs DC ${dc}): ${v} ${type}.`);
+      if (v) applyDamage(g, T, tt, v, type, { magical: true });
+    }
+    return;
+  }
+  if (sb.uid) applySaveBurst(g, T, { center: C(g, sb.uid), radius: sb.radius ?? 5, save, dc, dice, type, half, why });
+}
+
 export function spellModelForCast(g, id) {
   const m = spellModel(id);
   if (id === 'poison_spray' && (rulesV2(g) || inDirectorFight(g))) {
@@ -400,7 +438,12 @@ export function castSpell(g, T, c, id, L, targets, opt = {}) {
   switch (m.kind) {
     case 'attack': {
       const n = (m.rays ? m.rays + (m.raysPerSlot || 0) * up_ : 0) || (m.beamsAt ? Object.entries(m.beamsAt).reduce((a, [l, k]) => (c0.level >= +l ? k : a), 1) : 1);
-      for (let i = 0; i < n; i++) { const t = targets[i % targets.length]; if (!t || !up(g, C(g, t.uid))) continue; attack(g, T, c, t, { name: sp.name, melee: /touch|5 feet/i.test(sp.range || '') , reach: 5, range: [999], toHit: satk, dice: dmgDice(m.dice, m.upcast), dmgBonus: affinity(g, c, opt.dtype || m.type, T), agonizing: id === 'eldritch_blast' && c0.choices.invocations?.includes('agonizing_blast'), type: opt.dtype || m.type, magical: true, ammo: null, properties: [], spell: true }, {}); if (m.rider === 'guiding_bolt_adv' && up(g, C(g, t.uid))) addEff(g, C(g, t.uid), { id: 'guiding_bolt_adv', src: c.uid, rounds: 1 }); }
+      let focus = null;
+      for (let i = 0; i < n; i++) { const t = targets[i % targets.length]; if (!t || !up(g, C(g, t.uid))) continue; focus = t; attack(g, T, c, t, { name: sp.name, melee: /touch|5 feet/i.test(sp.range || '') , reach: 5, range: [999], toHit: satk, dice: dmgDice(m.dice, m.upcast), dmgBonus: affinity(g, c, opt.dtype || m.type, T), agonizing: id === 'eldritch_blast' && c0.choices.invocations?.includes('agonizing_blast'), type: opt.dtype || m.type, magical: true, ammo: null, properties: [], spell: true }, {}); if (m.rider === 'guiding_bolt_adv' && up(g, C(g, t.uid))) addEff(g, C(g, t.uid), { id: 'guiding_bolt_adv', src: c.uid, rounds: 1 }); }
+      if (spellThenOn(g) && m.then && focus) {
+        const th = m.then;
+        applySaveBurst(g, T, { center: focus, radius: th.radius ?? 5, save: th.save, dc, dice: dmgDice(th.dice, th.upcast), type: th.type, half: !!th.half, why: `${sp.name} burst`, evoker, cantrip: !!(m.cantrip || sp.level === 0) });
+      }
       break; }
     case 'auto_hit': { const n = m.darts + up_ * (m.dartsPerSlot || 1);
       if (rulesV2(g) && c.side) { // item 6: no darts wasted on a fallen target: the rest fly to the nearest foe still up, or aren't fired
@@ -557,7 +600,12 @@ export function takeTurn(g, uid, orders) {
   const T = { orders, absent: c.kind === 'pc' && (!orders[c.cid] || orders[c.cid].absent), bonusUsed: false, slotSpell: false, disengaged: false }; g._T = T;
   try {
     // round-start script (new enemies)
-    if (e.turn === 0) for (const s of e.script || []) if (s.round === e.round && !s.done) { s.add.forEach((f, i) => { const u = f.uid || `r${e.round}_${i}`; g.set(['encounter', 'combatants', u], { uid: u, side: 'foe', ...(rulesV2(g) ? flattenFoe(monsterTemplate(f.monster), f) : monsterTemplate(f.monster)), name: f.name || monsterTemplate(f.monster).name, pos: f.pos, boss: !!f.boss, tactics: f.tactics || {}, reaction: true, init: 0 }); g.set(['encounter', 'order'], [...enc(g).order, u]); }); g.set(['encounter', 'script', e.script.indexOf(s), 'done'], true); say(g, `Round ${e.round}: ${s.text || 'new enemies arrive'}!`); trig(g, 'new_enemy', s.text || 'reinforcements'); }
+    if (e.turn === 0) for (const s of e.script || []) if (s.round === e.round && !s.done) {
+      if (s.add) { s.add.forEach((f, i) => { const u = f.uid || `r${e.round}_${i}`; g.set(['encounter', 'combatants', u], { uid: u, side: 'foe', ...(rulesV2(g) ? flattenFoe(monsterTemplate(f.monster), f) : monsterTemplate(f.monster)), name: f.name || monsterTemplate(f.monster).name, pos: f.pos, boss: !!f.boss, tactics: f.tactics || {}, reaction: true, init: 0 }); g.set(['encounter', 'order'], [...enc(g).order, u]); }); }
+      if (s.saveBurst) { if (s.text) say(g, s.text); applyScriptedSaveBurst(g, T, s.saveBurst); }
+      g.set(['encounter', 'script', e.script.indexOf(s), 'done'], true);
+      if (s.add) { say(g, `Round ${e.round}: ${s.text || 'new enemies arrive'}!`); trig(g, 'new_enemy', s.text || 'reinforcements'); }
+    }
     c = C(g, uid);
     if (!isDead(g, c)) {
       g.set(['encounter', 'combatants', uid, 'reaction'], true);
