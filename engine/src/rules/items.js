@@ -82,6 +82,8 @@ export const componentFor = spell => COMPONENTS[spell] || null;
 // so these generic denominations are engine-owned; the loot tables name them for flavor)
 for (const [id, name, gp] of [['gem_10', 'Gemstone (10 GP)', 10], ['gem_50', 'Gemstone (50 GP)', 50], ['gem_100', 'Gemstone (100 GP)', 100], ['gem_500', 'Gemstone (500 GP)', 500], ['art_25', 'Art Object (25 GP)', 25], ['art_250', 'Art Object (250 GP)', 250]])
   base[id] = { id, name, kind: 'valuable', weight: 0, cost: gp * 100, fullValue: true };
+// Flavor valuable for the Guildhall Bazaar after the Gulpwell fight (Wes, Nov 27 2026): Mags and Gulpwell's grey-lands ale. Same shape as art objects; sells at full value. No new use-effect.
+base.cask_of_tankard_export_ale = { id: 'cask_of_tankard_export_ale', name: 'Cask of Tankard Export Ale', kind: 'valuable', weight: 0, cost: 2500, fullValue: true };
 // ---- every other SRD 5.2.1 magic item with a single rarity: named, valued and slotted; effect is "GM rules it"
 const CONSUMABLE = /^(potion|oil|philter|elixir|dust|bead|ammunition|feather token|universal solvent|sovereign glue)/i;
 const SLOT_OF = t => /\bring\b/i.test(t) ? 'ring' : /cloak|cape|mantle|robe/i.test(t) ? 'cloak' : /boots|slippers|horseshoes/i.test(t) ? 'feet' : /gloves|gauntlets|bracers/i.test(t) ? 'hands' : /helm|hat|headband|circlet|goggles|eyes of|lenses/i.test(t) ? 'head' : /amulet|necklace|periapt|medallion|brooch|scarab|talisman/i.test(t) ? 'neck' : /belt/i.test(t) ? 'belt' : null;

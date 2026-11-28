@@ -47,6 +47,18 @@ test('shop: every price previews what it does to YOUR sheet (AC, attack line, st
   const heavy = SH.preview(c2, { id: 'plate_armor' }, 20); assert.ok(heavy.tags.some(t => /over capacity/.test(t.t)), 'encumbrance shows only when exceeded');
   assert.ok(!SH.preview(c2, { id: 'torch' }).tags.some(t => /capacity/.test(t.t)));
 });
+test('shop: Thimbleby Pump Stall is common supplies; shopView works for every seat', () => {
+  const { g, players } = table();
+  assert.equal(SH.SHOPS.thimbleby.name, 'The Pump Stall');
+  assert.ok(SH.SHOPS.thimbleby.stock.includes('rations'));
+  assert.ok(!SH.SHOPS.thimbleby.stock.includes('cloak_of_protection'));
+  for (const p of players) {
+    const v = SH.shopView(g.state, p.cid, 'thimbleby', 'foryou');
+    assert.equal(v.shop.name, 'The Pump Stall');
+    assert.ok(v.rows.every(x => x.price != null && x.tags));
+  }
+  assert.throws(() => SH.shopView(g.state, players[0].cid, 'no_such_shop', 'foryou'), /no shop/);
+});
 test('attunement: identified first, max 3, no two copies of the same item', () => {
   const { g, players } = table(); const p2 = cidOf(players, 'p2');
   for (const id of ['cloak_of_protection', 'ring_of_protection', 'gauntlets_of_ogre_power', 'headband_of_intellect']) A.giveItem(g, p2, { id });
@@ -169,4 +181,38 @@ test('catalogue: every SRD magic item is buyable/awardable data with a rarity pr
   assert.equal(itemDef({ id: 'cloak_of_protection' }).cost, 40000); assert.equal(itemDef({ id: 'potion_of_healing' }).cost, 5000);
   assert.equal(itemDef({ id: 'spell_scroll', scroll: 'magic_missile' }).cost > 0, true);
   void deriveSheet;
+});
+
+test('shop: Tally/Gulpwell Guildhall Bazaar lines (ungated, capital only) at the proposed list prices and limits', () => {
+  const { g, players } = table(); const p1 = cidOf(players, 'p1'); rich(g, p1, 2000);
+  const lines = [
+    ['immovable_rod', 40000, 1],
+    ['eversmoking_bottle', 40000, 1],
+    ['dust_of_disappearance', 20000, 2],
+    ['oil_of_slipperiness', 20000, 2],
+    ['potion_of_water_breathing', 20000, 2],
+    ['potion_of_animal_friendship', 20000, 2],
+    ['cask_of_tankard_export_ale', 2500, 4],
+  ];
+  const other = ['thimbleby', 'tankard', 'frontier', 'fenwick', 'tollford'];
+  for (const [key, cp, lim] of lines) {
+    assert.ok(SH.SHOPS.capital.stock.includes(key), key + ' is in the Guildhall Bazaar');
+    assert.equal(SH.priceOf({}, 'capital', key).unit, cp, key + ' list price');
+    assert.equal(SH.SHOPS.capital.limits[key], lim);
+    assert.equal(SH.stockLeft(g.state, 'capital', key), lim);
+    for (const shopId of other) {
+      assert.ok(!SH.SHOPS[shopId].stock.includes(key), key + ' must not appear at ' + shopId);
+      assert.throws(() => SH.buyFrom(g, p1, shopId, key), /doesn.t sell/i);
+    }
+  }
+  const ale = itemDef({ id: 'cask_of_tankard_export_ale' });
+  assert.equal(ale.name, 'Cask of Tankard Export Ale');
+  assert.equal(ale.kind, 'valuable');
+  assert.equal(ale.cost, 2500);
+  assert.equal(sellValue({ id: 'cask_of_tankard_export_ale' }), 2500);
+  // A buy hits the limit and does not leak into the Pump Stall catalog.
+  SH.buyFrom(g, p1, 'capital', 'immovable_rod');
+  assert.equal(SH.stockLeft(g.state, 'capital', 'immovable_rod'), 0);
+  assert.throws(() => SH.buyFrom(g, p1, 'capital', 'immovable_rod'), /sold out/i);
+  assert.ok(!SH.SHOPS.thimbleby.stock.includes('immovable_rod'));
 });
