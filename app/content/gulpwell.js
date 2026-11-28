@@ -114,7 +114,28 @@ export const GULPWELL_R3_SCENE = {
   next: "The fight in Gulpwell\u2019s office goes on. Orders for the next round are due after this one resolves.",
 };
 
-export const GULPWELL_SCENES = [GULPWELL_SCENE, GULPWELL_R2_SCENE, GULPWELL_R3_SCENE];
+export const GULPWELL_R4_SCENE = {
+  id: 'a1_gulpwell_4',
+  n: null,
+  title: "Gulpwell's Office (cont.)",
+  place: 'Thimbleby \u00b7 the counting hall',
+  bg: 'city',
+  time: 'Afternoon',
+  battle: true,
+  prose: [
+    "Round 3 is down, and the fight in Gulpwell\u2019s office is still on. At the start of the round, Boobington\u2019s Ice Knife from round 2 burst around Tally Brisk; her Dexterity save was an 18 plus 2, a 20 against DC 12, and she took 0 cold. Y\u00e4est held at 2, 5. His Bardic Inspiration, aimed at the most hurt person on his side, did not take, because that person was himself. He cast True Strike at Gulpwell and sent a dart at long range, at a disadvantage: a 1 and a 7, the 1 plus 4, a 5 against AC 13, a miss. Boobington let Innate Sorcery rise and cast Magic Missile, two darts on Tally and one on Gulpwell: 5 force and 3 force into Tally, 5 force into Gulpwell. Tally missed Biggus with the Hand Crossbow, a 12 plus 2, a 14 against AC 19. Gulpwell cut twice at Biggus, the first swing sapped, a 2 and an 8, the 2 plus 3, a 5 against AC 19, a miss, then a 1 plus 3, a 4 against AC 19, a miss. Gorlock hit Gulpwell with a critical, a 19 plus 9, a 28 against AC 13, 9 slashing, with Bless on the roll. Biggus hit Gulpwell with a natural 20, plus 7, a 27 against AC 13, a critical hit, 13 slashing and 8 radiant from a Divine Smite; a level 1 slot is spent. Gulpwell is down, at 0 of 52 HP. Tally has not fled, and she is at 17 of 27 HP. The urn is still in the barred cabinet, tagged for the melt. The hall is still empty; no one is coming to help.",
+    "Positions: Biggus at 4, 7, unhurt, AC 19. Gorlock at 4, 5, unhurt, AC 15, Heroic Inspiration still in hand. Boobington at 3, 5, unhurt, AC 14, Innate Sorcery still on him. Y\u00e4est at 2, 5, at 15 of 26 HP, AC 14, Aid still on him. Gulpwell is down at 5, 6, at 0 of 52 HP. Tally Brisk (17 HP, AC 10, attacks +2) is at 6, 5; she will try to get out if she is badly hurt. Bless is still up on Biggus, Gorlock, and Boobington, with 8 rounds left. Y\u00e4est is not in that blessing. Initiative is unchanged: Y\u00e4est 26, Boobington 22, Tally Brisk 20, Gulpwell 15, Gorlock 14, and Biggus 4. Y\u00e4est is up first.",
+    "Round 4 is next. Set battle orders: where you move, what you do, and a standing order for when things go wrong. One round plays tonight, then the table stops for new orders.",
+  ],
+  quote: { who: 'Commissar Gulpwell', text: '\u201cThat plate is still condemned, and you are not on the list.\u201d' },
+  moves: [],
+  freeDc: 14,
+  absentText: 'Fights on their preset stance.',
+  after: { victory: GULPWELL_VICTORY },
+  next: "The fight in Gulpwell\u2019s office goes on. Orders for the next round are due after this one resolves.",
+};
+
+export const GULPWELL_SCENES = [GULPWELL_SCENE, GULPWELL_R2_SCENE, GULPWELL_R3_SCENE, GULPWELL_R4_SCENE];
 
 export function gulpwellStartBattle(partyPos) {
   return { ...GULPWELL_FIGHT, partyPos: partyPos || GULPWELL_FIGHT.partyPos };

@@ -764,6 +764,10 @@ function doAction(g, T, c, act, target) {
         const rngT = parseInt(sp.range) || (/touch/i.test(sp.range) ? 5 : 60); const picked = [...new Set(act.targets.map(u => u === 'self' ? c.uid : u))].map(u => C(g, u)).filter(t => t && !isDead(g, t));
         const near = picked.filter(t => t.uid === c.uid || D(g, c, t) <= rngT); const far = picked.filter(t => !near.includes(t)); if (far.length) say(g, `${far.map(t => t.name).join(' and ')} ${far.length > 1 ? 'are' : 'is'} out of ${sp.name}'s range.`);
         if (near.length) { targets = near; if (!target || !near.some(t => t.uid === target.uid)) target = near[0]; } }
+      if (mdl.kind === 'auto_hit' && Array.isArray(act.targets) && act.targets.length) { // Magic Missile dart allocation: keep repeats so two darts can share a target
+        const rngT = parseInt(sp.range) || 120;
+        const picked = act.targets.map(u => C(g, u)).filter(t => t && up(g, t) && D(g, c, t) <= rngT);
+        if (picked.length) { targets = picked; if (!target || !picked.some(t => t.uid === target.uid)) target = picked[0]; } }
       const okRange = target && D(g, c, target) <= (parseInt(sp.range) || (/touch/i.test(sp.range) ? 5 : 60));
       if (rulesV2(g) && castRounds(sp) > 1 && castRounds(sp) <= 10) { if ((sp.level === 0 || L) && canCastNow(g, c, act.spell, L || 0) && (okRange || /self|touch/i.test(sp.range))) { startLongCast(g, T, c, sp, act.spell, L, target); return; } }
       const res = (sp.level === 0 || L) && (okRange || /self/i.test(sp.range)) ? castSpell(g, T, c, act.spell, L, targets.length ? targets : [c], { dtype: act.dtype, markTarget: target }) : { ok: false, why: okRange ? 'no slot left' : 'out of range' };

@@ -2,7 +2,7 @@ import { test } from 'node:test'; import assert from 'node:assert/strict';
 import { startEncounter, resolveBattle, endEncounter, deriveSheet } from '../../engine/src/index.js';
 import { RULES_V2_NIGHT } from '../../engine/src/combat.js';
 import { party, PARTY_POS } from '../../engine/test/helpers.js';
-import { GULPWELL, TALLY_BRISK, GULPWELL_FIGHT, GULPWELL_XP, GULPWELL_R2_SCENE, GULPWELL_R3_SCENE, GULPWELL_SCENES } from '../content/gulpwell.js';
+import { GULPWELL, TALLY_BRISK, GULPWELL_FIGHT, GULPWELL_XP, GULPWELL_R2_SCENE, GULPWELL_R3_SCENE, GULPWELL_R4_SCENE, GULPWELL_SCENES } from '../content/gulpwell.js';
 
 const LIVE_HP = { biggus: 28, cumbeard: 28, edgington: 26, skynflute: 21 };
 const POS = [{ cid: 'biggus', pos: [2, 6] }, { cid: 'cumbeard', pos: [2, 7] }, { cid: 'edgington', pos: [3, 5] }, { cid: 'skynflute', pos: [3, 8] }];
@@ -101,4 +101,15 @@ test('Night 51 continuation scene keeps victory flag and does not start a second
   const flags = (GULPWELL_R3_SCENE.after?.victory?.effects || []).map(e => e.flag);
   assert.ok(flags.includes('urn_recovered'));
   assert.ok(GULPWELL_SCENES.some(s => s.id === 'a1_gulpwell_3'));
+});
+
+test('Night 52 continuation scene keeps victory flag and does not start a second fight', () => {
+  assert.equal(GULPWELL_R4_SCENE.id, 'a1_gulpwell_4');
+  assert.equal(GULPWELL_R4_SCENE.title, "Gulpwell's Office (cont.)");
+  assert.equal(GULPWELL_R4_SCENE.battle, true);
+  assert.equal(GULPWELL_R4_SCENE.shop, undefined);
+  assert.ok(!GULPWELL_R4_SCENE.after?.startBattle, 'continuation must not start a second encounter');
+  const flags = (GULPWELL_R4_SCENE.after?.victory?.effects || []).map(e => e.flag);
+  assert.ok(flags.includes('urn_recovered'));
+  assert.ok(GULPWELL_SCENES.some(s => s.id === 'a1_gulpwell_4'));
 });

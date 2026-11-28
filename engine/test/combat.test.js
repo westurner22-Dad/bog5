@@ -291,3 +291,24 @@ test('a scripted saveBurst at the start of a later round runs before anyone acts
   assert.equal(C(g, 'tally').hp.cur, before - 10);
   assert.equal(g.state.encounter.script[0].done, true);
 });
+
+test('Magic Missile can split darts when the order lists targets, including repeats', () => {
+  const d = new Rigged();
+  const g = party('mm-split', d);
+  g.state.meta.night = 51;
+  const ch = g.state.chars.edgington;
+  if (!ch.prepared.includes('magic_missile')) ch.prepared = [...ch.prepared, 'magic_missile'];
+  startEncounter(g, { name: 'x', party: [{ cid: 'edgington', pos: [3, 3] }], foes: [
+    { monster: 'bandit', pos: [6, 3], uid: 'tally' },
+    { monster: 'bandit', pos: [6, 5], uid: 'gulpwell' },
+  ] });
+  const hpT = C(g, 'tally').hp.cur, hpG = C(g, 'gulpwell').hp.cur;
+  // three darts: 1d4+1 each, faces 4, 2, 3 → 5, 3, 4
+  d.push(4, 2, 3);
+  g.state.encounter.status = 'awaiting_orders';
+  g.state.encounter.order = ['edgington', 'tally', 'gulpwell'];
+  g.state.encounter.turn = 0;
+  resolveBattle(g, { edgington: { thisRound: { move: 'hold', action: { do: 'cast', spell: 'magic_missile', target: 'tally', targets: ['tally', 'tally', 'gulpwell'] } } } }, { maxRounds: 1 });
+  assert.equal(C(g, 'tally').hp.cur, hpT - 5 - 3, 'two darts on the doubled target');
+  assert.equal(C(g, 'gulpwell').hp.cur, hpG - 4, 'one dart on the other foe');
+});
