@@ -2,7 +2,7 @@ import { test } from 'node:test'; import assert from 'node:assert/strict';
 import { startEncounter, resolveBattle, endEncounter, deriveSheet } from '../../engine/src/index.js';
 import { RULES_V2_NIGHT } from '../../engine/src/combat.js';
 import { party, PARTY_POS } from '../../engine/test/helpers.js';
-import { GULPWELL, TALLY_BRISK, GULPWELL_FIGHT, GULPWELL_XP, GULPWELL_R2_SCENE, GULPWELL_R3_SCENE, GULPWELL_R4_SCENE, GULPWELL_SLIPOUT_SCENE, GULPWELL_SCENES } from '../content/gulpwell.js';
+import { GULPWELL, TALLY_BRISK, GULPWELL_FIGHT, GULPWELL_XP, GULPWELL_R2_SCENE, GULPWELL_R3_SCENE, GULPWELL_R4_SCENE, GULPWELL_SLIPOUT_SCENE, GULPWELL_ROAD_SCENE, GULPWELL_HOMECOMING_SCENE, GULPWELL_SCENES } from '../content/gulpwell.js';
 
 const LIVE_HP = { biggus: 28, cumbeard: 28, edgington: 26, skynflute: 21 };
 const POS = [{ cid: 'biggus', pos: [2, 6] }, { cid: 'cumbeard', pos: [2, 7] }, { cid: 'edgington', pos: [3, 5] }, { cid: 'skynflute', pos: [3, 8] }];
@@ -122,4 +122,54 @@ test('Night 53 slip-out scene is a skill night with no battle, three moves, and 
   for (const m of GULPWELL_SLIPOUT_SCENE.moves) { assert.ok(m.check?.skill && m.check?.dc); assert.ok(m.success?.text && m.failure?.text); }
   assert.ok(!GULPWELL_SLIPOUT_SCENE.after?.startBattle);
   assert.ok(GULPWELL_SCENES.some(s => s.id === 'a1_slipout'));
+});
+
+test('Night 53 slip-out scene mentions Teslandia commandos and a tied Gulpwell, and keeps its three moves and DCs', () => {
+  const prose = (GULPWELL_SLIPOUT_SCENE.prose || []).join(' ');
+  assert.match(prose, /Teslandia commandos/);
+  assert.match(prose, /tied/);
+  assert.match(prose, /Tally/);
+  assert.doesNotMatch(prose, /geas|grey lands|guild store/i);
+  const moves = GULPWELL_SLIPOUT_SCENE.moves;
+  assert.equal(moves.map(m => m.id).join(','), 'urnout,horses,gate');
+  assert.ok(moves.every(m => m.check?.dc === 14));
+  assert.equal(moves[0].check.skill, 'deception');
+  assert.equal(moves[1].check.skill, 'animal_handling');
+  assert.equal(moves[2].check.skill, 'stealth');
+  assert.equal(GULPWELL_SLIPOUT_SCENE.shop, 'thimbleby');
+});
+
+test('Night 54 road-home scene is a short skill night with no shop, no detour towns, and no battle', () => {
+  assert.equal(GULPWELL_ROAD_SCENE.id, 'a1_roadhome');
+  assert.ok(!GULPWELL_ROAD_SCENE.battle);
+  assert.equal(GULPWELL_ROAD_SCENE.shop, undefined);
+  assert.equal(GULPWELL_ROAD_SCENE.moves.length, 3);
+  for (const m of GULPWELL_ROAD_SCENE.moves) { assert.ok(m.check?.skill && m.check?.dc === 14); }
+  assert.ok(!GULPWELL_ROAD_SCENE.after?.startBattle);
+  const prose = (GULPWELL_ROAD_SCENE.prose || []).join(' ');
+  assert.match(prose, /commandos/);
+  assert.match(prose, /no good reason to turn aside/);
+  assert.doesNotMatch(prose, /geas|guild store/i);
+  assert.ok(GULPWELL_SCENES.some(s => s.id === 'a1_roadhome'));
+});
+
+test('Night 55 homecoming has the Tankard shelf, the geas reveal, Tally at the guild store, and no next main-quest hook', () => {
+  assert.equal(GULPWELL_HOMECOMING_SCENE.id, 'a1_homecoming');
+  assert.ok(!GULPWELL_HOMECOMING_SCENE.battle);
+  assert.equal(GULPWELL_HOMECOMING_SCENE.shop, 'capital');
+  assert.equal(GULPWELL_HOMECOMING_SCENE.moves.length, 3);
+  const prose = (GULPWELL_HOMECOMING_SCENE.prose || []).join(' ');
+  assert.match(prose, /Leaking Tankard II/);
+  assert.match(prose, /empty shelf/);
+  assert.match(prose, /geas/);
+  assert.match(prose, /grey lands/);
+  assert.match(prose, /Tally/);
+  assert.match(prose, /guild store/);
+  const flags = (GULPWELL_HOMECOMING_SCENE.after?.effects || []).map(e => e.flag);
+  assert.ok(flags.includes('urn_returned'));
+  assert.ok(flags.includes('gulpwell_geas_lifted'));
+  assert.ok(flags.includes('tally_runs_store'));
+  assert.ok(!GULPWELL_HOMECOMING_SCENE.after?.startBattle);
+  assert.doesNotMatch(GULPWELL_HOMECOMING_SCENE.next || '', /next quest|new contract|your next job is/i);
+  assert.ok(GULPWELL_SCENES.some(s => s.id === 'a1_homecoming'));
 });

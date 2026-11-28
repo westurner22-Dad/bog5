@@ -146,7 +146,8 @@ export const GULPWELL_SLIPOUT_SCENE = {
   time: 'Afternoon',
   shop: 'thimbleby',
   prose: [
-    'Gulpwell is down on his own ledger table, Tally Brisk is sitting very carefully with her ink-stained hands where everyone can see them, and the barred cabinet is open. Harold\u2019s urn \u2014 brass, one, contents: Harold \u2014 is in the party\u2019s hands, and nobody is going to melt it today. The hall outside is still empty from Gorlock\u2019s warcry, which will not last. Sooner or later a clerk comes back for a pen.',
+    'Gulpwell is down on his own ledger table, and they have him tied. Tally Brisk is sitting very carefully with her ink-stained hands where everyone can see them, and she has not reached for a weapon since she put them up. The barred cabinet is open. Harold\u2019s urn \u2014 brass, one, contents: Harold \u2014 is in the party\u2019s hands, and nobody is going to melt it today. Y\u00e4est\u2019s Suggestion has nothing left to hold: Tally was burned out of it before it could take, and the spell lapses as they leave the office.',
+    'The hall outside is still empty from Gorlock\u2019s warcry, which will not last. Teslandia commandos are already in Thimbleby for the two of them. They will take the tied Commissar and the surrendered Comptroller off the party\u2019s hands, and get them out of the counting hall by a road that is not the party\u2019s. Sooner or later a clerk comes back for a pen.',
     'The horses Y\u00e4est secured are still stabled near the hall. The work now is to get out of the counting hall and out of Thimbleby with the urn before the afternoon bell and anyone with a form arrives. The Pump Stall is still open on the square if anyone needs a few things for the road.',
   ],
   quote: { who: 'Tally Brisk, hands flat on the desk', text: '\u201cThe door sticks. Lift it a little. I would hate for anyone to hear you leave.\u201d' },
@@ -167,7 +168,76 @@ export const GULPWELL_SLIPOUT_SCENE = {
   next: 'They are out of the counting hall with Harold\u2019s urn and the horses. The road home to Teslandia\u2019s capital is next.',
 };
 
-export const GULPWELL_SCENES = [GULPWELL_SCENE, GULPWELL_R2_SCENE, GULPWELL_R3_SCENE, GULPWELL_R4_SCENE, GULPWELL_SLIPOUT_SCENE];
+// Night 54 plan (not opened): the road home. One quick night, no detour towns, no Fenwick/Tollford. Short recap.
+export const GULPWELL_ROAD_SCENE = {
+  id: 'a1_roadhome',
+  n: null,
+  title: 'The Road Home',
+  place: 'The road to Teslandia\u2019s capital',
+  bg: 'forest',
+  time: 'Dusk',
+  prose: [
+    'Thimbleby is behind them. Harold\u2019s urn rides in a saddlebag, the getaway horses have the road, and Teslandia commandos have the rest: Commissar Gulpwell, still tied, and Comptroller Tally Brisk, who went with them without a fight. The commandos took a different road. What becomes of those two is not tonight\u2019s work.',
+    'The capital is ahead, and there is no good reason to turn aside. No Fenwick, no Tollford, no second town. A straight ride home, and then Harold goes back to Mags.',
+  ],
+  quote: { who: 'a carter going the other way, already bored of them', text: '\u201cIf you\u2019re for the capital, keep on. There is nothing worth a detour between here and the gates.\u201d' },
+  moves: [
+    { id: 'pace', label: 'Set a pace the getaway horses can hold all the way home', tags: ['talk'], check: { skill: 'animal_handling', dc: 14 }, hint: 'The horses were fresh when you left the hall. A steady pace will get you to the capital; a hard one may not.',
+      success: { text: 'The horses settle into a pace they can keep. The road unreels, the urn stays in the bag, and by the time the capital\u2019s lights show you have not had to walk.', effects: [{ flag: 'road_pace_held', flagText: 'the party held a steady pace on the road home, and the getaway horses lasted the ride' }, { xp: 25, who: 'self', why: 'set a pace the horses could hold all the way home' }] },
+      failure: { text: 'You push too hard, or not hard enough, and the horses are sour by the last miles. You still reach the capital. You just arrive later, and stiffer, than you meant to.', effects: [] } },
+    { id: 'hidden', label: 'Keep Harold\u2019s urn out of other travelers\u2019 sight', tags: ['risky'], check: { skill: 'stealth', dc: 14 }, hint: 'The road has carters and a few riders. A brass urn in a saddlebag will not draw a look if the bag looks like any other bag.',
+      success: { text: 'The bag looks like feed. Other travelers nod, or do not, and nobody asks what you are carrying home.', effects: [{ flag: 'urn_hidden_on_road', flagText: 'the party kept Harold\u2019s urn out of other travelers\u2019 sight on the road home' }, { xp: 25, who: 'self', why: 'kept the urn out of sight on the road' }] },
+      failure: { text: 'A carter glances at the bag twice, then shrugs and goes on. You get a little more careful after that, and you reach the gates without a question you have to answer.', effects: [] } },
+    { id: 'watch', label: 'Watch the road behind for word from Thimbleby', tags: ['notice'], check: { skill: 'perception', dc: 14 }, hint: 'If anyone rode out after you, or if a rumor is traveling faster than a horse, the road behind will say so.',
+      success: { text: 'The road behind stays ordinary: dust, a cart, a dog. No rider from the counting hall, and no shout that has your names in it. The commandos\u2019 road is not this one.', effects: [{ flag: 'road_clear_behind', flagText: 'the party watched the road home and saw no pursuit out of Thimbleby' }, { xp: 25, who: 'self', why: 'watched the road behind and found it clear' }] },
+      failure: { text: 'Every dust-cloud looks like a rider until it is a cart. You reach the capital a little more tired for the looking, and still no one has called your names on this road.', effects: [] } },
+  ],
+  freeDc: 14,
+  absentText: 'Rides with the party and keeps his head down. No roll.',
+  after: { effects: [] },
+  next: 'The capital is in front of them, and Harold is still in the saddlebag. Homecoming at the Leaking Tankard II is next.',
+};
+
+// Night 55 plan (not opened): homecoming at the Leaking Tankard II, then the guild hall.
+// Wes, Nov 27 2026: Gulpwell's geas is removed; he helps Mags smuggle ale into the grey lands. Tally begins running the guild store.
+// Open later with shop: 'capital' so the Teslandia mission board is under the Guildhall Bazaar. STOP: no next main-quest hook.
+export const GULPWELL_HOMECOMING_SCENE = {
+  id: 'a1_homecoming',
+  n: null,
+  title: 'Homecoming',
+  place: 'Teslandia \u00b7 the capital',
+  bg: 'tavern',
+  time: 'Evening',
+  shop: 'capital',
+  prose: [
+    'They are back in Teslandia\u2019s capital, and the first door is the one that matters. The Leaking Tankard II still has an empty shelf behind the bar, the one that has been waiting for a brass urn with Harold\u2019s name on it. Mags is there. The work of the last days was always this: put him back.',
+    'Teslandia commandos came home a different road, and they brought two people with them. Commissar Gulpwell had a geas on him \u2014 a socialist\u2019s geas, put there by someone who wanted the counting hall run a certain way. It is off him now. What is left is an enthusiastic capitalist, already talking to Mags about a practical problem: her ale, and the grey lands, and how a man who used to stamp condemned plate might help her get a cask where a cask is wanted. Tally Brisk came back with the same escort. She has a knack for logistics and accounting, and she has already been shown the guild store. She is going to run it.',
+    'After the shelf, they report in at the guild hall. The Teslandia mission board is up, under the Guildhall Bazaar, for short side jobs when they want them. Tally\u2019s shelves will take some stocking; new goods from her ledgers and from Gulpwell\u2019s arrangement with Mags are a matter for after this night, once the store is truly hers.',
+  ],
+  quote: { who: 'Mags, one hand on the empty shelf', text: '\u201cThere you are, Harold. I kept your place. Sit down, the lot of you, and tell me the true version.\u201d' },
+  moves: [
+    { id: 'shelf', label: 'Set Harold\u2019s urn back on the empty shelf and tell Mags how you got him home', tags: ['talk'], check: { skill: 'persuasion', dc: 14 }, hint: 'The shelf has been empty long enough. Mags will want the true version, and she will want him on that shelf before the story gets long.',
+      success: { text: 'Harold goes back where he drinks. Mags does not cry, exactly, but the Tankard is quieter for a moment, and then she stands the house and makes you say it again from the beginning, including the parts that do not make you look clever.', effects: [{ flag: 'urn_returned', flagText: 'Harold\u2019s urn is back on the empty shelf behind the bar at the Leaking Tankard II' }, { xp: 25, who: 'self', why: 'returned Harold\u2019s urn to Mags and told her how he got home' }] },
+      failure: { text: 'Harold goes on the shelf all the same; that was never in question. The story comes out in the wrong order, and Mags has to ask the same thing twice, but he is home, and she pours anyway.', effects: [{ flag: 'urn_returned', flagText: 'Harold\u2019s urn is back on the empty shelf behind the bar at the Leaking Tankard II' }] } },
+    { id: 'geas', label: 'Hear Gulpwell out now that the geas is off him', tags: ['talk'], check: { skill: 'insight', dc: 14 }, hint: 'The man in the counting hall and the man in the Tankard may not be the same man. A careful listen will tell you whether the capitalist talking to Mags about ale is the truth of him.',
+      success: { text: 'You can hear the difference. The geas is gone, and what is left is not a speech, it is a man happily arguing margins with Mags over a cask bound for the grey lands. He is, a little alarmingly, good at it.', effects: [{ flag: 'gulpwell_geas_lifted', flagText: 'Gulpwell\u2019s socialist geas is off him; he is an enthusiastic capitalist, helping Mags smuggle her ale into the grey lands' }, { xp: 25, who: 'self', why: 'heard Gulpwell out, geas gone, and believed the man talking to Mags' }] },
+      failure: { text: 'He talks fast, and about ale, and you cannot honestly say you have the measure of him yet. Mags seems to. The geas is off; the partnership is already being sketched on the back of a bill.', effects: [{ flag: 'gulpwell_geas_lifted', flagText: 'Gulpwell\u2019s socialist geas is off him; he is an enthusiastic capitalist, helping Mags smuggle her ale into the grey lands' }] } },
+    { id: 'report', label: 'Report in at the guild hall and walk Tally\u2019s new shelves', tags: ['notice'], check: { skill: 'investigation', dc: 14 }, hint: 'The guild wants the short version of Thimbleby. Tally is already in the store, counting, and the shelves will tell you what kind of steward she is going to be.',
+      success: { text: 'The report is short and it stands. Tally already has the store\u2019s books in a better order than you left them, and she can tell you, without looking, what is short and what will be in next. The Teslandia mission board is on the wall under the Bazaar, for whenever you want a side job.', effects: [{ flag: 'tally_runs_store', flagText: 'Tally Brisk has begun running the Teslandia guild store, and has a knack for logistics and accounting' }, { xp: 25, who: 'self', why: 'reported in at the guild hall and took the measure of Tally\u2019s new store' }] },
+      failure: { text: 'The guild takes the report and asks you to come back if you remember a date. Tally, at least, is already at work: ink on her fingers again, and the store\u2019s ledgers open. The board is up.', effects: [{ flag: 'tally_runs_store', flagText: 'Tally Brisk has begun running the Teslandia guild store, and has a knack for logistics and accounting' }] } },
+  ],
+  freeDc: 14,
+  absentText: 'Stands at the bar, lets Mags pour, and lets the others do the talking. No roll.',
+  after: { effects: [
+    { cid: 'story', flag: 'urn_returned', text: 'Harold\u2019s urn is back on the empty shelf behind the bar at the Leaking Tankard II' },
+    { cid: 'story', flag: 'gulpwell_geas_lifted', text: 'Gulpwell\u2019s socialist geas is off him; he is an enthusiastic capitalist, and he is helping Mags smuggle her ale into the grey lands' },
+    { cid: 'story', flag: 'tally_runs_store', text: 'Tally Brisk has begun running the Teslandia guild store' },
+  ] },
+  next: 'Harold is on his shelf, Tally is at the guild store, and the Teslandia mission board is open for side jobs.',
+};
+
+export const GULPWELL_SCENES = [GULPWELL_SCENE, GULPWELL_R2_SCENE, GULPWELL_R3_SCENE, GULPWELL_R4_SCENE, GULPWELL_SLIPOUT_SCENE, GULPWELL_ROAD_SCENE, GULPWELL_HOMECOMING_SCENE];
+
 
 export function gulpwellStartBattle(partyPos) {
   return { ...GULPWELL_FIGHT, partyPos: partyPos || GULPWELL_FIGHT.partyPos };
