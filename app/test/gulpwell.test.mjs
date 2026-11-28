@@ -2,7 +2,7 @@ import { test } from 'node:test'; import assert from 'node:assert/strict';
 import { startEncounter, resolveBattle, endEncounter, deriveSheet } from '../../engine/src/index.js';
 import { RULES_V2_NIGHT } from '../../engine/src/combat.js';
 import { party, PARTY_POS } from '../../engine/test/helpers.js';
-import { GULPWELL, TALLY_BRISK, GULPWELL_FIGHT, GULPWELL_XP, GULPWELL_R2_SCENE, GULPWELL_R3_SCENE, GULPWELL_R4_SCENE, GULPWELL_SCENES } from '../content/gulpwell.js';
+import { GULPWELL, TALLY_BRISK, GULPWELL_FIGHT, GULPWELL_XP, GULPWELL_R2_SCENE, GULPWELL_R3_SCENE, GULPWELL_R4_SCENE, GULPWELL_SLIPOUT_SCENE, GULPWELL_SCENES } from '../content/gulpwell.js';
 
 const LIVE_HP = { biggus: 28, cumbeard: 28, edgington: 26, skynflute: 21 };
 const POS = [{ cid: 'biggus', pos: [2, 6] }, { cid: 'cumbeard', pos: [2, 7] }, { cid: 'edgington', pos: [3, 5] }, { cid: 'skynflute', pos: [3, 8] }];
@@ -112,4 +112,14 @@ test('Night 52 continuation scene keeps victory flag and does not start a second
   const flags = (GULPWELL_R4_SCENE.after?.victory?.effects || []).map(e => e.flag);
   assert.ok(flags.includes('urn_recovered'));
   assert.ok(GULPWELL_SCENES.some(s => s.id === 'a1_gulpwell_4'));
+});
+
+test('Night 53 slip-out scene is a skill night with no battle, three moves, and the Pump Stall', () => {
+  assert.equal(GULPWELL_SLIPOUT_SCENE.id, 'a1_slipout');
+  assert.ok(!GULPWELL_SLIPOUT_SCENE.battle);
+  assert.equal(GULPWELL_SLIPOUT_SCENE.shop, 'thimbleby');
+  assert.equal(GULPWELL_SLIPOUT_SCENE.moves.length, 3);
+  for (const m of GULPWELL_SLIPOUT_SCENE.moves) { assert.ok(m.check?.skill && m.check?.dc); assert.ok(m.success?.text && m.failure?.text); }
+  assert.ok(!GULPWELL_SLIPOUT_SCENE.after?.startBattle);
+  assert.ok(GULPWELL_SCENES.some(s => s.id === 'a1_slipout'));
 });

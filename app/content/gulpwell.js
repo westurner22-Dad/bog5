@@ -135,7 +135,39 @@ export const GULPWELL_R4_SCENE = {
   next: "The fight in Gulpwell\u2019s office goes on. Orders for the next round are due after this one resolves.",
 };
 
-export const GULPWELL_SCENES = [GULPWELL_SCENE, GULPWELL_R2_SCENE, GULPWELL_R3_SCENE, GULPWELL_R4_SCENE];
+// Night 53 (after the office fight ended on Night 52): slip out of the hall and out of Thimbleby with the urn. Skill night, short recap.
+// Outline: notes-arc-outline-n47.md. The urn_recovered flag was already set by GULPWELL_VICTORY. Do not route through Fenwick/Tollford; no next main-quest hook here.
+export const GULPWELL_SLIPOUT_SCENE = {
+  id: 'a1_slipout',
+  n: null,
+  title: 'Out of Thimbleby',
+  place: 'Thimbleby \u00b7 the counting hall',
+  bg: 'city',
+  time: 'Afternoon',
+  shop: 'thimbleby',
+  prose: [
+    'Gulpwell is down on his own ledger table, Tally Brisk is sitting very carefully with her ink-stained hands where everyone can see them, and the barred cabinet is open. Harold\u2019s urn \u2014 brass, one, contents: Harold \u2014 is in the party\u2019s hands, and nobody is going to melt it today. The hall outside is still empty from Gorlock\u2019s warcry, which will not last. Sooner or later a clerk comes back for a pen.',
+    'The horses Y\u00e4est secured are still stabled near the hall. The work now is to get out of the counting hall and out of Thimbleby with the urn before the afternoon bell and anyone with a form arrives. The Pump Stall is still open on the square if anyone needs a few things for the road.',
+  ],
+  quote: { who: 'Tally Brisk, hands flat on the desk', text: '\u201cThe door sticks. Lift it a little. I would hate for anyone to hear you leave.\u201d' },
+  moves: [
+    { id: 'urnout', label: 'Carry the urn out of the hall without standing in a clerk\u2019s question', tags: ['risky'], check: { skill: 'deception', dc: 14 }, hint: 'A brass urn under a coat, a calm walk, and the look of a person with a form. The hall is quiet now, but not for long.',
+      success: { text: 'You walk the urn out the way you would walk a stack of ledgers: unhurried, a little bored, and slightly in the way. The few clerks who have drifted back look at your coat and their own work, in that order, and the delivery door lets you out into the side yard.', effects: [{ flag: 'urn_carried_out', flagText: 'the party carried Harold\u2019s urn out of the counting hall by the delivery door without a clerk\u2019s question' }, { xp: 25, who: 'self', why: 'carried the urn out of the hall quietly' }] },
+      failure: { text: 'A clerk, back for a pen, looks at the coat, then at the shape under it, and then very carefully at nothing. You get out through the side yard on a fast walk and a slow breath, and the clerk\u2019s eyes are on your back the whole way.', effects: [] } },
+    { id: 'horses', label: 'Get the getaway horses out of the stable and loaded', tags: ['talk'], check: { skill: 'animal_handling', dc: 14 }, hint: 'Y\u00e4est\u2019s horses are stabled near the hall, rested and ready. Four riders, one urn, and a stableboy who would like to see a form.',
+      success: { text: 'The horses are rested and glad to go, the stableboy gets the coin Y\u00e4est left for exactly this, and the urn rides in the saddlebag of the steadiest one. Nobody on the lane takes a second look at four riders leaving town in no hurry.', effects: [{ flag: 'horses_loaded', flagText: 'the party got the getaway horses out of the stable and loaded, the urn in a saddlebag' }, { xp: 25, who: 'self', why: 'got the getaway horses out and loaded' }] },
+      failure: { text: 'The horses balk at the smell of powder smoke that came out of the hall with you, and the stableboy wants to know why everyone is in such a hurry. It costs a few minutes and a few coins, but the horses come.', effects: [] } },
+    { id: 'gate', label: 'Take the road out of Thimbleby before word gets around', tags: ['notice'], check: { skill: 'stealth', dc: 14 }, hint: 'The square is busy, the road gate has a clerk on it, and the afternoon bell is coming. A quiet way out is the best way out.',
+      success: { text: 'You take the lane behind the stables, cross the square at the one moment it is full of carts, and ride out at a walk. The gate clerk is busy with a toll and a farmer, and the road opens in front of you with no one calling after you.', effects: [{ flag: 'out_of_thimbleby', flagText: 'the party left Thimbleby by the road gate before word of the counting hall got around' }, { xp: 25, who: 'self', why: 'got out of Thimbleby before word got around' }] },
+      failure: { text: 'The gate clerk looks up, looks at the horses, and writes something down. You are out of town, but you will want to ride a little faster than you meant to.', effects: [] } },
+  ],
+  freeDc: 14,
+  absentText: 'Rides with the party and keeps his head down. No roll.',
+  after: { effects: [] },
+  next: 'They are out of the counting hall with Harold\u2019s urn and the horses. The road home to Teslandia\u2019s capital is next.',
+};
+
+export const GULPWELL_SCENES = [GULPWELL_SCENE, GULPWELL_R2_SCENE, GULPWELL_R3_SCENE, GULPWELL_R4_SCENE, GULPWELL_SLIPOUT_SCENE];
 
 export function gulpwellStartBattle(partyPos) {
   return { ...GULPWELL_FIGHT, partyPos: partyPos || GULPWELL_FIGHT.partyPos };

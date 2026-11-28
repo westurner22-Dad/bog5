@@ -21,6 +21,14 @@ export const REELS = [
     poster: 'assets/videos/claim-fight.jpg',
     credit: 'Music: Heavy Battle 1 by MintoDog (CC0, OpenGameArt.org)',
   },
+  {
+    nights: [52],
+    scenes: ['a1_gulpwell_4'],
+    title: 'Battle reel: The Reckoning of Commissar Gulpwell',
+    src: 'assets/videos/gulpwell-fight.mp4',
+    poster: 'assets/videos/gulpwell-fight.jpg',
+    credit: 'Music: Heavy Battle 1 by MintoDog (CC0, OpenGameArt.org)',
+  },
 ];
 
 export function reelFor(night, sceneId) {
