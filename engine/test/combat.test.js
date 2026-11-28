@@ -272,7 +272,7 @@ test('a scripted saveBurst at the start of a later round runs before anyone acts
     script: [{
       round: 3,
       text: "Boobington's Ice Knife, delayed from round 2, bursts around Comptroller Tally Brisk.",
-      saveBurst: { uids: ['tally'], save: 'dex', dcFrom: 'edgington', spell: 'ice_knife', dice: '2d6', type: 'cold', half: true, why: 'Ice Knife burst' },
+      saveBurst: { uids: ['tally'], save: 'dex', dcFrom: 'edgington', spell: 'ice_knife', dice: '2d6', type: 'cold', half: false, why: 'Ice Knife burst' },
     }] });
   const before = C(g, 'tally').hp.cur;
   g.state.encounter.status = 'awaiting_orders';
